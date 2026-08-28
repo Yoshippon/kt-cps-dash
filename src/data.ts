@@ -11,6 +11,30 @@ export interface Match {
   isPlayer2Skip: boolean
 }
 
+export type MapCategory = 'Open' | 'Close Quarters' | 'Hazardous Terrain'
+
+export interface MapData {
+  name: string
+  category: MapCategory
+  owners: string[]
+}
+
+export const MAPS: MapData[] = [
+  { name: 'Volkus', category: 'Open', owners: ['Chiep', 'Joao', 'Lucas', 'Gabriel'] },
+  { name: 'Gallowdark', category: 'Close Quarters', owners: ['Joao', 'Rafa 1'] },
+  { name: 'Tomb World', category: 'Close Quarters', owners: ['Joao', 'Rafa 1'] },
+  { name: 'Octarius', category: 'Open', owners: ['Joao'] },
+  { name: 'Nachmund', category: 'Open', owners: ['Joao'] },
+  { name: 'Chalnath', category: 'Open', owners: ['Joao'] },
+  { name: 'Bheta Decima', category: 'Hazardous Terrain', owners: ['Joao'] },
+  { name: 'Ipiranga X', category: 'Open', owners: ['Joao'] },
+  { name: 'Moroch', category: 'Open', owners: ['Joao'] },
+  { name: 'Dust II', category: 'Open', owners: ['Rafa 1'] },
+  { name: 'Sector Fatalis', category: 'Open', owners: ['Rafa 1'] },
+  { name: 'WTC', category: 'Open', owners: ['Leon'] },
+  { name: 'Bunda Secundus', category: 'Hazardous Terrain', owners: ['Davi'] },
+]
+
 export const MATCHES: Match[] = [
   { "date": "2026-08-21", "map": "Gallowdark", "teamOne": "Blooded", "teamTwo": "Corsair Voidscarred", "player1": "Joao", "player2": "Davi", "isTied": false, "isHomebrew": false, "isPlayer1Skip": false, "isPlayer2Skip": false },
   { "date": "2026-08-21", "map": "Moroch", "teamOne": "Wolf Scouts", "teamTwo": "Wrecka Crew", "player1": "Rafa 1", "player2": "Rafa 2", "isTied": false, "isHomebrew": false, "isPlayer1Skip": false, "isPlayer2Skip": false },
@@ -39,7 +63,7 @@ export const MATCHES: Match[] = [
   { "date": "2026-06-19", "map": "Moroch", "teamOne": "Wrecka Crew", "teamTwo": "Celestial Insidiants", "player1": "Rafa 2", "player2": "Lucas", "isTied": false, "isHomebrew": false, "isPlayer1Skip": false, "isPlayer2Skip": false },
   { "date": "2026-06-12", "map": "WTC", "teamOne": "Brood Brothers", "teamTwo": "Exaction Squad", "player1": "Rafa 1", "player2": "Davi", "isTied": false, "isHomebrew": false, "isPlayer1Skip": false, "isPlayer2Skip": false },
   { "date": "2026-06-12", "map": "Gallowdark", "teamOne": "Celestial Insidiants", "teamTwo": "Goremongers", "player1": "Lucas", "player2": "Leon", "isTied": false, "isHomebrew": false, "isPlayer1Skip": false, "isPlayer2Skip": false },
-  { "date": "2026-06-05", "map": "Double Volkus", "teamOne": "Imperial Navy Breachers", "teamTwo": "Kommandos", "player1": "Joao", "player2": "Rafa 2", "isTied": false, "isHomebrew": false, "isPlayer1Skip": false, "isPlayer2Skip": false },
+  { "date": "2026-06-05", "map": "Volkus", "teamOne": "Imperial Navy Breachers", "teamTwo": "Kommandos", "player1": "Joao", "player2": "Rafa 2", "isTied": false, "isHomebrew": false, "isPlayer1Skip": false, "isPlayer2Skip": false },
   { "date": "2026-06-05", "map": "Tomb World", "teamOne": "Ratlings", "teamTwo": "Wrecka Crew", "player1": "Rafa 1", "player2": "Lucas", "isTied": false, "isHomebrew": false, "isPlayer1Skip": false, "isPlayer2Skip": false },
   { "date": "2026-05-29", "map": "WTC", "teamOne": "Goremongers", "teamTwo": "Wrecka Crew", "player1": "Leon", "player2": "Lucas", "isTied": false, "isHomebrew": false, "isPlayer1Skip": false, "isPlayer2Skip": false },
   { "date": "2026-05-29", "map": "Volkus", "teamOne": "XV26 Stealth Battlesuits", "teamTwo": "Wolf Scouts", "player1": "Joao", "player2": "Rafa 1", "isTied": false, "isHomebrew": false, "isPlayer1Skip": false, "isPlayer2Skip": false },
