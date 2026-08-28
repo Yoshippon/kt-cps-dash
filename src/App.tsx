@@ -11,7 +11,6 @@ function App() {
     <main className="app-shell">
       <header className="topbar">
         <div className="brand-lockup"><span className="brand-mark">KT</span><h1>Kill Team Campinas</h1></div>
-        <button className="add-match" type="button" aria-label="Add a match"><span aria-hidden="true">+</span> Add match</button>
       </header>
       <nav className="tabs" aria-label="Dashboard views">
         <button className={activeTab === 'matches' ? 'tab active' : 'tab'} type="button" onClick={() => setActiveTab('matches')}>Matches</button>
