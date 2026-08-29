@@ -19,6 +19,28 @@ const getPlayersForWindow = (days: number) => [...new Set(MATCHES.flatMap((match
 
 const getPairKey = (firstPlayer: string, secondPlayer: string) => [firstPlayer, secondPlayer].sort().join('::')
 type SuggestedMatchup = { firstPlayer: string; secondPlayer: string; lastPlayed: string | undefined; map?: string }
+const getWeekKey = (date: string) => {
+  const day = new Date(`${date}T00:00:00Z`)
+  const mondayOffset = (day.getUTCDay() + 6) % 7
+  day.setUTCDate(day.getUTCDate() - mondayOffset)
+  return day.toISOString().slice(0, 10)
+}
+
+const getConsecutiveGames = () => {
+  const weeks = [...new Set(MATCHES.map((match) => getWeekKey(match.date)))].sort().reverse()
+  const players = [...new Set(MATCHES.flatMap((match) => [match.player1, match.player2]))]
+  return new Map(players.map((player) => {
+    const playerWeeks = new Set(MATCHES
+      .filter((match) => match.player1 === player || match.player2 === player)
+      .map((match) => getWeekKey(match.date)))
+    let streak = 0
+    for (const week of weeks) {
+      if (!playerWeeks.has(week)) break
+      streak += 1
+    }
+    return [player, streak]
+  }))
+}
 
 function NextMeeting({ isActive }: { isActive: boolean }) {
   const [playerWindow, setPlayerWindow] = useState('3')
@@ -31,6 +53,7 @@ function NextMeeting({ isActive }: { isActive: boolean }) {
   const [spinningMatchup, setSpinningMatchup] = useState<string | null>(null)
   const selectedWindow = PLAYER_WINDOWS.find((window) => window.value === playerWindow) ?? PLAYER_WINDOWS[0]
   const matrixPlayers = getPlayersForWindow(selectedWindow.days)
+  const consecutiveGames = useMemo(getConsecutiveGames, [])
   const latestMatchups = useMemo(() => {
     const latest = new Map<string, string>()
     MATCHES.forEach((match) => {
@@ -43,15 +66,11 @@ function NextMeeting({ isActive }: { isActive: boolean }) {
   const [selectedPlayers, setSelectedPlayers] = useState<string[]>(() => recentPlayers)
 
   const selectedMatrixPlayers = selectedPlayers.filter((player) => matrixPlayers.includes(player))
+  const maxStreak = Math.max(0, ...matrixPlayers.map((player) => consecutiveGames.get(player) ?? 0))
   const availableMaps = useMemo(() => {
     if (selectedPlayers.length === 0) return []
     return MAPS.filter((map) => map.owners.some((owner) => selectedPlayers.includes(owner)))
   }, [selectedPlayers])
-  const mapsByCategory = useMemo(() => {
-    const categories: Record<string, typeof MAPS> = { 'Open': [], 'Close Quarters': [], 'Hazardous Terrain': [] }
-    availableMaps.forEach((map) => { categories[map.category].push(map) })
-    return categories
-  }, [availableMaps])
   const suggestedMatchups = useMemo(() => {
     const remaining = new Set(selectedMatrixPlayers)
     const suggestions: SuggestedMatchup[] = []
@@ -64,6 +83,11 @@ function NextMeeting({ isActive }: { isActive: boolean }) {
         remaining.delete(secondPlayer)
       }
     })
+
+    const byePlayer = remaining.size % 2 === 1
+      ? [...remaining].sort((first, second) => (consecutiveGames.get(second) ?? 0) - (consecutiveGames.get(first) ?? 0) || first.localeCompare(second))[0]
+      : undefined
+    if (byePlayer) remaining.delete(byePlayer)
 
     const remainingPlayers = [...remaining]
     
@@ -101,12 +125,12 @@ function NextMeeting({ isActive }: { isActive: boolean }) {
       }
     }
 
-    return suggestions
-  }, [bannedMatchups, latestMatchups, lockedMatchups, selectedMatrixPlayers, randomSeed])
+    return { suggestions, byePlayer }
+  }, [bannedMatchups, consecutiveGames, latestMatchups, lockedMatchups, selectedMatrixPlayers, randomSeed])
 
   const matchupsWithMaps = useMemo(() => {
-    if (availableMaps.length === 0 || suggestedMatchups.length === 0) {
-      return suggestedMatchups.map((m) => ({ ...m, map: undefined }))
+    if (availableMaps.length === 0 || suggestedMatchups.suggestions.length === 0) {
+      return suggestedMatchups.suggestions.map((m) => ({ ...m, map: undefined }))
     }
     const mapPool = [...availableMaps]
     // Fisher-Yates shuffle using mapSeed
@@ -116,7 +140,7 @@ function NextMeeting({ isActive }: { isActive: boolean }) {
       const j = seed % (i + 1)
       ;[mapPool[i], mapPool[j]] = [mapPool[j], mapPool[i]]
     }
-    return suggestedMatchups.map((matchup, index) => ({
+    return suggestedMatchups.suggestions.map((matchup, index) => ({
       ...matchup,
       map: mapPool[index % mapPool.length]
     }))
@@ -171,7 +195,10 @@ function NextMeeting({ isActive }: { isActive: boolean }) {
       <section className="attendees" aria-labelledby="attendees-heading">
         <div><h3 id="attendees-heading">Players Attending</h3><p>Select players attending. Each player appears in one suggested matchup.</p></div>
         <div className="planner-players">
-          {matrixPlayers.map((player) => (
+          {matrixPlayers.map((player) => {
+            const streak = consecutiveGames.get(player) ?? 0
+            const isLongestStreak = streak === maxStreak && streak > 0
+            return (
             <label key={player}>
               <input
                 type="checkbox"
@@ -182,32 +209,18 @@ function NextMeeting({ isActive }: { isActive: boolean }) {
                     : [...current, player]
                 )}
               />
-              {player}
+              {player}{isLongestStreak && <span className="streak-fire" aria-label="Longest streak">🔥</span>}
+              <small className={isLongestStreak ? 'streak-highlight' : ''}>{streak} streak</small>
             </label>
-          ))}
+          )})}
         </div>
-        <p className="attendee-count">{selectedPlayers.length} of {matrixPlayers.length} players attending</p>
+        <p className="attendee-count">{selectedPlayers.length} players attending</p>
       </section>
 
       {selectedPlayers.length > 0 && (
         <section className="maps-section" aria-labelledby="maps-heading">
-          <h3 id="maps-heading">Available Maps</h3>
-          <p>Maps owned by attending players, grouped by category.</p>
-          {Object.entries(mapsByCategory).map(([category, maps]) =>
-            maps.length > 0 ? (
-              <div key={category} className="map-category">
-                <h4>{category}</h4>
-                <ul className="map-list">
-                  {maps.map((map) => (
-                    <li key={map.name}>
-                      <strong>{map.name}</strong>
-                      <span className="map-owners">({map.owners.filter((o) => selectedPlayers.includes(o)).join(', ')})</span>
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            ) : null
-          )}
+          <header className="section-heading"><h3 id="maps-heading">Available Maps</h3><span>{availableMaps.length} available</span></header>
+          <div className="available-map-list">{availableMaps.map((map) => <span className="available-map" key={map.name}><strong>{map.name}</strong><small>{map.owners.filter((owner) => selectedPlayers.includes(owner)).join(', ')}</small></span>)}</div>
           {availableMaps.length === 0 && <p className="no-maps">No maps available for selected players.</p>}
         </section>
       )}
@@ -256,10 +269,10 @@ function NextMeeting({ isActive }: { isActive: boolean }) {
           })}
         </div>
 
-        {suggestedMatchups.length > 0 ? (
+        {suggestedMatchups.suggestions.length > 0 || suggestedMatchups.byePlayer ? (
           <div className="suggestions">
             <strong>Suggested Matchups</strong>
-            {matchupsWithMaps.map(({ firstPlayer, secondPlayer, lastPlayed, map }, index) => {
+            {matchupsWithMaps.map(({ firstPlayer, secondPlayer, lastPlayed, map }) => {
               const matchupKey = `${firstPlayer}-${secondPlayer}`
               const isLocked = lockedMatchups.includes(getPairKey(firstPlayer, secondPlayer))
               return (
@@ -302,6 +315,7 @@ function NextMeeting({ isActive }: { isActive: boolean }) {
                 </div>
               )
             })}
+            {suggestedMatchups.byePlayer && <small>{suggestedMatchups.byePlayer} gets a bye after {consecutiveGames.get(suggestedMatchups.byePlayer)} streak.</small>}
           </div>
         ) : (
           <p className="no-suggestions">Select at least two players to generate matchups.</p>

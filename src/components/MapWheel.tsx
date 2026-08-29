@@ -18,7 +18,7 @@ function MapWheel({ maps, isOpen, onClose, onSelect }: MapWheelProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const [spinning, setSpinning] = useState(false)
   const [selectedMap, setSelectedMap] = useState<MapData | null>(null)
-  const animationFrameRef = useRef<number>()
+  const animationFrameRef = useRef<number | undefined>(undefined)
 
   const spin = () => {
     if (spinning || maps.length === 0) return
@@ -113,7 +113,7 @@ function MapWheel({ maps, isOpen, onClose, onSelect }: MapWheelProps) {
 
   useEffect(() => {
     if (!isOpen) {
-      cancelAnimationFrame(animationFrameRef.current)
+      if (animationFrameRef.current !== undefined) cancelAnimationFrame(animationFrameRef.current)
       setSpinning(false)
       setSelectedMap(null)
     }
