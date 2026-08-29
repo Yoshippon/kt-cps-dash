@@ -51,6 +51,7 @@ function NextMeeting({ isActive }: { isActive: boolean }) {
   const [randomSeed, setRandomSeed] = useState(0)
   const [mapSeed, setMapSeed] = useState(0)
   const [spinningMatchup, setSpinningMatchup] = useState<string | null>(null)
+  const [selectedMaps, setSelectedMaps] = useState<Record<string, MapData>>({})
   const selectedWindow = PLAYER_WINDOWS.find((window) => window.value === playerWindow) ?? PLAYER_WINDOWS[0]
   const matrixPlayers = getPlayersForWindow(selectedWindow.days)
   const consecutiveGames = useMemo(getConsecutiveGames, [])
@@ -142,9 +143,9 @@ function NextMeeting({ isActive }: { isActive: boolean }) {
     }
     return suggestedMatchups.suggestions.map((matchup, index) => ({
       ...matchup,
-      map: mapPool[index % mapPool.length]
+      map: selectedMaps[`${matchup.firstPlayer}-${matchup.secondPlayer}`] ?? mapPool[index % mapPool.length]
     }))
-  }, [availableMaps, suggestedMatchups, mapSeed])
+  }, [availableMaps, mapSeed, selectedMaps, suggestedMatchups])
 
   const addMatchupRule = (type: 'lock' | 'ban') => {
     if (!ruleFirstPlayer || !ruleSecondPlayer || ruleFirstPlayer === ruleSecondPlayer) return
@@ -165,12 +166,9 @@ function NextMeeting({ isActive }: { isActive: boolean }) {
     setBannedMatchups((current) => current.filter((item) => item !== pair))
   }
 
-  const handleMapSelect = (_map: MapData) => {
+  const handleMapSelect = (map: MapData) => {
     if (!spinningMatchup) return
-    // In a full implementation, you'd store per-matchup map selection
-    // For now, we'll use the mapSeed approach to trigger a re-randomization
-    setMapSeed((s) => s + 1)
-    setSpinningMatchup(null)
+    setSelectedMaps((current) => ({ ...current, [spinningMatchup]: map }))
   }
 
   const openWheel = (matchupKey: string) => {
@@ -288,29 +286,11 @@ function NextMeeting({ isActive }: { isActive: boolean }) {
                       ? `Last played ${formatDate(lastPlayed)} (${getElapsedTime(lastPlayed)})`
                       : 'Never played'}
                   </span>
-                  <div className="suggestion-map-actions">
-                    {map ? (
-                      <>
-                        <span className="suggestion-map">🗺️ {map.name} ({map.category})</span>
-                        <button
-                          type="button"
-                          className="spin-btn-small"
-                          onClick={() => openWheel(matchupKey)}
-                          disabled={spinningMatchup !== null && spinningMatchup !== matchupKey}
-                        >
-                          Re-spin
-                        </button>
-                      </>
-                    ) : (
-                      <button
-                        type="button"
-                        className="spin-btn-small"
-                        onClick={() => openWheel(matchupKey)}
-                        disabled={spinningMatchup !== null && spinningMatchup !== matchupKey}
-                      >
-                        🎡 Spin for Map
-                      </button>
-                    )}
+                  <div className="suggestion-map-row">
+                    {map ? <span className="suggestion-map">Map: {map.name}</span> : <span className="suggestion-map">Map: unassigned</span>}
+                    <button type="button" className="spin-btn-small" onClick={() => openWheel(matchupKey)} disabled={spinningMatchup !== null && spinningMatchup !== matchupKey}>
+                      {map ? 'Re-spin' : 'Spin for map'}
+                    </button>
                   </div>
                 </div>
               )
