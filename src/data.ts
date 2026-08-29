@@ -12,6 +12,9 @@ export interface Match {
 }
 
 export const MATCHES: Match[] = [
+  { "date": "2026-08-28", "map": "WTC", "teamOne": "Spectres", "teamTwo": "Vespid Stingwings", "player1": "Leon", "player2": "Chiep", "isTied": false, "isHomebrew": false, "isPlayer1Skip": false, "isPlayer2Skip": false },
+  { "date": "2026-08-28", "map": "Gallowdark", "teamOne": "Hernkyn Yaegirs", "teamTwo": "Deathwatch", "player1": "Rafa 1", "player2": "Lucas", "isTied": false, "isHomebrew": false, "isPlayer1Skip": false, "isPlayer2Skip": false },
+  { "date": "2026-08-28", "map": "Sector Fatalis", "teamOne": "Kommandos", "teamTwo": "Plague Marines", "player1": "Davi", "player2": "Gabriel", "isTied": false, "isHomebrew": false, "isPlayer1Skip": false, "isPlayer2Skip": false },
   { "date": "2026-08-21", "map": "Gallowdark", "teamOne": "Blooded", "teamTwo": "Corsair Voidscarred", "player1": "Joao", "player2": "Davi", "isTied": false, "isHomebrew": false, "isPlayer1Skip": false, "isPlayer2Skip": false },
   { "date": "2026-08-21", "map": "Moroch", "teamOne": "Wolf Scouts", "teamTwo": "Wrecka Crew", "player1": "Rafa 1", "player2": "Rafa 2", "isTied": false, "isHomebrew": false, "isPlayer1Skip": false, "isPlayer2Skip": false },
   { "date": "2026-08-21", "map": "Volkus", "teamOne": "Sanctifiers", "teamTwo": "Deathwatch", "player1": "Chiep", "player2": "Lucas", "isTied": false, "isHomebrew": false, "isPlayer1Skip": false, "isPlayer2Skip": false },
