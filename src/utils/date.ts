@@ -19,6 +19,7 @@ export const getElapsedTime = (date: string) => {
 
 export const getMatchupStatus = (date: string) => {
   const days = getElapsedDays(date)
+  if (days < 7) return 'fresh'
   if (days < 28) return 'recent'
   if (days < 90) return 'average'
   return 'old'

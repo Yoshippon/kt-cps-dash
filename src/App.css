@@ -142,11 +142,11 @@ h1 { margin: 2px 0 0; font: 700 18px var(--display); letter-spacing: 0; color: v
 .matrix-legend i { display: block; width: 8px; height: 8px; border-radius: 50%; }
 .matchup-matrix { width: 100%; min-width: 680px; border-collapse: collapse; table-layout: fixed; }
 .matchup-matrix th, .matchup-matrix td { border-right: 1px solid var(--line); border-bottom: 1px solid var(--line); padding: 16px 10px; text-align: center; }
-.matchup-matrix thead th { color: var(--muted); font: 700 10px var(--mono); text-transform: uppercase; letter-spacing: .5px; }
-.matchup-matrix thead th:first-child, .matchup-matrix tbody th { width: 105px; color: var(--ink); text-align: left; }
-.matchup-matrix tbody th { font-size: 14px; }
+.matchup-matrix thead th, .matchup-matrix tbody th { width: 105px; color: var(--ink); font: 700 12px var(--mono); letter-spacing: .2px; text-transform: none; }
+.matchup-matrix thead th:first-child, .matchup-matrix tbody th { text-align: left; }
 .matchup-matrix td { color: var(--ink); font: 500 11px var(--mono); }
 .matchup-cell { background: rgba(93, 139, 106, .12); }
+.matchup-cell.fresh, .matrix-legend i.fresh { background-color: rgba(72, 123, 255, .16); color: #2e5bd9; }
 .matchup-cell.recent, .matrix-legend i.recent { background-color: rgba(93, 139, 106, .18); color: #356343; }
 .matchup-cell.average, .matrix-legend i.average { background-color: rgba(205, 170, 57, .2); color: #806712; }
 .matchup-cell.old, .matrix-legend i.old { background-color: rgba(190, 69, 52, .14); color: #a13d30; }
