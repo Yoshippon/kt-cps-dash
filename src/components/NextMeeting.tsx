@@ -1,6 +1,8 @@
 import { useMemo, useState } from 'react'
 import { MATCHES, MAPS } from '../data'
+import type { MapData } from '../data'
 import { formatDate, getElapsedDays, getElapsedTime } from '../utils/date'
+import MapWheel from './MapWheel'
 
 const PLAYER_WINDOWS = [
   { value: '3', label: 'Active players (last 3 months)', days: 90 },
@@ -16,7 +18,7 @@ const getPlayersForWindow = (days: number) => [...new Set(MATCHES.flatMap((match
   .sort()
 
 const getPairKey = (firstPlayer: string, secondPlayer: string) => [firstPlayer, secondPlayer].sort().join('::')
-type SuggestedMatchup = { firstPlayer: string; secondPlayer: string; lastPlayed: string | undefined }
+type SuggestedMatchup = { firstPlayer: string; secondPlayer: string; lastPlayed: string | undefined; map?: string }
 
 function NextMeeting({ isActive }: { isActive: boolean }) {
   const [playerWindow, setPlayerWindow] = useState('3')
@@ -25,6 +27,8 @@ function NextMeeting({ isActive }: { isActive: boolean }) {
   const [lockedMatchups, setLockedMatchups] = useState<string[]>([])
   const [bannedMatchups, setBannedMatchups] = useState<string[]>([])
   const [randomSeed, setRandomSeed] = useState(0)
+  const [mapSeed, setMapSeed] = useState(0)
+  const [spinningMatchup, setSpinningMatchup] = useState<string | null>(null)
   const selectedWindow = PLAYER_WINDOWS.find((window) => window.value === playerWindow) ?? PLAYER_WINDOWS[0]
   const matrixPlayers = getPlayersForWindow(selectedWindow.days)
   const latestMatchups = useMemo(() => {
@@ -100,6 +104,24 @@ function NextMeeting({ isActive }: { isActive: boolean }) {
     return suggestions
   }, [bannedMatchups, latestMatchups, lockedMatchups, selectedMatrixPlayers, randomSeed])
 
+  const matchupsWithMaps = useMemo(() => {
+    if (availableMaps.length === 0 || suggestedMatchups.length === 0) {
+      return suggestedMatchups.map((m) => ({ ...m, map: undefined }))
+    }
+    const mapPool = [...availableMaps]
+    // Fisher-Yates shuffle using mapSeed
+    let seed = mapSeed
+    for (let i = mapPool.length - 1; i > 0; i--) {
+      seed = (seed * 1664525 + 1013904223) >>> 0
+      const j = seed % (i + 1)
+      ;[mapPool[i], mapPool[j]] = [mapPool[j], mapPool[i]]
+    }
+    return suggestedMatchups.map((matchup, index) => ({
+      ...matchup,
+      map: mapPool[index % mapPool.length]
+    }))
+  }, [availableMaps, suggestedMatchups, mapSeed])
+
   const addMatchupRule = (type: 'lock' | 'ban') => {
     if (!ruleFirstPlayer || !ruleSecondPlayer || ruleFirstPlayer === ruleSecondPlayer) return
     const pair = getPairKey(ruleFirstPlayer, ruleSecondPlayer)
@@ -117,6 +139,18 @@ function NextMeeting({ isActive }: { isActive: boolean }) {
   const removeMatchupRule = (pair: string) => {
     setLockedMatchups((current) => current.filter((item) => item !== pair))
     setBannedMatchups((current) => current.filter((item) => item !== pair))
+  }
+
+  const handleMapSelect = (_map: MapData) => {
+    if (!spinningMatchup) return
+    // In a full implementation, you'd store per-matchup map selection
+    // For now, we'll use the mapSeed approach to trigger a re-randomization
+    setMapSeed((s) => s + 1)
+    setSpinningMatchup(null)
+  }
+
+  const openWheel = (matchupKey: string) => {
+    setSpinningMatchup(matchupKey)
   }
 
   return (
@@ -205,6 +239,7 @@ function NextMeeting({ isActive }: { isActive: boolean }) {
             <button type="button" onClick={() => addMatchupRule('lock')}>Lock matchup</button>
             <button type="button" onClick={() => addMatchupRule('ban')}>Ban matchup</button>
             <button type="button" className="randomize-btn" onClick={() => setRandomSeed((s) => s + 1)}>Randomize</button>
+            <button type="button" className="randomize-btn" onClick={() => setMapSeed((s) => s + 1)}>Randomize Maps</button>
           </div>
           {[
             ...lockedMatchups.map((pair) => ({ pair, label: 'Locked' })),
@@ -224,30 +259,60 @@ function NextMeeting({ isActive }: { isActive: boolean }) {
         {suggestedMatchups.length > 0 ? (
           <div className="suggestions">
             <strong>Suggested Matchups</strong>
-            {suggestedMatchups.map(({ firstPlayer, secondPlayer, lastPlayed }, index) => (
-              <div
-                className={
-                  lockedMatchups.includes(getPairKey(firstPlayer, secondPlayer))
-                    ? 'suggestion locked'
-                    : 'suggestion'
-                }
-                key={`${firstPlayer}-${secondPlayer}-${index}`}
-              >
-                <span className="suggestion-pair">
-                  <b>{firstPlayer}</b> vs <b>{secondPlayer}</b>
-                </span>
-                <span className="suggestion-meta">
-                  {lastPlayed
-                    ? `Last played ${formatDate(lastPlayed)} (${getElapsedTime(lastPlayed)})`
-                    : 'Never played'}
-                </span>
-              </div>
-            ))}
+            {matchupsWithMaps.map(({ firstPlayer, secondPlayer, lastPlayed, map }, index) => {
+              const matchupKey = `${firstPlayer}-${secondPlayer}`
+              const isLocked = lockedMatchups.includes(getPairKey(firstPlayer, secondPlayer))
+              return (
+                <div
+                  className={isLocked ? 'suggestion locked' : 'suggestion'}
+                  key={matchupKey}
+                >
+                  <span className="suggestion-pair">
+                    <b>{firstPlayer}</b> vs <b>{secondPlayer}</b>
+                  </span>
+                  <span className="suggestion-meta">
+                    {lastPlayed
+                      ? `Last played ${formatDate(lastPlayed)} (${getElapsedTime(lastPlayed)})`
+                      : 'Never played'}
+                  </span>
+                  <div className="suggestion-map-actions">
+                    {map ? (
+                      <>
+                        <span className="suggestion-map">🗺️ {map.name} ({map.category})</span>
+                        <button
+                          type="button"
+                          className="spin-btn-small"
+                          onClick={() => openWheel(matchupKey)}
+                          disabled={spinningMatchup !== null && spinningMatchup !== matchupKey}
+                        >
+                          Re-spin
+                        </button>
+                      </>
+                    ) : (
+                      <button
+                        type="button"
+                        className="spin-btn-small"
+                        onClick={() => openWheel(matchupKey)}
+                        disabled={spinningMatchup !== null && spinningMatchup !== matchupKey}
+                      >
+                        🎡 Spin for Map
+                      </button>
+                    )}
+                  </div>
+                </div>
+              )
+            })}
           </div>
         ) : (
           <p className="no-suggestions">Select at least two players to generate matchups.</p>
         )}
       </section>
+      <MapWheel
+        maps={availableMaps}
+        isOpen={spinningMatchup !== null}
+        onClose={() => setSpinningMatchup(null)}
+        onSelect={handleMapSelect}
+      />
     </div>
   )
 }
