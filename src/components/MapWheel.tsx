@@ -9,7 +9,7 @@ interface MapWheelProps {
   onSelect: (map: MapData) => void
 }
 
-const WHEEL_COLORS = ['#7898bd', '#c98278', '#d0b86a', '#83a88b', '#a28abd', '#78bdc7', '#8290b2', '#b58b74']
+const WHEEL_COLORS = ['#dd5d32', '#4d7c8b', '#5d8b6a', '#c68d6a', '#7a8aa6', '#9a7f5d', '#5b7d99', '#d4b56f']
 
 const getWinningIndex = (angle: number, segmentAngle: number, segmentCount: number) => {
   const index = Math.round(-angle / segmentAngle)
@@ -18,11 +18,86 @@ const getWinningIndex = (angle: number, segmentAngle: number, segmentCount: numb
 
 function MapWheel({ maps, isOpen, onClose, onSelect }: MapWheelProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null)
+  const confettiRef = useRef<HTMLCanvasElement | null>(null)
+  const spinEndSoundRef = useRef<HTMLAudioElement | null>(null)
   const [spinning, setSpinning] = useState(false)
   const [selectedMap, setSelectedMap] = useState<MapData | null>(null)
+  const [winnerDialogOpen, setWinnerDialogOpen] = useState(false)
   const [excludedMaps, setExcludedMaps] = useState<string[]>([])
   const animationFrameRef = useRef<number | undefined>(undefined)
   const availableMaps = maps.filter((map) => !excludedMaps.includes(map.name))
+
+  const playSpinEndSound = () => {
+    const sound = spinEndSoundRef.current ?? new Audio(spinEndSound)
+    spinEndSoundRef.current = sound
+    sound.volume = 0.9
+    sound.pause()
+
+    const startAtOffset = () => {
+      if (sound.duration && sound.duration > 2) {
+        sound.currentTime = 2
+      }
+      sound.play().catch(() => {})
+    }
+
+    if (sound.readyState >= 2) {
+      startAtOffset()
+      return
+    }
+
+    sound.addEventListener('canplay', startAtOffset, { once: true })
+    sound.load()
+  }
+
+  const launchConfettiBurst = () => {
+    const canvas = confettiRef.current
+    if (!canvas) return
+
+    const ctx = canvas.getContext('2d')
+    if (!ctx) return
+
+    const particles = Array.from({ length: 90 }, () => {
+      const angle = Math.random() * Math.PI * 2
+      const velocity = 2.6 + Math.random() * 5.8
+      return {
+        x: 150,
+        y: 150,
+        vx: Math.cos(angle) * velocity,
+        vy: Math.sin(angle) * velocity - 1.2,
+        size: 4 + Math.random() * 5,
+        color: WHEEL_COLORS[Math.floor(Math.random() * WHEEL_COLORS.length)],
+        life: 1,
+      }
+    })
+
+    const tick = () => {
+      ctx.clearRect(0, 0, 300, 300)
+      particles.forEach((particle) => {
+        particle.x += particle.vx
+        particle.y += particle.vy
+        particle.vy += 0.08
+        particle.life -= 0.012
+        ctx.globalAlpha = Math.max(0, particle.life)
+        ctx.fillStyle = particle.color
+        ctx.fillRect(particle.x, particle.y, particle.size, particle.size)
+      })
+      ctx.globalAlpha = 1
+
+      if (particles.some((particle) => particle.life > 0)) {
+        requestAnimationFrame(tick)
+      } else {
+        ctx.clearRect(0, 0, 300, 300)
+      }
+    }
+
+    tick()
+  }
+
+  const handleRemoveFromPool = () => {
+    if (!selectedMap) return
+    setExcludedMaps((current) => current.includes(selectedMap.name) ? current : [...current, selectedMap.name])
+    setWinnerDialogOpen(false)
+  }
 
   const drawWheel = (angle: number) => {
     const canvas = canvasRef.current
@@ -44,34 +119,37 @@ function MapWheel({ maps, isOpen, onClose, onSelect }: MapWheelProps) {
       ctx.closePath()
       ctx.fillStyle = WHEEL_COLORS[index % WHEEL_COLORS.length]
       ctx.fill()
-      ctx.strokeStyle = '#1e1e1e'
+      ctx.strokeStyle = '#f5f3ee'
       ctx.lineWidth = 2
       ctx.stroke()
       ctx.save()
       ctx.translate(centerX, centerY)
       ctx.rotate(startAngle + arc / 2)
       ctx.textAlign = 'right'
-      ctx.fillStyle = '#fff'
+      ctx.fillStyle = '#f5f3ee'
+      ctx.shadowColor = 'rgba(30, 36, 38, 0.18)'
+      ctx.shadowBlur = 3
       const maxTextWidth = Math.max(42, radius * Math.sin(arc / 2) * 1.5)
       let fontSize = Math.min(14, Math.max(9, 220 / availableMaps.length))
-      ctx.font = `bold ${fontSize}px system-ui`
+      ctx.font = `700 ${fontSize}px 'Space Grotesk', sans-serif`
       while (fontSize > 9 && ctx.measureText(map.name).width > maxTextWidth) {
         fontSize -= 1
-        ctx.font = `bold ${fontSize}px system-ui`
+        ctx.font = `700 ${fontSize}px 'Space Grotesk', sans-serif`
       }
       let label = map.name
       while (ctx.measureText(label).width > maxTextWidth && label.length > 3) label = `${label.slice(0, -2)}…`
       ctx.fillText(label, radius * 0.82, 4)
       ctx.restore()
+      ctx.shadowBlur = 0
     })
     ctx.beginPath()
     ctx.moveTo(centerX, 30)
-    ctx.lineTo(centerX - 10, 10)
-    ctx.lineTo(centerX + 10, 10)
+    ctx.lineTo(centerX - 12, 10)
+    ctx.lineTo(centerX + 12, 10)
     ctx.closePath()
-    ctx.fillStyle = '#fff'
+    ctx.fillStyle = '#dd5d32'
     ctx.fill()
-    ctx.strokeStyle = '#333'
+    ctx.strokeStyle = '#1e2426'
     ctx.lineWidth = 2
     ctx.stroke()
   }
@@ -108,15 +186,10 @@ function MapWheel({ maps, isOpen, onClose, onSelect }: MapWheelProps) {
         const winningIndex = getWinningIndex(finalAngle, arc, segments)
         const winner = availableMaps[winningIndex]
         setSelectedMap(winner)
+        setWinnerDialogOpen(true)
         setSpinning(false)
-        const sound = new Audio(spinEndSound)
-        const playFromOffset = () => {
-          sound.currentTime = 2
-          sound.play().catch(() => {})
-        }
-        if (sound.readyState >= 1) playFromOffset()
-        else sound.addEventListener('loadedmetadata', playFromOffset, { once: true })
-        sound.load()
+        playSpinEndSound()
+        launchConfettiBurst()
         onSelect(winner)
       }
     }
@@ -129,6 +202,7 @@ function MapWheel({ maps, isOpen, onClose, onSelect }: MapWheelProps) {
       if (animationFrameRef.current !== undefined) cancelAnimationFrame(animationFrameRef.current)
       setSpinning(false)
       setSelectedMap(null)
+      setWinnerDialogOpen(false)
       setExcludedMaps([])
     }
   }, [isOpen, maps])
@@ -156,10 +230,25 @@ function MapWheel({ maps, isOpen, onClose, onSelect }: MapWheelProps) {
     <div className="wheel-overlay">
       <div className="wheel-modal" onClick={(e) => e.stopPropagation()}>
         <button className="wheel-close" type="button" aria-label="Close map wheel" onClick={onClose} disabled={spinning}>×</button>
-        <div className={`wheel-content ${selectedMap ? 'wheel-finished' : ''}`}>
+        {winnerDialogOpen && selectedMap && (
+          <div className="wheel-confirmation-backdrop" aria-live="polite">
+            <div className="wheel-confirmation-dialog" role="dialog" aria-modal="false" aria-label="Selected map result">
+              <span className="wheel-dialog-kicker">Winner</span>
+              <strong>{selectedMap.name}</strong>
+              <div className="wheel-dialog-actions">
+                <button type="button" className="wheel-dialog-primary" onClick={() => setWinnerDialogOpen(false)}>Use this map</button>
+                <button type="button" className="wheel-dialog-secondary" onClick={handleRemoveFromPool}>Remove from pool</button>
+              </div>
+            </div>
+          </div>
+        )}
+        <div className={`wheel-content ${selectedMap ? 'wheel-finished' : ''} ${winnerDialogOpen ? 'wheel-paused' : ''}`}>
           <div className="wheel-main">
             <h3>Spin for Map</h3>
-            <canvas ref={canvasRef} width={300} height={300} />
+            <div className="wheel-canvas-wrap">
+              <canvas ref={canvasRef} className="wheel-base-canvas" width={300} height={300} />
+              <canvas ref={confettiRef} className="wheel-confetti-canvas" width={300} height={300} aria-hidden="true" />
+            </div>
             <button
               className={`spin-btn ${spinning ? 'spinning' : ''}`}
               onClick={spin}
