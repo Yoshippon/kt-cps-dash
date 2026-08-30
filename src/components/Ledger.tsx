@@ -1,12 +1,48 @@
-import { useState } from 'react'
-import { MATCHES } from '../data'
+import { useEffect, useState } from 'react'
 import { formatDate } from '../utils/date'
+import { fetchMatches, fetchMatchFormOptions, updateMatch, type MatchFormOptions, type MatchRecord } from '../services/matches'
+import MatchEditModal from './MatchEditModal'
 
 function Ledger({ isActive }: { isActive: boolean }) {
   const [isFilterOpen, setIsFilterOpen] = useState(false)
   const [playerFilter, setPlayerFilter] = useState('')
   const [teamFilter, setTeamFilter] = useState('')
   const [mapFilter, setMapFilter] = useState('')
+  const [MATCHES, setMatches] = useState<MatchRecord[]>([])
+  const [formOptions, setFormOptions] = useState<MatchFormOptions>({ maps: [], teams: [], players: [], critOps: [] })
+  const [editingMatch, setEditingMatch] = useState<MatchRecord | null>(null)
+  const [isSaving, setIsSaving] = useState(false)
+  const [saveError, setSaveError] = useState<string | null>(null)
+
+  useEffect(() => {
+    fetchMatches().then(setMatches).catch(() => setMatches([]))
+    fetchMatchFormOptions().then(setFormOptions).catch(() => {})
+  }, [])
+
+  const handleSave = async (draft: MatchRecord) => {
+    setIsSaving(true)
+    setSaveError(null)
+    try {
+      await updateMatch(draft)
+      setMatches((current) => current.map((match) => (match.id === draft.id ? draft : match)))
+      setEditingMatch(null)
+    } catch (err) {
+      setSaveError(err instanceof Error ? err.message : 'Failed to save match.')
+    } finally {
+      setIsSaving(false)
+    }
+  }
+
+  const handleEdit = (match: MatchRecord) => {
+    if (!match.id) return
+
+    setEditingMatch(match)
+    setSaveError(null)
+    fetchMatchFormOptions()
+      .then(setFormOptions)
+      .catch((err) => setSaveError(err instanceof Error ? err.message : 'Failed to load match options.'))
+  }
+
   const filteredMatches = MATCHES.filter((match) => {
     const includesPlayer = !playerFilter || match.player1 === playerFilter || match.player2 === playerFilter
     const includesTeam = !teamFilter || match.teamOne === teamFilter || match.teamTwo === teamFilter
@@ -45,8 +81,18 @@ function Ledger({ isActive }: { isActive: boolean }) {
         {hasFilters && <button type="button" className="clear-filters" onClick={clearFilters}>Clear filters</button>}
       </div>}
       <section className="match-list" aria-label="All matches">
-        {matchGroups.length > 0 ? matchGroups.map((group) => <div className="date-block" key={group.date}><header className="date-header"><time dateTime={group.date}>{formatDate(group.date)}</time><span>{group.matches.length} {group.matches.length === 1 ? 'game' : 'games'}</span></header><div className="date-matches">{group.matches.map((match, index) => <article className="match-row" key={`${match.date}-${match.player1}-${match.player2}-${index}`}><div className="players"><strong>{match.player1}</strong><span>vs</span><strong>{match.player2}</strong></div><div className="teams"><span>{match.teamOne}</span><span>{match.teamTwo}</span></div><div className="match-meta"><span className="map">{match.map}</span>{match.isHomebrew && <span className="homebrew">Homebrew</span>}</div></article>)}</div></div>) : <div className="empty-state"><strong>No matches found</strong><span>Try changing or clearing your filters.</span></div>}
+        {matchGroups.length > 0 ? matchGroups.map((group) => <div className="date-block" key={group.date}><header className="date-header"><time dateTime={group.date}>{formatDate(group.date)}</time><span>{group.matches.length} {group.matches.length === 1 ? 'game' : 'games'}</span></header><div className="date-matches">{group.matches.map((match, index) => <article className="match-row" role="button" tabIndex={0} key={`${match.date}-${match.player1}-${match.player2}-${index}`} onClick={() => handleEdit(match)} onKeyDown={(event) => { if (event.key === 'Enter' || event.key === ' ') handleEdit(match) }}><div className="players"><strong>{match.player1}</strong><span>vs</span><strong>{match.player2}</strong></div><div className="teams"><span>{match.teamOne}</span><span>{match.teamTwo}</span></div><div className="match-meta"><span className="map">{match.map}</span>{match.isHomebrew && <span className="homebrew">Homebrew</span>}</div></article>)}</div></div>) : <div className="empty-state"><strong>No matches found</strong><span>Try changing or clearing your filters.</span></div>}
       </section>
+      {editingMatch && (
+        <MatchEditModal
+          match={editingMatch}
+          options={formOptions}
+          isSaving={isSaving}
+          error={saveError}
+          onCancel={() => { setEditingMatch(null); setSaveError(null) }}
+          onSave={handleSave}
+        />
+      )}
     </div>
   )
 }

@@ -17,6 +17,7 @@ export type MatchRow = {
   player_two_primary: string | null
   player_one_tac: string | null
   player_two_tac: string | null
+  crit_op_id: string | null
   created_at: string
   updated_at: string
 }
@@ -28,6 +29,24 @@ export type MapRow = {
   id: string
   name: string
   category: string
+  created_at: string
+  updated_at: string
+}
+
+export type CritOpRow = {
+  id: string
+  number: number
+  name: string
+  approved_ops_pack_id: string | null
+  description: string | null
+  created_at: string
+  updated_at: string
+}
+
+export type ApprovedOpsPackRow = {
+  id: string
+  year: number
+  name: string
   created_at: string
   updated_at: string
 }
@@ -44,6 +63,16 @@ export type Database = {
         Row: MapRow
         Insert: Omit<MapRow, 'id' | 'created_at' | 'updated_at'>
         Update: Partial<Omit<MapRow, 'id' | 'created_at' | 'updated_at'>>
+      }
+      crit_ops: {
+        Row: CritOpRow
+        Insert: Omit<CritOpRow, 'id' | 'created_at' | 'updated_at'>
+        Update: Partial<Omit<CritOpRow, 'id' | 'created_at' | 'updated_at'>>
+      }
+      approved_ops_packs: {
+        Row: ApprovedOpsPackRow
+        Insert: Omit<ApprovedOpsPackRow, 'id' | 'created_at' | 'updated_at'>
+        Update: Partial<Omit<ApprovedOpsPackRow, 'id' | 'created_at' | 'updated_at'>>
       }
     }
     Views: Record<string, never>

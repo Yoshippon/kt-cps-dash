@@ -43,6 +43,26 @@ create table if not exists public.crit_ops (
   updated_at timestamptz not null default now()
 );
 
+create table if not exists public.approved_ops_packs (
+  id uuid primary key default gen_random_uuid(),
+  year integer not null unique,
+  name text not null unique,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+
+alter table public.archetypes
+  add column if not exists approved_ops_pack_id uuid null references public.approved_ops_packs(id) on delete set null;
+
+alter table public.archetypes
+  drop column if exists approved_ops;
+
+alter table public.crit_ops
+  add column if not exists approved_ops_pack_id uuid null references public.approved_ops_packs(id) on delete set null;
+
+alter table public.crit_ops
+  drop column if exists approved_ops;
+
 create table if not exists public.kill_teams (
   id uuid primary key default gen_random_uuid(),
   name text not null unique,
@@ -107,6 +127,10 @@ create index if not exists teams_name_idx on public.teams (name);
 create index if not exists maps_name_idx on public.maps (name);
 create index if not exists archetypes_category_idx on public.archetypes (category);
 create index if not exists crit_ops_number_idx on public.crit_ops (number);
+create unique index if not exists crit_ops_name_idx on public.crit_ops (name);
+create index if not exists crit_ops_pack_idx on public.crit_ops (approved_ops_pack_id);
+create index if not exists archetypes_pack_idx on public.archetypes (approved_ops_pack_id);
+create index if not exists approved_ops_packs_year_idx on public.approved_ops_packs (year);
 create index if not exists kill_teams_name_idx on public.kill_teams (name);
 create index if not exists matches_date_idx on public.matches (date desc);
 create index if not exists matches_team_one_idx on public.matches (team_one_id);
@@ -120,6 +144,7 @@ alter table public.teams enable row level security;
 alter table public.maps enable row level security;
 alter table public.archetypes enable row level security;
 alter table public.crit_ops enable row level security;
+alter table public.approved_ops_packs enable row level security;
 alter table public.kill_teams enable row level security;
 alter table public.player_team_ownership enable row level security;
 alter table public.player_map_ownership enable row level security;
@@ -139,6 +164,9 @@ create policy "Write all archetypes" on public.archetypes for all using (auth.ui
 
 create policy "Read all crit ops" on public.crit_ops for select using (true);
 create policy "Write all crit ops" on public.crit_ops for all using (auth.uid() is not null) with check (auth.uid() is not null);
+
+create policy "Read all approved ops packs" on public.approved_ops_packs for select using (true);
+create policy "Write all approved ops packs" on public.approved_ops_packs for all using (auth.uid() is not null) with check (auth.uid() is not null);
 
 create policy "Read all kill teams" on public.kill_teams for select using (true);
 create policy "Write all kill teams" on public.kill_teams for all using (auth.uid() is not null) with check (auth.uid() is not null);
@@ -182,6 +210,11 @@ execute function public.set_updated_at();
 
 create trigger set_crit_ops_updated_at
 before update on public.crit_ops
+for each row
+execute function public.set_updated_at();
+
+create trigger set_approved_ops_packs_updated_at
+before update on public.approved_ops_packs
 for each row
 execute function public.set_updated_at();
 

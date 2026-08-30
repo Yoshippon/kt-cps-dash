@@ -20,6 +20,14 @@ export type MatchRecord = {
   player2Primary?: string | null
   player1Tac?: string | null
   player2Tac?: string | null
+  critOp?: string | null
+}
+
+export type MatchFormOptions = {
+  maps: string[]
+  teams: string[]
+  players: string[]
+  critOps: string[]
 }
 
 const mapRowToMatch = (row: MatchRow): MatchRecord => ({
@@ -51,23 +59,27 @@ export async function fetchMatches(): Promise<MatchRecord[]> {
     { data: mapRows, error: mapError },
     { data: playerRows, error: playerError },
     { data: teamRows, error: teamError },
+    { data: critOpRows, error: critOpError },
   ] = await Promise.all([
-    supabase.from('matches').select('id, match_id, date, map_id, team_one_id, team_two_id, player_one_id, player_two_id, is_tied, is_homebrew, is_player_one_skip, is_player_two_skip, player_one_score, player_two_score, player_one_primary, player_two_primary, player_one_tac, player_two_tac').order('date', { ascending: false }),
+    supabase.from('matches').select('id, match_id, date, map_id, team_one_id, team_two_id, player_one_id, player_two_id, is_tied, is_homebrew, is_player_one_skip, is_player_two_skip, player_one_score, player_two_score, player_one_primary, player_two_primary, player_one_tac, player_two_tac, crit_op_id').order('date', { ascending: false }),
     supabase.from('maps').select('id, name'),
     supabase.from('players').select('id, name'),
     supabase.from('teams').select('id, name'),
+    supabase.from('crit_ops').select('id, name'),
   ])
 
-  if (matchError || mapError || playerError || teamError) throw matchError ?? mapError ?? playerError ?? teamError
+  if (matchError || mapError || playerError || teamError || critOpError) throw matchError ?? mapError ?? playerError ?? teamError ?? critOpError
 
   const mapRowsAny = Array.isArray(mapRows) ? (mapRows as any[]) : []
   const playerRowsAny = Array.isArray(playerRows) ? (playerRows as any[]) : []
   const teamRowsAny = Array.isArray(teamRows) ? (teamRows as any[]) : []
+  const critOpRowsAny = Array.isArray(critOpRows) ? (critOpRows as any[]) : []
   const rows = Array.isArray(matchRows) ? (matchRows as any[]) : []
 
   const mapIdByName = new Map(mapRowsAny.map((row) => [row.id, row.name]))
   const playerIdByName = new Map(playerRowsAny.map((row) => [row.id, row.name]))
   const teamIdByName = new Map(teamRowsAny.map((row) => [row.id, row.name]))
+  const critOpIdByName = new Map(critOpRowsAny.map((row) => [row.id, row.name]))
 
   return rows.map((row: any) => ({
     id: row.id,
@@ -88,7 +100,48 @@ export async function fetchMatches(): Promise<MatchRecord[]> {
     player2Primary: row.player_two_primary,
     player1Tac: row.player_one_tac,
     player2Tac: row.player_two_tac,
+    critOp: row.crit_op_id ? critOpIdByName.get(row.crit_op_id) ?? null : null,
   }))
+}
+
+export async function fetchMatchFormOptions(): Promise<MatchFormOptions> {
+  if (!hasSupabaseConfig) return { maps: [], teams: [], players: [], critOps: [] }
+
+  const [
+    { data: mapRows, error: mapError },
+    { data: teamRows, error: teamError },
+    { data: playerRows, error: playerError },
+    { data: latestOpsPack, error: opsPackError },
+  ] = await Promise.all([
+    supabase.from('maps').select('name').order('name', { ascending: true }),
+    supabase.from('teams').select('name').order('name', { ascending: true }),
+    supabase.from('players').select('name').order('name', { ascending: true }),
+    supabase.from('approved_ops_packs').select('id').order('year', { ascending: false }).limit(1).maybeSingle(),
+  ])
+
+  if (mapError || teamError || playerError || opsPackError) throw mapError ?? teamError ?? playerError ?? opsPackError
+
+  const formOptions = {
+    maps: (mapRows as any[] ?? []).map((row) => row.name),
+    teams: (teamRows as any[] ?? []).map((row) => row.name),
+    players: (playerRows as any[] ?? []).map((row) => row.name),
+  }
+
+  const latestOpsPackRow = latestOpsPack as { id: string } | null
+  if (!latestOpsPackRow) return { ...formOptions, critOps: [] }
+
+  const { data: critOpRows, error: critOpError } = await supabase
+    .from('crit_ops')
+    .select('name')
+    .or(`approved_ops_pack_id.is.null,approved_ops_pack_id.eq.${latestOpsPackRow.id}`)
+    .order('number', { ascending: true })
+
+  if (critOpError) throw critOpError
+
+  return {
+    ...formOptions,
+    critOps: (critOpRows as any[] ?? []).map((row) => row.name),
+  }
 }
 
 export async function createMatch(match: MatchRecord): Promise<MatchRecord> {
@@ -148,4 +201,67 @@ export async function createMatch(match: MatchRecord): Promise<MatchRecord> {
   }
 
   return mapRowToMatch(row)
+}
+
+export async function updateMatch(match: MatchRecord): Promise<MatchRecord> {
+  if (!hasSupabaseConfig) {
+    throw new Error('Supabase is not configured. Add VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY.')
+  }
+  if (!match.id) {
+    throw new Error('Cannot update a match without an id.')
+  }
+
+  const [
+    { data: mapRow },
+    { data: teamRows },
+    { data: playerRows },
+    { data: critOpRow },
+  ] = await Promise.all([
+    supabase.from('maps').select('id, name').eq('name', match.map).maybeSingle(),
+    supabase.from('teams').select('id, name'),
+    supabase.from('players').select('id, name'),
+    match.critOp
+      ? supabase.from('crit_ops').select('id, name').eq('name', match.critOp).maybeSingle()
+      : Promise.resolve({ data: null, error: null }),
+  ])
+
+  const teamRowsAny = Array.isArray(teamRows) ? (teamRows as any[]) : []
+  const playerRowsAny = Array.isArray(playerRows) ? (playerRows as any[]) : []
+  const teamIdByName = new Map(teamRowsAny.map((row) => [row.name, row.id]))
+  const playerIdByName = new Map(playerRowsAny.map((row) => [row.name, row.id]))
+
+  const mapId = (mapRow as any)?.id
+  const critOpId = (critOpRow as any)?.id ?? null
+
+  const payload: Record<string, unknown> = {
+    date: match.date,
+    map_id: mapId,
+    team_one_id: teamIdByName.get(match.teamOne) ?? null,
+    team_two_id: teamIdByName.get(match.teamTwo) ?? null,
+    player_one_id: playerIdByName.get(match.player1) ?? null,
+    player_two_id: playerIdByName.get(match.player2) ?? null,
+    is_tied: match.isTied,
+    is_homebrew: match.isHomebrew,
+    is_player_one_skip: match.isPlayer1Skip,
+    is_player_two_skip: match.isPlayer2Skip,
+    player_one_score: match.player1Score ?? null,
+    player_two_score: match.player2Score ?? null,
+    player_one_primary: match.player1Primary ?? null,
+    player_two_primary: match.player2Primary ?? null,
+    player_one_tac: match.player1Tac ?? null,
+    player_two_tac: match.player2Tac ?? null,
+    crit_op_id: critOpId,
+  }
+
+  if (!mapId || !payload.player_one_id || !payload.player_two_id) {
+    throw new Error('Match references unresolved map or player IDs.')
+  }
+
+  const { error } = await (supabase.from('matches') as any)
+    .update(payload)
+    .eq('id', match.id)
+
+  if (error) throw error
+
+  return match
 }

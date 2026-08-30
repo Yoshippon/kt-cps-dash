@@ -73,8 +73,14 @@ h1 { margin: 2px 0 0; font: 700 18px var(--display); letter-spacing: 0; color: v
 .date-header time { color: var(--ink); font-weight: 700; }
 .date-header span { color: var(--orange); font: 9px var(--mono); text-transform: uppercase; letter-spacing: .8px; }
 .date-matches { border-left: 2px solid var(--orange); background: rgba(221, 93, 50, .045); padding-left: 14px; }
-.match-row { display: grid; grid-template-columns: minmax(190px, 1.1fr) minmax(220px, 1.4fr) 175px; align-items: center; gap: 24px; min-height: 92px; border-bottom: 1px solid var(--line); }
+.match-row { display: grid; grid-template-columns: minmax(190px, 1.1fr) minmax(220px, 1.4fr) 175px; align-items: center; gap: 24px; min-height: 92px; border-bottom: 1px solid var(--line); cursor: pointer; }
 .match-row:last-child { border-bottom: 0; }
+.match-row:hover, .match-row:focus-visible { background: rgba(77, 124, 139, .06); outline: none; }
+.match-edit-modal { text-align: left; max-height: 88vh; overflow-y: auto; }
+.match-edit-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px 20px; }
+.match-edit-grid label { display: flex; flex-direction: column; gap: 5px; color: var(--muted); font: 700 10px var(--mono); text-transform: uppercase; letter-spacing: .5px; }
+.match-edit-grid select, .match-edit-grid input { padding: 8px 10px; border: 1px solid var(--line); background: var(--paper); color: var(--ink); font: 13px var(--display); }
+.match-edit-error { margin: 14px 0 0; color: var(--orange); font: 12px var(--mono); }
 .players { display: flex; align-items: center; gap: 9px; color: var(--ink); font-size: 17px; }
 .players span { color: var(--orange); font: 10px var(--mono); text-transform: uppercase; }
 .teams { display: flex; flex-direction: column; gap: 5px; color: var(--muted); font-size: 13px; }
