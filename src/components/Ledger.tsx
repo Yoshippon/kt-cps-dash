@@ -2,8 +2,10 @@ import { useEffect, useState } from 'react'
 import { formatDate } from '../utils/date'
 import { fetchMatches, fetchMatchFormOptions, updateMatch, type MatchFormOptions, type MatchRecord } from '../services/matches'
 import MatchEditModal from './MatchEditModal'
+import { useAuth } from '../lib/auth'
 
 function Ledger({ isActive }: { isActive: boolean }) {
+  const { isAdmin, player } = useAuth()
   const [isFilterOpen, setIsFilterOpen] = useState(false)
   const [playerFilter, setPlayerFilter] = useState('')
   const [teamFilter, setTeamFilter] = useState('')
@@ -33,8 +35,10 @@ function Ledger({ isActive }: { isActive: boolean }) {
     }
   }
 
+  const canEditMatch = (match: MatchRecord) => isAdmin || Boolean(player && (match.player1 === player.name || match.player2 === player.name))
+
   const handleEdit = (match: MatchRecord) => {
-    if (!match.id) return
+    if (!match.id || !canEditMatch(match)) return
 
     setEditingMatch(match)
     setSaveError(null)
@@ -81,7 +85,7 @@ function Ledger({ isActive }: { isActive: boolean }) {
         {hasFilters && <button type="button" className="clear-filters" onClick={clearFilters}>Clear filters</button>}
       </div>}
       <section className="match-list" aria-label="All matches">
-        {matchGroups.length > 0 ? matchGroups.map((group) => <div className="date-block" key={group.date}><header className="date-header"><time dateTime={group.date}>{formatDate(group.date)}</time><span>{group.matches.length} {group.matches.length === 1 ? 'game' : 'games'}</span></header><div className="date-matches">{group.matches.map((match, index) => <article className="match-row" role="button" tabIndex={0} key={`${match.date}-${match.player1}-${match.player2}-${index}`} onClick={() => handleEdit(match)} onKeyDown={(event) => { if (event.key === 'Enter' || event.key === ' ') handleEdit(match) }}><div className="players"><strong>{match.player1}</strong><span>vs</span><strong>{match.player2}</strong></div><div className="teams"><span>{match.teamOne}</span><span>{match.teamTwo}</span></div><div className="match-meta"><span className="map">{match.map}</span>{match.isHomebrew && <span className="homebrew">Homebrew</span>}</div></article>)}</div></div>) : <div className="empty-state"><strong>No matches found</strong><span>Try changing or clearing your filters.</span></div>}
+        {matchGroups.length > 0 ? matchGroups.map((group) => <div className="date-block" key={group.date}><header className="date-header"><time dateTime={group.date}>{formatDate(group.date)}</time><span>{group.matches.length} {group.matches.length === 1 ? 'game' : 'games'}</span></header><div className="date-matches">{group.matches.map((match, index) => { const editable = canEditMatch(match); return <article className={editable ? 'match-row' : 'match-row match-row-readonly'} role={editable ? 'button' : undefined} tabIndex={editable ? 0 : undefined} key={`${match.date}-${match.player1}-${match.player2}-${index}`} onClick={editable ? () => handleEdit(match) : undefined} onKeyDown={editable ? (event) => { if (event.key === 'Enter' || event.key === ' ') handleEdit(match) } : undefined}><div className="players"><strong>{match.player1}</strong><span>vs</span><strong>{match.player2}</strong></div><div className="teams"><span>{match.teamOne}</span><span>{match.teamTwo}</span></div><div className="match-meta"><span className="map">{match.map}</span>{match.isHomebrew && <span className="homebrew">Homebrew</span>}</div></article> })}</div></div>) : <div className="empty-state"><strong>No matches found</strong><span>Try changing or clearing your filters.</span></div>}
       </section>
       {editingMatch && (
         <MatchEditModal

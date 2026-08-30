@@ -51,6 +51,15 @@ export type ApprovedOpsPackRow = {
   updated_at: string
 }
 
+export type PlayerRow = {
+  id: string
+  name: string
+  user_id: string | null
+  is_admin: boolean
+  created_at: string
+  updated_at: string
+}
+
 export type Database = {
   public: {
     Tables: {
@@ -58,6 +67,11 @@ export type Database = {
         Row: MatchRow
         Insert: MatchInsert
         Update: MatchUpdate
+      }
+      players: {
+        Row: PlayerRow
+        Insert: Omit<PlayerRow, 'id' | 'created_at' | 'updated_at' | 'is_admin' | 'user_id'> & Partial<Pick<PlayerRow, 'is_admin' | 'user_id'>>
+        Update: Partial<Omit<PlayerRow, 'id' | 'created_at' | 'updated_at'>>
       }
       maps: {
         Row: MapRow
@@ -76,7 +90,16 @@ export type Database = {
       }
     }
     Views: Record<string, never>
-    Functions: Record<string, never>
+    Functions: {
+      generate_claim_token: {
+        Args: { p_player_id: string }
+        Returns: string
+      }
+      claim_player: {
+        Args: { p_token: string }
+        Returns: PlayerRow
+      }
+    }
     Enums: Record<string, never>
   }
 }

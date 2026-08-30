@@ -227,3 +227,186 @@ create trigger set_matches_updated_at
 before update on public.matches
 for each row
 execute function public.set_updated_at();
+
+-- === Auth: player claiming ===
+
+alter table public.players
+  add column if not exists user_id uuid null unique references auth.users(id) on delete set null;
+
+alter table public.players
+  add column if not exists is_admin boolean not null default false;
+
+create index if not exists players_user_id_idx on public.players (user_id);
+
+-- Claim tokens live in their own table so they are never exposed through the
+-- public "read all players" select policy (players are selectable by anyone,
+-- tokens are not).
+create table if not exists public.player_claim_tokens (
+  player_id uuid primary key references public.players(id) on delete cascade,
+  token uuid not null unique default gen_random_uuid(),
+  used_at timestamptz null,
+  created_at timestamptz not null default now()
+);
+
+alter table public.player_claim_tokens enable row level security;
+
+-- helper functions (security definer so they can be used inside policies
+-- without re-triggering RLS recursion, and owner bypasses RLS anyway)
+
+create or replace function public.is_admin()
+returns boolean
+language sql
+stable
+security definer
+set search_path = public
+as $$
+  select coalesce((select is_admin from public.players where user_id = auth.uid()), false);
+$$;
+
+create or replace function public.current_player_id()
+returns uuid
+language sql
+stable
+security definer
+set search_path = public
+as $$
+  select id from public.players where user_id = auth.uid();
+$$;
+
+-- admins only: list/manage tokens directly
+create policy "Admins manage claim tokens" on public.player_claim_tokens
+  for all using (public.is_admin()) with check (public.is_admin());
+
+-- admin-only: (re)issue a claim token for a player, returns the token
+create or replace function public.generate_claim_token(p_player_id uuid)
+returns uuid
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  v_token uuid;
+begin
+  if not public.is_admin() then
+    raise exception 'only admins can generate claim tokens';
+  end if;
+
+  insert into public.player_claim_tokens (player_id, token, used_at)
+  values (p_player_id, gen_random_uuid(), null)
+  on conflict (player_id) do update
+    set token = gen_random_uuid(), used_at = null
+  returning token into v_token;
+
+  return v_token;
+end;
+$$;
+
+-- any signed-in user: claim an unclaimed player using a valid, unused token
+create or replace function public.claim_player(p_token uuid)
+returns public.players
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  v_player_id uuid;
+  v_player public.players;
+begin
+  if auth.uid() is null then
+    raise exception 'must be signed in to claim a player';
+  end if;
+
+  if exists (select 1 from public.players where user_id = auth.uid()) then
+    raise exception 'this account has already claimed a player';
+  end if;
+
+  select player_id into v_player_id
+  from public.player_claim_tokens
+  where token = p_token and used_at is null;
+
+  if v_player_id is null then
+    raise exception 'invalid or already used claim link';
+  end if;
+
+  update public.players
+  set user_id = auth.uid()
+  where id = v_player_id and user_id is null
+  returning * into v_player;
+
+  if v_player.id is null then
+    raise exception 'player already claimed';
+  end if;
+
+  update public.player_claim_tokens set used_at = now() where player_id = v_player_id;
+
+  return v_player;
+end;
+$$;
+
+grant execute on function public.is_admin() to authenticated, anon;
+grant execute on function public.current_player_id() to authenticated, anon;
+grant execute on function public.generate_claim_token(uuid) to authenticated;
+grant execute on function public.claim_player(uuid) to authenticated;
+
+-- tighten write policies: config/catalog tables become admin-only, matches
+-- become "admin or one of the two players in the match"
+
+drop policy if exists "Write all players" on public.players;
+create policy "Admins manage players" on public.players
+  for all using (public.is_admin()) with check (public.is_admin());
+
+drop policy if exists "Write all teams" on public.teams;
+create policy "Admins manage teams" on public.teams
+  for all using (public.is_admin()) with check (public.is_admin());
+
+drop policy if exists "Write all maps" on public.maps;
+create policy "Admins manage maps" on public.maps
+  for all using (public.is_admin()) with check (public.is_admin());
+
+drop policy if exists "Write all archetypes" on public.archetypes;
+create policy "Admins manage archetypes" on public.archetypes
+  for all using (public.is_admin()) with check (public.is_admin());
+
+drop policy if exists "Write all crit ops" on public.crit_ops;
+create policy "Admins manage crit ops" on public.crit_ops
+  for all using (public.is_admin()) with check (public.is_admin());
+
+drop policy if exists "Write all approved ops packs" on public.approved_ops_packs;
+create policy "Admins manage approved ops packs" on public.approved_ops_packs
+  for all using (public.is_admin()) with check (public.is_admin());
+
+drop policy if exists "Write all kill teams" on public.kill_teams;
+create policy "Admins manage kill teams" on public.kill_teams
+  for all using (public.is_admin()) with check (public.is_admin());
+
+drop policy if exists "Write all player team ownership" on public.player_team_ownership;
+create policy "Admins manage player team ownership" on public.player_team_ownership
+  for all using (public.is_admin()) with check (public.is_admin());
+
+drop policy if exists "Write all player map ownership" on public.player_map_ownership;
+create policy "Admins manage player map ownership" on public.player_map_ownership
+  for all using (public.is_admin()) with check (public.is_admin());
+
+drop policy if exists "Write all matches" on public.matches;
+create policy "Insert own or admin matches" on public.matches
+  for insert with check (
+    public.is_admin()
+    or player_one_id = public.current_player_id()
+    or player_two_id = public.current_player_id()
+  );
+create policy "Update own or admin matches" on public.matches
+  for update using (
+    public.is_admin()
+    or player_one_id = public.current_player_id()
+    or player_two_id = public.current_player_id()
+  ) with check (
+    public.is_admin()
+    or player_one_id = public.current_player_id()
+    or player_two_id = public.current_player_id()
+  );
+create policy "Delete own or admin matches" on public.matches
+  for delete using (
+    public.is_admin()
+    or player_one_id = public.current_player_id()
+    or player_two_id = public.current_player_id()
+  );
