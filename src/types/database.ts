@@ -1,5 +1,6 @@
 export type MatchRow = {
   id: string
+  match_id: string
   date: string
   map: string
   team_one: string

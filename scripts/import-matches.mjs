@@ -14,14 +14,65 @@ const supabase = createClient(
 
 const source = fs.readFileSync('./src/data.ts', 'utf8')
 
-const mapsMatch = source.match(/export const MAPS:\s*MapData\[\]\s*=\s*(\[[\s\S]*?\])\s*export const MATCHES/)
-const matchesMatch = source.match(/export const MATCHES:\s*Match\[\]\s*=\s*(\[[\s\S]*?\])\s*export const TEAMS/)
-if (!mapsMatch || !matchesMatch) {
-  throw new Error('Could not parse MAPS or MATCHES from src/data.ts')
+const extractArray = (startLabel) => {
+  const start = source.indexOf(startLabel)
+  if (start === -1) {
+    throw new Error(`Could not find ${startLabel} in src/data.ts`)
+  }
+
+  const assignmentIndex = source.indexOf('=', start)
+  if (assignmentIndex === -1) {
+    throw new Error(`Could not find assignment for ${startLabel} in src/data.ts`)
+  }
+
+  const arrayStart = source.indexOf('[', assignmentIndex)
+  if (arrayStart === -1) {
+    throw new Error(`Could not find array after ${startLabel} in src/data.ts`)
+  }
+
+  let depth = 0
+  let inString = false
+  let stringQuote = null
+
+  for (let index = arrayStart; index < source.length; index += 1) {
+    const char = source[index]
+
+    if (inString) {
+      if (char === '\\') {
+        index += 1
+        continue
+      }
+
+      if (char === stringQuote) {
+        inString = false
+        stringQuote = null
+      }
+      continue
+    }
+
+    if (char === '"' || char === '\'' || char === '`') {
+      inString = true
+      stringQuote = char
+      continue
+    }
+
+    if (char === '[') {
+      depth += 1
+      continue
+    }
+
+    if (char === ']') {
+      depth -= 1
+      if (depth === 0) {
+        return Function(`return (${source.slice(arrayStart, index + 1)})`)()
+      }
+    }
+  }
+
+  throw new Error(`Could not parse array literal for ${startLabel}`)
 }
 
-const MAPS = Function(`return (${mapsMatch[1]})`)()
-const MATCHES = Function(`return (${matchesMatch[1]})`)()
+const MATCHES = extractArray('const FALLBACK_MATCHES')
 
 const { data: players, error: playersError } = await supabase
   .from('players')
@@ -47,7 +98,7 @@ const teamIdByName = new Map(teams.map((row) => [row.name, row.id]))
 
 const rows = []
 
-for (const match of MATCHES) {
+for (const [index, match] of MATCHES.entries()) {
   const playerOneId = playerIdByName.get(match.player1)
   const playerTwoId = playerIdByName.get(match.player2)
   const mapId = mapIdByName.get(match.map)
@@ -59,6 +110,7 @@ for (const match of MATCHES) {
   }
 
   rows.push({
+    match_id: `match-${index + 1}`,
     date: match.date,
     map_id: mapId,
     team_one_id: teamOneId ?? null,
@@ -78,17 +130,10 @@ for (const match of MATCHES) {
   })
 }
 
-const deduped = [...new Map(
-  rows.map((row) => [
-    `${row.date}:${row.map_id}:${row.player_one_id}:${row.player_two_id}`,
-    row,
-  ]),
-).values()]
-
 const { error } = await supabase
   .from('matches')
-  .upsert(deduped, { onConflict: 'date,map_id,player_one_id,player_two_id' })
+  .upsert(rows, { onConflict: 'match_id' })
 
 if (error) throw error
 
-console.log(`Imported ${deduped.length} matches`)
+console.log(`Imported ${rows.length} matches`)

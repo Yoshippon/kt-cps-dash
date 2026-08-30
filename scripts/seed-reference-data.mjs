@@ -3,17 +3,67 @@ import { createClient } from '@supabase/supabase-js'
 
 const source = fs.readFileSync('./src/data.ts', 'utf8')
 
-const mapsMatch = source.match(/export const MAPS:\s*MapData\[\]\s*=\s*(\[[\s\S]*?\])\s*export const MATCHES/)
-const matchesMatch = source.match(/export const MATCHES:\s*Match\[\]\s*=\s*(\[[\s\S]*?\])\s*export const TEAMS/)
-const teamsMatch = source.match(/export const TEAMS\s*=\s*(\[[\s\S]*?\])\s*$/)
+const extractArray = (startLabel) => {
+  const start = source.indexOf(startLabel)
+  if (start === -1) {
+    throw new Error(`Could not find ${startLabel} in src/data.ts`)
+  }
 
-if (!mapsMatch || !matchesMatch || !teamsMatch) {
-  throw new Error('Could not parse MAPS, MATCHES, or TEAMS from src/data.ts')
+  const assignmentIndex = source.indexOf('=', start)
+  if (assignmentIndex === -1) {
+    throw new Error(`Could not find assignment for ${startLabel} in src/data.ts`)
+  }
+
+  const arrayStart = source.indexOf('[', assignmentIndex)
+  if (arrayStart === -1) {
+    throw new Error(`Could not find array after ${startLabel} in src/data.ts`)
+  }
+
+  let depth = 0
+  let inString = false
+  let stringQuote = null
+
+  for (let index = arrayStart; index < source.length; index += 1) {
+    const char = source[index]
+
+    if (inString) {
+      if (char === '\\') {
+        index += 1
+        continue
+      }
+
+      if (char === stringQuote) {
+        inString = false
+        stringQuote = null
+      }
+      continue
+    }
+
+    if (char === '"' || char === '\'' || char === '`') {
+      inString = true
+      stringQuote = char
+      continue
+    }
+
+    if (char === '[') {
+      depth += 1
+      continue
+    }
+
+    if (char === ']') {
+      depth -= 1
+      if (depth === 0) {
+        return Function(`return (${source.slice(arrayStart, index + 1)})`)()
+      }
+    }
+  }
+
+  throw new Error(`Could not parse array literal for ${startLabel}`)
 }
 
-const MAPS = Function(`return (${mapsMatch[1]})`)()
-const MATCHES = Function(`return (${matchesMatch[1]})`)()
-const TEAMS = Function(`return (${teamsMatch[1]})`)()
+const MAPS = extractArray('const FALLBACK_MAPS')
+const MATCHES = extractArray('const FALLBACK_MATCHES')
+const TEAMS = extractArray('export const TEAMS')
 
 const supabase = createClient(
   process.env.SUPABASE_URL,

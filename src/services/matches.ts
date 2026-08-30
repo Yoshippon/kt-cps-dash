@@ -3,6 +3,7 @@ import type { MatchRow } from '../types/database'
 
 export type MatchRecord = {
   id?: string
+  matchId: string | null
   date: string
   map: string
   teamOne: string
@@ -23,6 +24,7 @@ export type MatchRecord = {
 
 const mapRowToMatch = (row: MatchRow): MatchRecord => ({
   id: row.id,
+  matchId: row.match_id ?? null,
   date: row.date,
   map: row.map,
   teamOne: row.team_one,
@@ -50,7 +52,7 @@ export async function fetchMatches(): Promise<MatchRecord[]> {
     { data: playerRows, error: playerError },
     { data: teamRows, error: teamError },
   ] = await Promise.all([
-    supabase.from('matches').select('id, date, map_id, team_one_id, team_two_id, player_one_id, player_two_id, is_tied, is_homebrew, is_player_one_skip, is_player_two_skip, player_one_score, player_two_score, player_one_primary, player_two_primary, player_one_tac, player_two_tac').order('date', { ascending: false }),
+    supabase.from('matches').select('id, match_id, date, map_id, team_one_id, team_two_id, player_one_id, player_two_id, is_tied, is_homebrew, is_player_one_skip, is_player_two_skip, player_one_score, player_two_score, player_one_primary, player_two_primary, player_one_tac, player_two_tac').order('date', { ascending: false }),
     supabase.from('maps').select('id, name'),
     supabase.from('players').select('id, name'),
     supabase.from('teams').select('id, name'),
@@ -69,6 +71,7 @@ export async function fetchMatches(): Promise<MatchRecord[]> {
 
   return rows.map((row: any) => ({
     id: row.id,
+    matchId: row.match_id ?? null,
     date: row.date,
     map: row.map_id ? mapIdByName.get(row.map_id) ?? 'Unknown map' : 'Unknown map',
     teamOne: row.team_one_id ? teamIdByName.get(row.team_one_id) ?? 'Unknown team' : 'Unknown team',
@@ -108,6 +111,7 @@ export async function createMatch(match: MatchRecord): Promise<MatchRecord> {
   const playerIdByName = new Map(playerRowsAny.map((row) => [row.name, row.id]))
 
   const payload: Record<string, unknown> = {
+    match_id: match.matchId ?? `match-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
     date: match.date,
     map_id: mapId,
     team_one_id: teamIdByName.get(match.teamOne) ?? null,

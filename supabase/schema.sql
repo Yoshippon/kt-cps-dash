@@ -84,9 +84,23 @@ create table if not exists public.matches (
   player_one_tac text null,
   player_two_tac text null,
   created_at timestamptz not null default now(),
-  updated_at timestamptz not null default now(),
-  constraint matches_unique_match unique (date, map_id, player_one_id, player_two_id)
+  updated_at timestamptz not null default now()
 );
+
+alter table public.matches
+  drop constraint if exists matches_unique_match;
+
+alter table public.matches
+  add column if not exists match_id text;
+
+update public.matches
+set match_id = coalesce(match_id, format('match-%s-%s-%s-%s', date, map_id::text, coalesce(player_one_id::text, 'null'), coalesce(player_two_id::text, 'null')))
+where match_id is null;
+
+alter table public.matches
+  alter column match_id set not null;
+
+create unique index if not exists matches_match_id_idx on public.matches (match_id);
 
 create index if not exists players_name_idx on public.players (name);
 create index if not exists teams_name_idx on public.teams (name);

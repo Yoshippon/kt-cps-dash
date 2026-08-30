@@ -1,6 +1,7 @@
 import { hasSupabaseConfig, supabase } from './lib/supabase'
 
 export interface Match {
+  matchId?: string | null
   date: string
   map: string
   teamOne: string
@@ -73,7 +74,7 @@ const loadMatches = async (): Promise<Match[]> => {
     { data: playerRows, error: playerError },
     { data: teamRows, error: teamError },
   ] = await Promise.all([
-    supabase.from('matches').select('id, date, map_id, team_one_id, team_two_id, player_one_id, player_two_id, is_tied, is_homebrew, is_player_one_skip, is_player_two_skip'),
+    supabase.from('matches').select('id, match_id, date, map_id, team_one_id, team_two_id, player_one_id, player_two_id, is_tied, is_homebrew, is_player_one_skip, is_player_two_skip'),
     supabase.from('maps').select('id, name'),
     supabase.from('players').select('id, name'),
     supabase.from('teams').select('id, name'),
@@ -92,34 +93,34 @@ const loadMatches = async (): Promise<Match[]> => {
   const playerIdByName = new Map((playerRowsAny as any[]).map((row) => [row.id, row.name]))
   const teamIdByName = new Map((teamRowsAny as any[]).map((row) => [row.id, row.name]))
 
-  const normalized = matchRowsAny
-    .map((row: any) => {
-      const mapName = row.map_id ? mapIdByName.get(row.map_id) : undefined
-      const teamOne = row.team_one_id ? teamIdByName.get(row.team_one_id) : undefined
-      const teamTwo = row.team_two_id ? teamIdByName.get(row.team_two_id) : undefined
-      const player1 = row.player_one_id ? playerIdByName.get(row.player_one_id) : undefined
-      const player2 = row.player_two_id ? playerIdByName.get(row.player_two_id) : undefined
+  const normalized: Array<Match | null> = matchRowsAny.map((row: any) => {
+    const mapName = row.map_id ? mapIdByName.get(row.map_id) : undefined
+    const teamOne = row.team_one_id ? teamIdByName.get(row.team_one_id) : undefined
+    const teamTwo = row.team_two_id ? teamIdByName.get(row.team_two_id) : undefined
+    const player1 = row.player_one_id ? playerIdByName.get(row.player_one_id) : undefined
+    const player2 = row.player_two_id ? playerIdByName.get(row.player_two_id) : undefined
 
-      if (!mapName || !teamOne || !teamTwo || !player1 || !player2) {
-        return null
-      }
+    if (!mapName || !teamOne || !teamTwo || !player1 || !player2) {
+      return null
+    }
 
-      return {
-        date: row.date,
-        map: mapName,
-        teamOne,
-        teamTwo,
-        player1,
-        player2,
-        isTied: Boolean(row.is_tied),
-        isHomebrew: Boolean(row.is_homebrew),
-        isPlayer1Skip: Boolean(row.is_player_one_skip),
-        isPlayer2Skip: Boolean(row.is_player_two_skip),
-      }
-    })
-    .filter((match): match is Match => match !== null)
+    return {
+      matchId: row.match_id ?? row.id ?? null,
+      date: row.date,
+      map: mapName,
+      teamOne,
+      teamTwo,
+      player1,
+      player2,
+      isTied: Boolean(row.is_tied),
+      isHomebrew: Boolean(row.is_homebrew),
+      isPlayer1Skip: Boolean(row.is_player_one_skip),
+      isPlayer2Skip: Boolean(row.is_player_two_skip),
+    }
+  })
 
-  return normalized.length > 0 ? normalized : FALLBACK_MATCHES
+  const matches = normalized.filter((match): match is Match => match !== null)
+  return matches.length > 0 ? matches : FALLBACK_MATCHES
 }
 
 const FALLBACK_MAPS: MapData[] = [
@@ -380,7 +381,7 @@ const FALLBACK_MATCHES: Match[] = [
   { "date": "2024-11-01", "map": "Gallowdark", "teamOne": "Kommandos", "teamTwo": "Nemesis Claw", "player1": "Davi", "player2": "Leon", "isTied": false, "isHomebrew": false, "isPlayer1Skip": false, "isPlayer2Skip": false },
   { "date": "2024-11-01", "map": "Bheta Decima", "teamOne": "Hand of the Archon", "teamTwo": "Hearthkyn Salvagers", "player1": "Joao", "player2": "Rafa 1", "isTied": false, "isHomebrew": false, "isPlayer1Skip": false, "isPlayer2Skip": false },
   { "date": "2024-10-25", "map": "Volkus", "teamOne": "Kommandos", "teamTwo": "Death Korps", "player1": "Davi", "player2": "Joao", "isTied": false, "isHomebrew": false, "isPlayer1Skip": false, "isPlayer2Skip": false },
-  { "date": "2024-10-25", "map": "Bunda Secundus", "teamOne": "Kasrkin", "teamTwo": "Wyrmblade", "player1": "Rafa 1", "player2": "Lucas", "isTied": false, "isHomebrew": false, "isPlayer1Skip": false, "isPlayer2Skip": false }
+  { "date": "2024-10-25", "map": "Bunda Secundus", "teamOne": "Kasrkin", "teamTwo": "Wyrmblade", "player1": "Rafa 1", "player2": "Lucas", "isTied": false, "isHomebrew": false, "isPlayer1Skip": false, "isPlayer2Skip": false },
 ]
 
 export const TEAMS = [
