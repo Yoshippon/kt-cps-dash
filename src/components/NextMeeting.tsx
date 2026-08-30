@@ -1,7 +1,7 @@
-import { useMemo, useState } from 'react'
+import { useMemo, useState, useEffect } from 'react'
 import { MATCHES, MAPS } from '../data'
 import type { MapData } from '../data'
-import { formatDate, getElapsedDays, getElapsedTime } from '../utils/date'
+import { formatDate, getElapsedDays, getElapsedTime, getTimeUntilNextFriday19, formatTimeUntil } from '../utils/date'
 import MapWheel from './MapWheel'
 
 const PLAYER_WINDOWS = [
@@ -44,6 +44,12 @@ const getConsecutiveGames = () => {
 
 function NextMeeting({ isActive }: { isActive: boolean }) {
   const [playerWindow, setPlayerWindow] = useState('3')
+  const [timeUntil, setTimeUntil] = useState(getTimeUntilNextFriday19())
+
+  useEffect(() => {
+    const interval = setInterval(() => setTimeUntil(getTimeUntilNextFriday19()), 1000)
+    return () => clearInterval(interval)
+  }, [])
   const [ruleFirstPlayer, setRuleFirstPlayer] = useState('')
   const [ruleSecondPlayer, setRuleSecondPlayer] = useState('')
   const [lockedMatchups, setLockedMatchups] = useState<string[]>([])
@@ -178,8 +184,19 @@ function NextMeeting({ isActive }: { isActive: boolean }) {
   return (
     <div hidden={!isActive}>
       <section className="intro" aria-labelledby="next-meeting-heading">
-        <div><h2 id="next-meeting-heading">Next Meeting</h2><p className="intro-copy">Plan the upcoming Friday session: attendees and matchups.</p></div>
-        <div className="stats" aria-label="Meeting statistics"><div><strong>{selectedPlayers.length}</strong><span>attending</span></div><div><strong>{matrixPlayers.length}</strong><span>players available</span></div></div>
+        <div className="intro-header">
+          <h2 id="next-meeting-heading">Next Meeting</h2>
+          <p className="intro-copy">Plan the upcoming Friday session: attendees and matchups.</p>
+        </div>
+        <div className="intro-stats">
+          <div className="countdown" aria-label="Time until next meeting">
+            Next meeting in <strong>{formatTimeUntil(timeUntil)}</strong>
+          </div>
+          <div className="stats" aria-label="Meeting statistics">
+            <div><strong>{selectedPlayers.length}</strong><span>attending</span></div>
+            <div><strong>{matrixPlayers.length}</strong><span>players available</span></div>
+          </div>
+        </div>
       </section>
       <div className="matrix-toolbar">
         <span>{matrixPlayers.length} {matrixPlayers.length === 1 ? 'player' : 'players'} shown</span>
@@ -295,7 +312,7 @@ function NextMeeting({ isActive }: { isActive: boolean }) {
                 </div>
               )
             })}
-            {suggestedMatchups.byePlayer && <small>{suggestedMatchups.byePlayer} gets a bye after {consecutiveGames.get(suggestedMatchups.byePlayer)} streak.</small>}
+            {suggestedMatchups.byePlayer && <small>{suggestedMatchups.byePlayer} gets a bye after {consecutiveGames.get(suggestedMatchups.byePlayer)} game streak.</small>}
           </div>
         ) : (
           <p className="no-suggestions">Select at least two players to generate matchups.</p>
