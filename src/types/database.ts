@@ -10,6 +10,12 @@ export type MatchRow = {
   is_homebrew: boolean
   is_player_one_skip: boolean
   is_player_two_skip: boolean
+  player_one_score: number | null
+  player_two_score: number | null
+  player_one_primary: string | null
+  player_two_primary: string | null
+  player_one_tac: string | null
+  player_two_tac: string | null
   created_at: string
   updated_at: string
 }

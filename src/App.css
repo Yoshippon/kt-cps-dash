@@ -40,6 +40,20 @@ h1 { margin: 2px 0 0; font: 700 18px var(--display); letter-spacing: 0; color: v
 .community-table tbody th { color: var(--ink); font: 500 14px var(--display); }
 .community-table td { color: var(--muted); }
 .community-table td.rate { color: var(--orange); font-weight: 700; }
+.kill-team-controls { display: flex; align-items: end; gap: 12px; padding: 18px 0 12px; flex-wrap: wrap; }
+.kill-team-controls label { display: flex; flex-direction: column; gap: 7px; color: var(--muted); font: 10px var(--mono); text-transform: uppercase; letter-spacing: .6px; }
+.kill-team-controls select,
+.kill-team-controls input[type='date'] { border: 1px solid var(--line); background: var(--paper); color: var(--ink); padding: 10px 12px; font: 13px var(--display); }
+.kill-team-clear-filter { border: 0; background: transparent; color: var(--orange); cursor: pointer; padding: 10px 0; font: 700 10px var(--mono); text-transform: uppercase; letter-spacing: .6px; }
+.kill-team-table-wrap { overflow-x: auto; border-left: 2px solid var(--orange); background: rgba(221, 93, 50, .045); }
+.kill-team-table { width: 100%; border-collapse: collapse; min-width: 980px; }
+.kill-team-table th, .kill-team-table td { padding: 12px 14px; border-bottom: 1px solid var(--line); text-align: left; font: 12px var(--mono); }
+.kill-team-table thead th { color: var(--muted); font-size: 9px; text-transform: uppercase; letter-spacing: .7px; }
+.kill-team-table thead button { border: 0; background: transparent; padding: 0; color: inherit; cursor: pointer; font: inherit; text-transform: inherit; letter-spacing: inherit; }
+.kill-team-table tbody th { color: var(--ink); font: 600 13px var(--display); }
+.kill-team-table td { color: var(--muted); }
+.kill-team-table tbody tr:hover { background: rgba(221, 93, 50, .04); }
+.kill-team-sort-button { display: inline-flex; align-items: center; gap: 4px; }
 .preference-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
 .preference-card { display: flex; flex-direction: column; gap: 12px; padding: 16px; border-left: 2px solid var(--blue); background: rgba(77, 124, 139, .07); }
 .preference-card > strong { color: var(--ink); font-size: 17px; }
