@@ -50,6 +50,20 @@ function MatchEditModal({ match, options, isSaving, error, isUpdatingImages, ima
     setDraft(match)
   }, [match])
 
+  useEffect(() => {
+    const previousOverflow = document.body.style.overflow
+    const previousPaddingRight = document.body.style.paddingRight
+    const scrollbarWidth = window.innerWidth - document.documentElement.clientWidth
+
+    document.body.style.overflow = 'hidden'
+    if (scrollbarWidth > 0) document.body.style.paddingRight = `${scrollbarWidth}px`
+
+    return () => {
+      document.body.style.overflow = previousOverflow
+      document.body.style.paddingRight = previousPaddingRight
+    }
+  }, [])
+
   const setField = <K extends keyof MatchRecord>(key: K, value: MatchRecord[K]) => {
     setDraft((current) => ({ ...current, [key]: value }))
   }
@@ -59,9 +73,12 @@ function MatchEditModal({ match, options, isSaving, error, isUpdatingImages, ima
   return (
     <div className="wheel-overlay" role="dialog" aria-modal="true" aria-labelledby="match-edit-heading">
       <div className="wheel-modal match-edit-modal">
-        <button type="button" className="wheel-close" aria-label="Close" onClick={onCancel} disabled={isSaving}>&times;</button>
-        <h3 id="match-edit-heading">Edit match</h3>
-        <div className="match-edit-grid">
+        <header className="match-edit-header">
+          <h3 id="match-edit-heading">Edit match</h3>
+          <button type="button" className="wheel-close" aria-label="Close" onClick={onCancel} disabled={isSaving}>&times;</button>
+        </header>
+        <div className="match-edit-body">
+          <div className="match-edit-grid">
           <label>Map
             <select value={draft.map} onChange={(event) => setField('map', event.target.value)}>
               {!options.maps.includes(draft.map) && <option value={draft.map}>{draft.map}</option>}
@@ -115,27 +132,28 @@ function MatchEditModal({ match, options, isSaving, error, isUpdatingImages, ima
           <label>Player 2 tac op
             <TacOpSelect value={draft.player2Tac} tacOps={options.tacOps} onChange={(value) => setField('player2Tac', value)} />
           </label>
-        </div>
+          </div>
 
-        <section className="match-image-editor" aria-labelledby="match-images-heading">
-          <div><h4 id="match-images-heading">Match images</h4><p>JPEG, PNG, or WebP. Maximum 10 MB each.</p></div>
-          <label className="match-image-upload">Add images
-            <input type="file" accept="image/jpeg,image/png,image/webp" multiple disabled={isUpdatingImages} onChange={(event) => {
-              const files = Array.from(event.target.files ?? [])
-              if (files.length > 0) onUploadImages(files)
-              event.target.value = ''
-            }} />
-          </label>
-          {draft.images.length > 0 && <div className="match-image-editor-list">{draft.images.map((image, index) => <figure key={image.id}><img src={image.url} alt={image.caption ?? `Match photo ${index + 1}`} /><button type="button" onClick={() => onDeleteImage(image)} disabled={isUpdatingImages}>Remove</button></figure>)}</div>}
-          {isUpdatingImages && <p className="match-image-status">Updating images…</p>}
-          {imageError && <p className="match-edit-error">{imageError}</p>}
-        </section>
+          <section className="match-image-editor" aria-labelledby="match-images-heading">
+            <div><h4 id="match-images-heading">Match images</h4><p>JPEG, PNG, or WebP. Maximum 10 MB each.</p></div>
+            <label className="match-image-upload">Add images
+              <input type="file" accept="image/jpeg,image/png,image/webp" multiple disabled={isUpdatingImages} onChange={(event) => {
+                const files = Array.from(event.target.files ?? [])
+                if (files.length > 0) onUploadImages(files)
+                event.target.value = ''
+              }} />
+            </label>
+            {draft.images.length > 0 && <div className="match-image-editor-list">{draft.images.map((image, index) => <figure key={image.id}><img src={image.url} alt={image.caption ?? `Match photo ${index + 1}`} /><button type="button" onClick={() => onDeleteImage(image)} disabled={isUpdatingImages}>Remove</button></figure>)}</div>}
+            {isUpdatingImages && <p className="match-image-status">Updating images…</p>}
+            {imageError && <p className="match-edit-error">{imageError}</p>}
+          </section>
 
-        {error && <p className="match-edit-error">{error}</p>}
+          {error && <p className="match-edit-error">{error}</p>}
 
-        <div className="wheel-dialog-actions">
-          <button type="button" className="wheel-dialog-secondary" onClick={onCancel} disabled={isSaving}>Cancel</button>
-          <button type="button" className="wheel-dialog-primary" onClick={() => onSave(draft)} disabled={isSaving}>{isSaving ? 'Saving…' : 'Save changes'}</button>
+          <div className="wheel-dialog-actions">
+            <button type="button" className="wheel-dialog-secondary" onClick={onCancel} disabled={isSaving}>Cancel</button>
+            <button type="button" className="wheel-dialog-primary" onClick={() => onSave(draft)} disabled={isSaving}>{isSaving ? 'Saving…' : 'Save changes'}</button>
+          </div>
         </div>
       </div>
     </div>

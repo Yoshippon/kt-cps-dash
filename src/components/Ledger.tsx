@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { formatDate } from '../utils/date'
 import { fetchMatches, fetchMatchFormOptions, updateMatch, type MatchFormOptions, type MatchRecord } from '../services/matches'
 import { deleteMatchImage, uploadMatchImages, type MatchImage } from '../services/matchImages'
@@ -19,11 +19,37 @@ function Ledger({ isActive }: { isActive: boolean }) {
   const [isUpdatingImages, setIsUpdatingImages] = useState(false)
   const [imageError, setImageError] = useState<string | null>(null)
   const [selectedImage, setSelectedImage] = useState<MatchImage | null>(null)
+  const [expandedMatchId, setExpandedMatchId] = useState<string | null>(null)
+  const selectedImages = useMemo(() => {
+    if (!selectedImage) return []
+    return MATCHES.find((match) => match.images.some((image) => image.id === selectedImage.id))?.images ?? [selectedImage]
+  }, [MATCHES, selectedImage])
+  const selectedImageIndex = selectedImages.findIndex((image) => image.id === selectedImage?.id)
 
   useEffect(() => {
     fetchMatches().then(setMatches).catch(() => setMatches([]))
     fetchMatchFormOptions().then(setFormOptions).catch(() => {})
   }, [])
+
+  useEffect(() => {
+    if (!selectedImage) return
+
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        setSelectedImage(null)
+        return
+      }
+      if (selectedImages.length < 2 || (event.key !== 'ArrowLeft' && event.key !== 'ArrowRight')) return
+
+      event.preventDefault()
+      const offset = event.key === 'ArrowLeft' ? -1 : 1
+      const nextIndex = (selectedImageIndex + offset + selectedImages.length) % selectedImages.length
+      setSelectedImage(selectedImages[nextIndex])
+    }
+
+    window.addEventListener('keydown', handleKeyDown)
+    return () => window.removeEventListener('keydown', handleKeyDown)
+  }, [selectedImage, selectedImageIndex, selectedImages])
 
   const handleSave = async (draft: MatchRecord) => {
     setIsSaving(true)
@@ -124,7 +150,24 @@ function Ledger({ isActive }: { isActive: boolean }) {
         {hasFilters && <button type="button" className="clear-filters" onClick={clearFilters}>Clear filters</button>}
       </div>}
       <section className="match-list" aria-label="All matches">
-        {matchGroups.length > 0 ? matchGroups.map((group) => <div className="date-block" key={group.date}><header className="date-header"><time dateTime={group.date}>{formatDate(group.date)}</time><span>{group.matches.length} {group.matches.length === 1 ? 'game' : 'games'}</span></header><div className="date-matches">{group.matches.map((match, index) => { const editable = canEditMatch(match); return <article className={editable ? 'match-row' : 'match-row match-row-readonly'} role={editable ? 'button' : undefined} tabIndex={editable ? 0 : undefined} key={`${match.date}-${match.player1}-${match.player2}-${index}`} onClick={editable ? () => handleEdit(match) : undefined} onKeyDown={editable ? (event) => { if (event.key === 'Enter' || event.key === ' ') handleEdit(match) } : undefined}><div className="players"><strong>{match.player1}</strong><span>vs</span><strong>{match.player2}</strong></div><div className="teams"><span>{match.teamOne}</span><span>{match.teamTwo}</span></div><div className="match-meta"><span className="map">{match.map}</span>{match.isHomebrew && <span className="homebrew">Homebrew</span>}</div><dl className="match-details" aria-label="Match details"><div><dt>Crit op</dt><dd>{match.critOp ?? 'None'}</dd></div><div><dt>Score</dt><dd>{match.player1Score ?? '—'} – {match.player2Score ?? '—'}</dd></div><div><dt>{match.player1} tac op</dt><dd>{match.player1Tac ?? 'None'}</dd></div><div><dt>{match.player2} tac op</dt><dd>{match.player2Tac ?? 'None'}</dd></div></dl>{match.images.length > 0 && <div className="match-images" aria-label="Match images">{match.images.map((image, imageIndex) => <img key={image.id} className="match-image-thumbnail" src={image.url} alt={image.caption ?? `Match photo ${imageIndex + 1}`} title="Open full-size image" onClick={(event) => { event.stopPropagation(); setSelectedImage(image) }} />)}</div>}</article> })}</div></div>) : <div className="empty-state"><strong>No matches found</strong><span>Try changing or clearing your filters.</span></div>}
+        {matchGroups.length > 0 ? matchGroups.map((group) => <div className="date-block" key={group.date}><header className="date-header"><time dateTime={group.date}>{formatDate(group.date)}</time><span>{group.matches.length} {group.matches.length === 1 ? 'game' : 'games'}</span></header><div className="date-matches">{group.matches.map((match, index) => {
+          const editable = canEditMatch(match)
+          const isExpanded = expandedMatchId === match.id
+          const detailsId = `match-details-${match.id}`
+          return <article className="match-row" key={`${match.date}-${match.player1}-${match.player2}-${index}`}>
+            <button type="button" className="match-row-summary" aria-expanded={isExpanded} aria-controls={detailsId} onClick={() => setExpandedMatchId((current) => current === match.id ? null : match.id ?? null)}>
+              <div className="players"><strong>{match.player1}</strong><span>vs</span><strong>{match.player2}</strong></div>
+              <div className="teams"><span>{match.teamOne}</span><span>{match.teamTwo}</span></div>
+              <div className="match-meta"><span className="map">{match.map}</span>{match.isHomebrew && <span className="homebrew">Homebrew</span>}</div>
+              <span className="match-expand-indicator" aria-hidden="true">{isExpanded ? '−' : '+'}</span>
+            </button>
+            {isExpanded && <div className="match-row-expanded" id={detailsId}>
+              <dl className="match-details" aria-label="Match details"><div><dt>Crit op</dt><dd>{match.critOp ?? 'None'}</dd></div><div><dt>Score</dt><dd>{match.player1Score ?? '—'} – {match.player2Score ?? '—'}</dd></div><div><dt>{match.player1} tac op</dt><dd>{match.player1Tac ?? 'None'}</dd></div><div><dt>{match.player2} tac op</dt><dd>{match.player2Tac ?? 'None'}</dd></div></dl>
+              {match.images.length > 0 && <div className="match-images" aria-label="Match images">{match.images.map((image, imageIndex) => <button type="button" className="match-image-thumbnail" key={image.id} onClick={() => setSelectedImage(image)}><img src={image.url} alt={image.caption ?? `Match photo ${imageIndex + 1}`} /></button>)}</div>}
+              {editable && <button type="button" className="match-edit-button" onClick={() => handleEdit(match)}>Edit match</button>}
+            </div>}
+          </article>
+        })}</div></div>) : <div className="empty-state"><strong>No matches found</strong><span>Try changing or clearing your filters.</span></div>}
       </section>
       {editingMatch && (
         <MatchEditModal
@@ -144,6 +187,11 @@ function Ledger({ isActive }: { isActive: boolean }) {
         <div className="image-lightbox-content" onClick={(event) => event.stopPropagation()}>
           <button type="button" className="image-lightbox-close" aria-label="Close full-size image" onClick={() => setSelectedImage(null)}>&times;</button>
           <img src={selectedImage.url} alt={selectedImage.caption ?? 'Full-size match photo'} />
+          {selectedImages.length > 1 && <div className="image-lightbox-controls">
+            <button type="button" onClick={() => setSelectedImage(selectedImages[(selectedImageIndex - 1 + selectedImages.length) % selectedImages.length])}>Previous</button>
+            <span>{selectedImageIndex + 1} / {selectedImages.length}</span>
+            <button type="button" onClick={() => setSelectedImage(selectedImages[(selectedImageIndex + 1) % selectedImages.length])}>Next</button>
+          </div>}
         </div>
       </div>}
     </div>
