@@ -25,6 +25,16 @@ export type MatchRow = {
 export type MatchInsert = Omit<MatchRow, 'id' | 'created_at' | 'updated_at'>
 export type MatchUpdate = Partial<MatchInsert>
 
+export type MatchImageRow = {
+  id: string
+  match_id: string
+  storage_path: string
+  caption: string | null
+  sort_order: number
+  uploaded_by: string | null
+  created_at: string
+}
+
 export type MapRow = {
   id: string
   name: string
@@ -67,26 +77,37 @@ export type Database = {
         Row: MatchRow
         Insert: MatchInsert
         Update: MatchUpdate
+        Relationships: []
+      }
+      match_images: {
+        Row: MatchImageRow
+        Insert: Omit<MatchImageRow, 'id' | 'created_at' | 'caption' | 'sort_order' | 'uploaded_by'> & Partial<Pick<MatchImageRow, 'caption' | 'sort_order' | 'uploaded_by'>>
+        Update: Partial<Omit<MatchImageRow, 'id' | 'created_at' | 'match_id' | 'storage_path' | 'uploaded_by'>>
+        Relationships: []
       }
       players: {
         Row: PlayerRow
         Insert: Omit<PlayerRow, 'id' | 'created_at' | 'updated_at' | 'is_admin' | 'user_id'> & Partial<Pick<PlayerRow, 'is_admin' | 'user_id'>>
         Update: Partial<Omit<PlayerRow, 'id' | 'created_at' | 'updated_at'>>
+        Relationships: []
       }
       maps: {
         Row: MapRow
         Insert: Omit<MapRow, 'id' | 'created_at' | 'updated_at'>
         Update: Partial<Omit<MapRow, 'id' | 'created_at' | 'updated_at'>>
+        Relationships: []
       }
       crit_ops: {
         Row: CritOpRow
         Insert: Omit<CritOpRow, 'id' | 'created_at' | 'updated_at'>
         Update: Partial<Omit<CritOpRow, 'id' | 'created_at' | 'updated_at'>>
+        Relationships: []
       }
       approved_ops_packs: {
         Row: ApprovedOpsPackRow
         Insert: Omit<ApprovedOpsPackRow, 'id' | 'created_at' | 'updated_at'>
         Update: Partial<Omit<ApprovedOpsPackRow, 'id' | 'created_at' | 'updated_at'>>
+        Relationships: []
       }
     }
     Views: Record<string, never>

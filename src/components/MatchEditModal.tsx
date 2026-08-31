@@ -1,16 +1,49 @@
 import { useEffect, useState } from 'react'
-import type { MatchFormOptions, MatchRecord } from '../services/matches'
+import type { MatchFormOptions, MatchRecord, TacOpOption } from '../services/matches'
+import type { MatchImage } from '../services/matchImages'
+
+const tacOpArchetypeClasses: Record<string, string> = {
+  Recon: 'recon',
+  'Seek And Destroy': 'seek-and-destroy',
+  Security: 'security',
+  Infiltration: 'infiltration',
+}
 
 interface MatchEditModalProps {
   match: MatchRecord
   options: MatchFormOptions
   isSaving: boolean
   error: string | null
+  isUpdatingImages: boolean
+  imageError: string | null
   onCancel: () => void
   onSave: (match: MatchRecord) => void
+  onUploadImages: (files: File[]) => void
+  onDeleteImage: (image: MatchImage) => void
 }
 
-function MatchEditModal({ match, options, isSaving, error, onCancel, onSave }: MatchEditModalProps) {
+function TacOpSelect({ value, tacOps, onChange }: { value: string | null | undefined; tacOps: TacOpOption[]; onChange: (value: string | null) => void }) {
+  const groupedTacOps = tacOps.reduce<Record<string, TacOpOption[]>>((groups, tacOp) => {
+    ;(groups[tacOp.archetype] ??= []).push(tacOp)
+    return groups
+  }, {})
+  const selectedTacOp = tacOps.find((tacOp) => tacOp.name === value)
+  const selectedClass = selectedTacOp ? `tac-op-${tacOpArchetypeClasses[selectedTacOp.archetype] ?? 'other'}` : ''
+  const isSavedTacOp = Boolean(value && !selectedTacOp)
+
+  return (
+    <select className={`tac-op-select ${selectedClass}`} value={value ?? ''} onChange={(event) => onChange(event.target.value || null)}>
+      <option value="">None</option>
+      {isSavedTacOp && <option value={value ?? ''}>{value}</option>}
+      {Object.entries(groupedTacOps).map(([archetype, options]) => {
+        const archetypeClass = `tac-op-${tacOpArchetypeClasses[archetype] ?? 'other'}`
+        return <optgroup key={archetype} className={archetypeClass} label={archetype}>{options.map((tacOp) => <option className={archetypeClass} key={tacOp.name} value={tacOp.name}>{tacOp.name}</option>)}</optgroup>
+      })}
+    </select>
+  )
+}
+
+function MatchEditModal({ match, options, isSaving, error, isUpdatingImages, imageError, onCancel, onSave, onUploadImages, onDeleteImage }: MatchEditModalProps) {
   const [draft, setDraft] = useState<MatchRecord>(match)
 
   useEffect(() => {
@@ -77,12 +110,26 @@ function MatchEditModal({ match, options, isSaving, error, onCancel, onSave }: M
           </label>
 
           <label>Player 1 tac op
-            <input type="text" value={draft.player1Tac ?? ''} onChange={(event) => setField('player1Tac', event.target.value || null)} />
+            <TacOpSelect value={draft.player1Tac} tacOps={options.tacOps} onChange={(value) => setField('player1Tac', value)} />
           </label>
           <label>Player 2 tac op
-            <input type="text" value={draft.player2Tac ?? ''} onChange={(event) => setField('player2Tac', event.target.value || null)} />
+            <TacOpSelect value={draft.player2Tac} tacOps={options.tacOps} onChange={(value) => setField('player2Tac', value)} />
           </label>
         </div>
+
+        <section className="match-image-editor" aria-labelledby="match-images-heading">
+          <div><h4 id="match-images-heading">Match images</h4><p>JPEG, PNG, or WebP. Maximum 10 MB each.</p></div>
+          <label className="match-image-upload">Add images
+            <input type="file" accept="image/jpeg,image/png,image/webp" multiple disabled={isUpdatingImages} onChange={(event) => {
+              const files = Array.from(event.target.files ?? [])
+              if (files.length > 0) onUploadImages(files)
+              event.target.value = ''
+            }} />
+          </label>
+          {draft.images.length > 0 && <div className="match-image-editor-list">{draft.images.map((image, index) => <figure key={image.id}><img src={image.url} alt={image.caption ?? `Match photo ${index + 1}`} /><button type="button" onClick={() => onDeleteImage(image)} disabled={isUpdatingImages}>Remove</button></figure>)}</div>}
+          {isUpdatingImages && <p className="match-image-status">Updating images…</p>}
+          {imageError && <p className="match-edit-error">{imageError}</p>}
+        </section>
 
         {error && <p className="match-edit-error">{error}</p>}
 

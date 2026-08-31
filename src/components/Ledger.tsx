@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { formatDate } from '../utils/date'
 import { fetchMatches, fetchMatchFormOptions, updateMatch, type MatchFormOptions, type MatchRecord } from '../services/matches'
+import { deleteMatchImage, uploadMatchImages, type MatchImage } from '../services/matchImages'
 import MatchEditModal from './MatchEditModal'
 import { useAuth } from '../lib/auth'
 
@@ -11,10 +12,13 @@ function Ledger({ isActive }: { isActive: boolean }) {
   const [teamFilter, setTeamFilter] = useState('')
   const [mapFilter, setMapFilter] = useState('')
   const [MATCHES, setMatches] = useState<MatchRecord[]>([])
-  const [formOptions, setFormOptions] = useState<MatchFormOptions>({ maps: [], teams: [], players: [], critOps: [] })
+  const [formOptions, setFormOptions] = useState<MatchFormOptions>({ maps: [], teams: [], players: [], critOps: [], tacOps: [] })
   const [editingMatch, setEditingMatch] = useState<MatchRecord | null>(null)
   const [isSaving, setIsSaving] = useState(false)
   const [saveError, setSaveError] = useState<string | null>(null)
+  const [isUpdatingImages, setIsUpdatingImages] = useState(false)
+  const [imageError, setImageError] = useState<string | null>(null)
+  const [selectedImage, setSelectedImage] = useState<MatchImage | null>(null)
 
   useEffect(() => {
     fetchMatches().then(setMatches).catch(() => setMatches([]))
@@ -42,9 +46,44 @@ function Ledger({ isActive }: { isActive: boolean }) {
 
     setEditingMatch(match)
     setSaveError(null)
+    setImageError(null)
     fetchMatchFormOptions()
       .then(setFormOptions)
       .catch((err) => setSaveError(err instanceof Error ? err.message : 'Failed to load match options.'))
+  }
+
+  const handleUploadImages = async (files: File[]) => {
+    if (!editingMatch?.id || !player?.user_id) return
+
+    setIsUpdatingImages(true)
+    setImageError(null)
+    try {
+      const images = await uploadMatchImages(editingMatch.id, files, player.user_id)
+      setMatches((current) => current.map((match) => (
+        match.id === editingMatch.id ? { ...match, images: [...match.images, ...images] } : match
+      )))
+      setEditingMatch((current) => current ? { ...current, images: [...current.images, ...images] } : null)
+    } catch (err) {
+      setImageError(err instanceof Error ? err.message : 'Failed to upload images.')
+    } finally {
+      setIsUpdatingImages(false)
+    }
+  }
+
+  const handleDeleteImage = async (image: MatchImage) => {
+    setIsUpdatingImages(true)
+    setImageError(null)
+    try {
+      await deleteMatchImage(image)
+      setMatches((current) => current.map((match) => (
+        match.id === image.matchId ? { ...match, images: match.images.filter((matchImage) => matchImage.id !== image.id) } : match
+      )))
+      setEditingMatch((current) => current ? { ...current, images: current.images.filter((matchImage) => matchImage.id !== image.id) } : null)
+    } catch (err) {
+      setImageError(err instanceof Error ? err.message : 'Failed to delete image.')
+    } finally {
+      setIsUpdatingImages(false)
+    }
   }
 
   const filteredMatches = MATCHES.filter((match) => {
@@ -85,7 +124,7 @@ function Ledger({ isActive }: { isActive: boolean }) {
         {hasFilters && <button type="button" className="clear-filters" onClick={clearFilters}>Clear filters</button>}
       </div>}
       <section className="match-list" aria-label="All matches">
-        {matchGroups.length > 0 ? matchGroups.map((group) => <div className="date-block" key={group.date}><header className="date-header"><time dateTime={group.date}>{formatDate(group.date)}</time><span>{group.matches.length} {group.matches.length === 1 ? 'game' : 'games'}</span></header><div className="date-matches">{group.matches.map((match, index) => { const editable = canEditMatch(match); return <article className={editable ? 'match-row' : 'match-row match-row-readonly'} role={editable ? 'button' : undefined} tabIndex={editable ? 0 : undefined} key={`${match.date}-${match.player1}-${match.player2}-${index}`} onClick={editable ? () => handleEdit(match) : undefined} onKeyDown={editable ? (event) => { if (event.key === 'Enter' || event.key === ' ') handleEdit(match) } : undefined}><div className="players"><strong>{match.player1}</strong><span>vs</span><strong>{match.player2}</strong></div><div className="teams"><span>{match.teamOne}</span><span>{match.teamTwo}</span></div><div className="match-meta"><span className="map">{match.map}</span>{match.isHomebrew && <span className="homebrew">Homebrew</span>}</div></article> })}</div></div>) : <div className="empty-state"><strong>No matches found</strong><span>Try changing or clearing your filters.</span></div>}
+        {matchGroups.length > 0 ? matchGroups.map((group) => <div className="date-block" key={group.date}><header className="date-header"><time dateTime={group.date}>{formatDate(group.date)}</time><span>{group.matches.length} {group.matches.length === 1 ? 'game' : 'games'}</span></header><div className="date-matches">{group.matches.map((match, index) => { const editable = canEditMatch(match); return <article className={editable ? 'match-row' : 'match-row match-row-readonly'} role={editable ? 'button' : undefined} tabIndex={editable ? 0 : undefined} key={`${match.date}-${match.player1}-${match.player2}-${index}`} onClick={editable ? () => handleEdit(match) : undefined} onKeyDown={editable ? (event) => { if (event.key === 'Enter' || event.key === ' ') handleEdit(match) } : undefined}><div className="players"><strong>{match.player1}</strong><span>vs</span><strong>{match.player2}</strong></div><div className="teams"><span>{match.teamOne}</span><span>{match.teamTwo}</span></div><div className="match-meta"><span className="map">{match.map}</span>{match.isHomebrew && <span className="homebrew">Homebrew</span>}</div><dl className="match-details" aria-label="Match details"><div><dt>Crit op</dt><dd>{match.critOp ?? 'None'}</dd></div><div><dt>Score</dt><dd>{match.player1Score ?? '—'} – {match.player2Score ?? '—'}</dd></div><div><dt>{match.player1} tac op</dt><dd>{match.player1Tac ?? 'None'}</dd></div><div><dt>{match.player2} tac op</dt><dd>{match.player2Tac ?? 'None'}</dd></div></dl>{match.images.length > 0 && <div className="match-images" aria-label="Match images">{match.images.map((image, imageIndex) => <img key={image.id} className="match-image-thumbnail" src={image.url} alt={image.caption ?? `Match photo ${imageIndex + 1}`} title="Open full-size image" onClick={(event) => { event.stopPropagation(); setSelectedImage(image) }} />)}</div>}</article> })}</div></div>) : <div className="empty-state"><strong>No matches found</strong><span>Try changing or clearing your filters.</span></div>}
       </section>
       {editingMatch && (
         <MatchEditModal
@@ -93,10 +132,20 @@ function Ledger({ isActive }: { isActive: boolean }) {
           options={formOptions}
           isSaving={isSaving}
           error={saveError}
-          onCancel={() => { setEditingMatch(null); setSaveError(null) }}
+          isUpdatingImages={isUpdatingImages}
+          imageError={imageError}
+          onCancel={() => { setEditingMatch(null); setSaveError(null); setImageError(null) }}
           onSave={handleSave}
+          onUploadImages={handleUploadImages}
+          onDeleteImage={handleDeleteImage}
         />
       )}
+      {selectedImage && <div className="image-lightbox" role="dialog" aria-modal="true" aria-label="Full-size match image" onClick={() => setSelectedImage(null)}>
+        <div className="image-lightbox-content" onClick={(event) => event.stopPropagation()}>
+          <button type="button" className="image-lightbox-close" aria-label="Close full-size image" onClick={() => setSelectedImage(null)}>&times;</button>
+          <img src={selectedImage.url} alt={selectedImage.caption ?? 'Full-size match photo'} />
+        </div>
+      </div>}
     </div>
   )
 }

@@ -1,5 +1,6 @@
 import { hasSupabaseConfig, supabase } from '../lib/supabase'
 import type { MatchRow } from '../types/database'
+import { fetchMatchImages, type MatchImage } from './matchImages'
 
 export type MatchRecord = {
   id?: string
@@ -21,6 +22,7 @@ export type MatchRecord = {
   player1Tac?: string | null
   player2Tac?: string | null
   critOp?: string | null
+  images: MatchImage[]
 }
 
 export type MatchFormOptions = {
@@ -28,6 +30,12 @@ export type MatchFormOptions = {
   teams: string[]
   players: string[]
   critOps: string[]
+  tacOps: TacOpOption[]
+}
+
+export type TacOpOption = {
+  name: string
+  archetype: string
 }
 
 const mapRowToMatch = (row: MatchRow): MatchRecord => ({
@@ -49,6 +57,7 @@ const mapRowToMatch = (row: MatchRow): MatchRecord => ({
   player2Primary: row.player_two_primary,
   player1Tac: row.player_one_tac,
   player2Tac: row.player_two_tac,
+  images: [],
 })
 
 export async function fetchMatches(): Promise<MatchRecord[]> {
@@ -60,12 +69,14 @@ export async function fetchMatches(): Promise<MatchRecord[]> {
     { data: playerRows, error: playerError },
     { data: teamRows, error: teamError },
     { data: critOpRows, error: critOpError },
+    images,
   ] = await Promise.all([
     supabase.from('matches').select('id, match_id, date, map_id, team_one_id, team_two_id, player_one_id, player_two_id, is_tied, is_homebrew, is_player_one_skip, is_player_two_skip, player_one_score, player_two_score, player_one_primary, player_two_primary, player_one_tac, player_two_tac, crit_op_id').order('date', { ascending: false }),
     supabase.from('maps').select('id, name'),
     supabase.from('players').select('id, name'),
     supabase.from('teams').select('id, name'),
     supabase.from('crit_ops').select('id, name'),
+    fetchMatchImages(),
   ])
 
   if (matchError || mapError || playerError || teamError || critOpError) throw matchError ?? mapError ?? playerError ?? teamError ?? critOpError
@@ -80,6 +91,12 @@ export async function fetchMatches(): Promise<MatchRecord[]> {
   const playerIdByName = new Map(playerRowsAny.map((row) => [row.id, row.name]))
   const teamIdByName = new Map(teamRowsAny.map((row) => [row.id, row.name]))
   const critOpIdByName = new Map(critOpRowsAny.map((row) => [row.id, row.name]))
+  const imagesByMatchId = new Map<string, MatchImage[]>()
+  images.forEach((image) => {
+    const matchImages = imagesByMatchId.get(image.matchId) ?? []
+    matchImages.push(image)
+    imagesByMatchId.set(image.matchId, matchImages)
+  })
 
   return rows.map((row: any) => ({
     id: row.id,
@@ -101,11 +118,12 @@ export async function fetchMatches(): Promise<MatchRecord[]> {
     player1Tac: row.player_one_tac,
     player2Tac: row.player_two_tac,
     critOp: row.crit_op_id ? critOpIdByName.get(row.crit_op_id) ?? null : null,
+    images: imagesByMatchId.get(row.id) ?? [],
   }))
 }
 
 export async function fetchMatchFormOptions(): Promise<MatchFormOptions> {
-  if (!hasSupabaseConfig) return { maps: [], teams: [], players: [], critOps: [] }
+  if (!hasSupabaseConfig) return { maps: [], teams: [], players: [], critOps: [], tacOps: [] }
 
   const [
     { data: mapRows, error: mapError },
@@ -128,19 +146,33 @@ export async function fetchMatchFormOptions(): Promise<MatchFormOptions> {
   }
 
   const latestOpsPackRow = latestOpsPack as { id: string } | null
-  if (!latestOpsPackRow) return { ...formOptions, critOps: [] }
+  if (!latestOpsPackRow) return { ...formOptions, critOps: [], tacOps: [] }
 
-  const { data: critOpRows, error: critOpError } = await supabase
-    .from('crit_ops')
-    .select('name')
-    .or(`approved_ops_pack_id.is.null,approved_ops_pack_id.eq.${latestOpsPackRow.id}`)
-    .order('number', { ascending: true })
+  const [
+    { data: critOpRows, error: critOpError },
+    { data: tacOpRows, error: tacOpError },
+  ] = await Promise.all([
+    supabase
+      .from('crit_ops')
+      .select('name')
+      .or(`approved_ops_pack_id.is.null,approved_ops_pack_id.eq.${latestOpsPackRow.id}`)
+      .order('number', { ascending: true }),
+    supabase
+      .from('tac_ops')
+      .select('name, archetype:tac_op_archetypes(name)')
+      .eq('approved_ops_pack_id', latestOpsPackRow.id)
+      .order('number', { ascending: true }),
+  ])
 
-  if (critOpError) throw critOpError
+  if (critOpError || tacOpError) throw critOpError ?? tacOpError
 
   return {
     ...formOptions,
     critOps: (critOpRows as any[] ?? []).map((row) => row.name),
+    tacOps: (tacOpRows as any[] ?? []).map((row) => ({
+      name: row.name,
+      archetype: row.archetype?.name ?? 'Other',
+    })),
   }
 }
 
