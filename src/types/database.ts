@@ -70,6 +70,36 @@ export type PlayerRow = {
   updated_at: string
 }
 
+export type PlayerProfileRow = {
+  player_id: string
+  avatar_path: string | null
+  created_at: string
+  updated_at: string
+}
+
+export type TeamRow = {
+  id: string
+  name: string
+  description: string | null
+  created_at: string
+  updated_at: string
+}
+
+export type PlayerTeamOwnershipRow = {
+  player_id: string
+  team_id: string
+}
+
+export type PlayerTeamImageRow = {
+  id: string
+  player_id: string
+  team_id: string
+  storage_path: string
+  caption: string | null
+  sort_order: number
+  created_at: string
+}
+
 export type MeetingRow = {
   id: string
   meeting_date: string
@@ -130,10 +160,34 @@ export type Database = {
         Update: Partial<Omit<PlayerRow, 'id' | 'created_at' | 'updated_at'>>
         Relationships: []
       }
+      player_profiles: {
+        Row: PlayerProfileRow
+        Insert: Omit<PlayerProfileRow, 'created_at' | 'updated_at'> & Partial<Pick<PlayerProfileRow, 'avatar_path'>>
+        Update: Partial<Omit<PlayerProfileRow, 'player_id' | 'created_at' | 'updated_at'>>
+        Relationships: []
+      }
       maps: {
         Row: MapRow
         Insert: Omit<MapRow, 'id' | 'created_at' | 'updated_at'>
         Update: Partial<Omit<MapRow, 'id' | 'created_at' | 'updated_at'>>
+        Relationships: []
+      }
+      teams: {
+        Row: TeamRow
+        Insert: Omit<TeamRow, 'id' | 'created_at' | 'updated_at'>
+        Update: Partial<Omit<TeamRow, 'id' | 'created_at' | 'updated_at'>>
+        Relationships: []
+      }
+      player_team_ownership: {
+        Row: PlayerTeamOwnershipRow
+        Insert: PlayerTeamOwnershipRow
+        Update: never
+        Relationships: []
+      }
+      player_team_images: {
+        Row: PlayerTeamImageRow
+        Insert: Omit<PlayerTeamImageRow, 'id' | 'created_at' | 'caption' | 'sort_order'> & Partial<Pick<PlayerTeamImageRow, 'caption' | 'sort_order'>>
+        Update: Partial<Omit<PlayerTeamImageRow, 'id' | 'created_at' | 'player_id' | 'team_id' | 'storage_path'>>
         Relationships: []
       }
       meetings: {

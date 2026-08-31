@@ -1,6 +1,6 @@
 import { hasSupabaseConfig, supabase } from '../lib/supabase'
 import type { MatchRow } from '../types/database'
-import { fetchMatchImages, type MatchImage } from './matchImages'
+import { fetchMatchImages, MEDIA_BUCKET, type MatchImage } from './matchImages'
 
 export type MatchRecord = {
   id?: string
@@ -11,6 +11,8 @@ export type MatchRecord = {
   teamTwo: string
   player1: string
   player2: string
+  player1AvatarUrl?: string
+  player2AvatarUrl?: string
   isTied: boolean
   isHomebrew: boolean
   isPlayer1Skip: boolean
@@ -67,6 +69,7 @@ export async function fetchMatches(): Promise<MatchRecord[]> {
     { data: matchRows, error: matchError },
     { data: mapRows, error: mapError },
     { data: playerRows, error: playerError },
+    { data: profileRows, error: profileError },
     { data: teamRows, error: teamError },
     { data: critOpRows, error: critOpError },
     images,
@@ -74,21 +77,26 @@ export async function fetchMatches(): Promise<MatchRecord[]> {
     supabase.from('matches').select('id, match_id, date, map_id, team_one_id, team_two_id, player_one_id, player_two_id, is_tied, is_homebrew, is_player_one_skip, is_player_two_skip, player_one_score, player_two_score, player_one_primary, player_two_primary, player_one_tac, player_two_tac, crit_op_id').order('date', { ascending: false }),
     supabase.from('maps').select('id, name'),
     supabase.from('players').select('id, name'),
+    supabase.from('player_profiles').select('player_id, avatar_path'),
     supabase.from('teams').select('id, name'),
     supabase.from('crit_ops').select('id, name'),
     fetchMatchImages(),
   ])
 
-  if (matchError || mapError || playerError || teamError || critOpError) throw matchError ?? mapError ?? playerError ?? teamError ?? critOpError
+  if (matchError || mapError || playerError || profileError || teamError || critOpError) throw matchError ?? mapError ?? playerError ?? profileError ?? teamError ?? critOpError
 
   const mapRowsAny = Array.isArray(mapRows) ? (mapRows as any[]) : []
   const playerRowsAny = Array.isArray(playerRows) ? (playerRows as any[]) : []
+  const profileRowsAny = Array.isArray(profileRows) ? (profileRows as { player_id: string; avatar_path: string | null }[]) : []
   const teamRowsAny = Array.isArray(teamRows) ? (teamRows as any[]) : []
   const critOpRowsAny = Array.isArray(critOpRows) ? (critOpRows as any[]) : []
   const rows = Array.isArray(matchRows) ? (matchRows as any[]) : []
 
   const mapIdByName = new Map(mapRowsAny.map((row) => [row.id, row.name]))
   const playerIdByName = new Map(playerRowsAny.map((row) => [row.id, row.name]))
+  const playerAvatarUrlById = new Map(profileRowsAny
+    .filter((profile) => profile.avatar_path)
+    .map((profile) => [profile.player_id, supabase.storage.from(MEDIA_BUCKET).getPublicUrl(profile.avatar_path!).data.publicUrl]))
   const teamIdByName = new Map(teamRowsAny.map((row) => [row.id, row.name]))
   const critOpIdByName = new Map(critOpRowsAny.map((row) => [row.id, row.name]))
   const imagesByMatchId = new Map<string, MatchImage[]>()
@@ -107,6 +115,8 @@ export async function fetchMatches(): Promise<MatchRecord[]> {
     teamTwo: row.team_two_id ? teamIdByName.get(row.team_two_id) ?? 'Unknown team' : 'Unknown team',
     player1: row.player_one_id ? playerIdByName.get(row.player_one_id) ?? 'Unknown player' : 'Unknown player',
     player2: row.player_two_id ? playerIdByName.get(row.player_two_id) ?? 'Unknown player' : 'Unknown player',
+    player1AvatarUrl: row.player_one_id ? playerAvatarUrlById.get(row.player_one_id) : undefined,
+    player2AvatarUrl: row.player_two_id ? playerAvatarUrlById.get(row.player_two_id) : undefined,
     isTied: Boolean(row.is_tied),
     isHomebrew: Boolean(row.is_homebrew),
     isPlayer1Skip: Boolean(row.is_player_one_skip),

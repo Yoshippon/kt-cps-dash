@@ -171,7 +171,17 @@ function Ledger({ isActive }: { isActive: boolean }) {
           const detailsId = `match-details-${match.id}`
           return <article className="match-row" key={`${match.date}-${match.player1}-${match.player2}-${index}`}>
             <button type="button" className="match-row-summary" aria-expanded={isExpanded} aria-controls={detailsId} onClick={() => setExpandedMatchId((current) => current === match.id ? null : match.id ?? null)}>
-              <div className="players"><strong>{match.player1}</strong><span>vs</span><strong>{match.player2}</strong></div>
+              <div className="players">
+                {match.player1AvatarUrl
+                  ? <img className="match-player-avatar" src={match.player1AvatarUrl} alt="" />
+                  : <span className="match-player-avatar match-player-avatar-placeholder" aria-hidden="true">{match.player1.trim().slice(0, 1).toUpperCase()}</span>}
+                <strong>{match.player1}</strong>
+                <span>vs</span>
+                {match.player2AvatarUrl
+                  ? <img className="match-player-avatar" src={match.player2AvatarUrl} alt="" />
+                  : <span className="match-player-avatar match-player-avatar-placeholder" aria-hidden="true">{match.player2.trim().slice(0, 1).toUpperCase()}</span>}
+                <strong>{match.player2}</strong>
+              </div>
               <div className="teams"><span>{match.teamOne}</span><span>{match.teamTwo}</span></div>
               <div className="match-meta"><span className="map">{match.map}</span>{match.isHomebrew && <span className="homebrew">Homebrew</span>}</div>
               <span className="match-expand-indicator" aria-hidden="true">{isExpanded ? '−' : '+'}</span>
