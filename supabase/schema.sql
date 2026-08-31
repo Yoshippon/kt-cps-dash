@@ -51,6 +51,34 @@ create table if not exists public.approved_ops_packs (
   updated_at timestamptz not null default now()
 );
 
+create table if not exists public.tac_op_archetypes (
+  id uuid primary key default gen_random_uuid(),
+  name text not null unique,
+  description text null,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+
+create table if not exists public.tac_ops (
+  id uuid primary key default gen_random_uuid(),
+  number integer not null,
+  name text not null unique,
+  archetype_id uuid not null references public.tac_op_archetypes(id) on delete restrict,
+  approved_ops_pack_id uuid not null references public.approved_ops_packs(id) on delete restrict,
+  description text null,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+
+alter table public.tac_ops
+  add column if not exists number integer null;
+
+alter table public.tac_ops
+  add column if not exists archetype_id uuid null references public.tac_op_archetypes(id) on delete restrict;
+
+alter table public.tac_ops
+  add column if not exists approved_ops_pack_id uuid null references public.approved_ops_packs(id) on delete restrict;
+
 alter table public.archetypes
   add column if not exists approved_ops_pack_id uuid null references public.approved_ops_packs(id) on delete set null;
 
@@ -131,6 +159,10 @@ create unique index if not exists crit_ops_name_idx on public.crit_ops (name);
 create index if not exists crit_ops_pack_idx on public.crit_ops (approved_ops_pack_id);
 create index if not exists archetypes_pack_idx on public.archetypes (approved_ops_pack_id);
 create index if not exists approved_ops_packs_year_idx on public.approved_ops_packs (year);
+create unique index if not exists tac_ops_name_idx on public.tac_ops (name);
+create index if not exists tac_ops_number_idx on public.tac_ops (number);
+create index if not exists tac_ops_archetype_idx on public.tac_ops (archetype_id);
+create index if not exists tac_ops_pack_idx on public.tac_ops (approved_ops_pack_id);
 create index if not exists kill_teams_name_idx on public.kill_teams (name);
 create index if not exists matches_date_idx on public.matches (date desc);
 create index if not exists matches_team_one_idx on public.matches (team_one_id);
@@ -145,6 +177,8 @@ alter table public.maps enable row level security;
 alter table public.archetypes enable row level security;
 alter table public.crit_ops enable row level security;
 alter table public.approved_ops_packs enable row level security;
+alter table public.tac_op_archetypes enable row level security;
+alter table public.tac_ops enable row level security;
 alter table public.kill_teams enable row level security;
 alter table public.player_team_ownership enable row level security;
 alter table public.player_map_ownership enable row level security;
@@ -167,6 +201,12 @@ create policy "Write all crit ops" on public.crit_ops for all using (auth.uid() 
 
 create policy "Read all approved ops packs" on public.approved_ops_packs for select using (true);
 create policy "Write all approved ops packs" on public.approved_ops_packs for all using (auth.uid() is not null) with check (auth.uid() is not null);
+
+create policy "Read all tac op archetypes" on public.tac_op_archetypes for select using (true);
+create policy "Write all tac op archetypes" on public.tac_op_archetypes for all using (auth.uid() is not null) with check (auth.uid() is not null);
+
+create policy "Read all tac ops" on public.tac_ops for select using (true);
+create policy "Write all tac ops" on public.tac_ops for all using (auth.uid() is not null) with check (auth.uid() is not null);
 
 create policy "Read all kill teams" on public.kill_teams for select using (true);
 create policy "Write all kill teams" on public.kill_teams for all using (auth.uid() is not null) with check (auth.uid() is not null);
@@ -215,6 +255,16 @@ execute function public.set_updated_at();
 
 create trigger set_approved_ops_packs_updated_at
 before update on public.approved_ops_packs
+for each row
+execute function public.set_updated_at();
+
+create trigger set_tac_op_archetypes_updated_at
+before update on public.tac_op_archetypes
+for each row
+execute function public.set_updated_at();
+
+create trigger set_tac_ops_updated_at
+before update on public.tac_ops
 for each row
 execute function public.set_updated_at();
 
@@ -373,6 +423,14 @@ create policy "Admins manage crit ops" on public.crit_ops
 
 drop policy if exists "Write all approved ops packs" on public.approved_ops_packs;
 create policy "Admins manage approved ops packs" on public.approved_ops_packs
+  for all using (public.is_admin()) with check (public.is_admin());
+
+drop policy if exists "Write all tac op archetypes" on public.tac_op_archetypes;
+create policy "Admins manage tac op archetypes" on public.tac_op_archetypes
+  for all using (public.is_admin()) with check (public.is_admin());
+
+drop policy if exists "Write all tac ops" on public.tac_ops;
+create policy "Admins manage tac ops" on public.tac_ops
   for all using (public.is_admin()) with check (public.is_admin());
 
 drop policy if exists "Write all kill teams" on public.kill_teams;

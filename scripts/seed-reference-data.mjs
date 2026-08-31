@@ -107,9 +107,9 @@ const playerRows = playerNames.map((name) => ({ name }))
 const teamRows = teamNames.map((name) => ({ name }))
 
 const tacOpArchetypes = [
-  { name: 'Seek and Destroy', description: 'Stake out a kill and remove priority threats.' },
+  { name: 'Seek And Destroy', description: 'Stake out a kill and remove priority threats.' },
   { name: 'Security', description: 'Protect or secure an objective, asset, or zone.' },
-  { name: 'Infiltrate', description: 'Move unseen and gain positional advantage.' },
+  { name: 'Infiltration', description: 'Move unseen and gain positional advantage.' },
   { name: 'Recon', description: 'Scout, track, and gather battlefield information.' },
 ]
 
