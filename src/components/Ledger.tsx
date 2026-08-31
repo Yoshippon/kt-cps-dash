@@ -11,6 +11,8 @@ function Ledger({ isActive }: { isActive: boolean }) {
   const [playerFilter, setPlayerFilter] = useState('')
   const [teamFilter, setTeamFilter] = useState('')
   const [mapFilter, setMapFilter] = useState('')
+  const [dateFromFilter, setDateFromFilter] = useState('')
+  const [dateToFilter, setDateToFilter] = useState('')
   const [MATCHES, setMatches] = useState<MatchRecord[]>([])
   const [formOptions, setFormOptions] = useState<MatchFormOptions>({ maps: [], teams: [], players: [], critOps: [], tacOps: [] })
   const [editingMatch, setEditingMatch] = useState<MatchRecord | null>(null)
@@ -116,7 +118,9 @@ function Ledger({ isActive }: { isActive: boolean }) {
     const includesPlayer = !playerFilter || match.player1 === playerFilter || match.player2 === playerFilter
     const includesTeam = !teamFilter || match.teamOne === teamFilter || match.teamTwo === teamFilter
     const includesMap = !mapFilter || match.map === mapFilter
-    return includesPlayer && includesTeam && includesMap
+    const isAfterStartDate = !dateFromFilter || match.date >= dateFromFilter
+    const isBeforeEndDate = !dateToFilter || match.date <= dateToFilter
+    return includesPlayer && includesTeam && includesMap && isAfterStartDate && isBeforeEndDate
   })
   const sortedMatches = [...filteredMatches].sort((firstMatch, secondMatch) => secondMatch.date.localeCompare(firstMatch.date))
   const matchGroups = sortedMatches.reduce<Array<{ date: string; matches: typeof MATCHES }>>((groups, match) => {
@@ -126,27 +130,38 @@ function Ledger({ isActive }: { isActive: boolean }) {
     return groups
   }, [])
   const playerCount = new Set(filteredMatches.flatMap((match) => [match.player1, match.player2])).size
-  const hasFilters = Boolean(playerFilter || teamFilter || mapFilter)
+  const hasFilters = Boolean(playerFilter || teamFilter || mapFilter || dateFromFilter || dateToFilter)
   const allPlayers = [...new Set(MATCHES.flatMap((match) => [match.player1, match.player2]))].sort()
   const teams = [...new Set(MATCHES.flatMap((match) => [match.teamOne, match.teamTwo]))].sort()
   const maps = [...new Set(MATCHES.map((match) => match.map))].sort()
+  const appliedFilters = [
+    playerFilter && `Player: ${playerFilter}`,
+    teamFilter && `Team: ${teamFilter}`,
+    mapFilter && `Map: ${mapFilter}`,
+    dateFromFilter && `From: ${formatDate(dateFromFilter)}`,
+    dateToFilter && `To: ${formatDate(dateToFilter)}`,
+  ].filter(Boolean)
   const clearFilters = () => {
     setPlayerFilter('')
     setTeamFilter('')
     setMapFilter('')
+    setDateFromFilter('')
+    setDateToFilter('')
   }
 
   return (
     <div hidden={!isActive}>
       <section className="intro" aria-labelledby="matches-heading">
         <div><h2 id="matches-heading">Matches</h2></div>
-        <div className="stats" aria-label="Match statistics"><div><strong>{MATCHES.length}</strong><span>games logged</span></div><div><strong>{MATCHES.filter((match) => match.isTied).length}</strong><span>draws</span></div><div><strong>{playerCount}</strong><span>players</span></div></div>
+        <div className="stats" aria-label="Match statistics"><div><strong>{filteredMatches.length}</strong><span>games logged</span></div><div><strong>{filteredMatches.filter((match) => match.isTied).length}</strong><span>draws</span></div><div><strong>{playerCount}</strong><span>players</span></div></div>
       </section>
-      <div className="toolbar"><span>{sortedMatches.length} {sortedMatches.length === 1 ? 'match' : 'matches'}{hasFilters ? ' found' : ''}</span><button type="button" className="filter-button" aria-expanded={isFilterOpen} aria-controls="match-filters" onClick={() => setIsFilterOpen((isOpen) => !isOpen)}>{hasFilters ? 'Filters applied' : 'All records'} <span aria-hidden="true">{isFilterOpen ? '⌃' : '⌄'}</span></button></div>
+      <div className="toolbar"><span>{sortedMatches.length} {sortedMatches.length === 1 ? 'match' : 'matches'}{hasFilters ? ' found' : ''}</span>{hasFilters && <span className="applied-filters" aria-label={`Applied filters: ${appliedFilters.join(', ')}`}>{appliedFilters.map((filter) => <span key={filter}>{filter}</span>)}</span>}<button type="button" className="filter-button" aria-expanded={isFilterOpen} aria-controls="match-filters" onClick={() => setIsFilterOpen((isOpen) => !isOpen)}>Filters applied <span aria-hidden="true">{isFilterOpen ? '⌃' : '⌄'}</span></button></div>
       {isFilterOpen && <div className="filter-panel" id="match-filters">
         <label>Player<select value={playerFilter} onChange={(event) => setPlayerFilter(event.target.value)}><option value="">All players</option>{allPlayers.map((player) => <option key={player} value={player}>{player}</option>)}</select></label>
         <label>Team<select value={teamFilter} onChange={(event) => setTeamFilter(event.target.value)}><option value="">All teams</option>{teams.map((team) => <option key={team} value={team}>{team}</option>)}</select></label>
         <label>Map<select value={mapFilter} onChange={(event) => setMapFilter(event.target.value)}><option value="">All maps</option>{maps.map((map) => <option key={map} value={map}>{map}</option>)}</select></label>
+        <label>From<input type="date" value={dateFromFilter} onChange={(event) => setDateFromFilter(event.target.value)} max={dateToFilter || undefined} /></label>
+        <label>To<input type="date" value={dateToFilter} onChange={(event) => setDateToFilter(event.target.value)} min={dateFromFilter || undefined} /></label>
         {hasFilters && <button type="button" className="clear-filters" onClick={clearFilters}>Clear filters</button>}
       </div>}
       <section className="match-list" aria-label="All matches">

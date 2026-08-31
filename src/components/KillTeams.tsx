@@ -20,6 +20,10 @@ type KillTeamRow = {
 const parseReleaseDate = (value: string) => {
   if (!value) return Number.NEGATIVE_INFINITY
 
+  if (/^\d{4}-\d{2}$/.test(value)) {
+    return new Date(`${value}-01T00:00:00`).getTime()
+  }
+
   if (/^\d{4}-\d{2}-\d{2}$/.test(value)) {
     return new Date(`${value}T00:00:00`).getTime()
   }
@@ -126,11 +130,11 @@ function KillTeams({ isActive }: { isActive: boolean }) {
       <section className="kill-team-controls" aria-label="Kill team filters">
         <label>
           Release after
-          <input type="date" value={releaseFrom} onChange={(event) => setReleaseFrom(event.target.value)} />
+          <input type="month" value={releaseFrom} onChange={(event) => setReleaseFrom(event.target.value)} />
         </label>
         <label>
           Release before
-          <input type="date" value={releaseTo} onChange={(event) => setReleaseTo(event.target.value)} />
+          <input type="month" value={releaseTo} onChange={(event) => setReleaseTo(event.target.value)} />
         </label>
         {(releaseFrom || releaseTo) && (
           <button type="button" className="kill-team-clear-filter" onClick={clearDateFilters}>Clear filter</button>
