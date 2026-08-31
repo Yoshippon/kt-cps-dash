@@ -1,8 +1,9 @@
-import { useMemo, useState, useEffect } from 'react'
+import { useCallback, useMemo, useState, useEffect } from 'react'
 import { MATCHES, MAPS } from '../data'
 import type { MapData } from '../data'
 import { formatDate, getElapsedDays, getElapsedTime, getTimeUntilNextFriday19, formatTimeUntil } from '../utils/date'
 import MapWheel from './MapWheel'
+import MapVoting from './MapVoting'
 
 const PLAYER_WINDOWS = [
   { value: '3', label: 'Active players (last 3 months)', days: 90 },
@@ -58,6 +59,8 @@ function NextMeeting({ isActive }: { isActive: boolean }) {
   const [mapSeed, setMapSeed] = useState(0)
   const [spinningMatchup, setSpinningMatchup] = useState<string | null>(null)
   const [selectedMaps, setSelectedMaps] = useState<Record<string, MapData>>({})
+  const [confirmedAttendeeCount, setConfirmedAttendeeCount] = useState<number | null>(null)
+  const [winningMapNames, setWinningMapNames] = useState<string[] | null>(null)
   const selectedWindow = PLAYER_WINDOWS.find((window) => window.value === playerWindow) ?? PLAYER_WINDOWS[0]
   const matrixPlayers = getPlayersForWindow(selectedWindow.days)
   const consecutiveGames = useMemo(getConsecutiveGames, [])
@@ -75,9 +78,19 @@ function NextMeeting({ isActive }: { isActive: boolean }) {
   const selectedMatrixPlayers = selectedPlayers.filter((player) => matrixPlayers.includes(player))
   const maxStreak = Math.max(0, ...matrixPlayers.map((player) => consecutiveGames.get(player) ?? 0))
   const availableMaps = useMemo(() => {
+    if (winningMapNames !== null) {
+      return MAPS.filter((map) => winningMapNames.includes(map.name))
+    }
     if (selectedPlayers.length === 0) return []
     return MAPS.filter((map) => map.owners.some((owner) => selectedPlayers.includes(owner)))
-  }, [selectedPlayers])
+  }, [selectedPlayers, winningMapNames])
+  const handleAttendanceChange = useCallback((playerNames: string[], attendeeCount: number) => {
+    setSelectedPlayers(playerNames)
+    setConfirmedAttendeeCount(attendeeCount)
+  }, [])
+  const handleWinningMapsChange = useCallback((mapNames: string[]) => {
+    setWinningMapNames(mapNames)
+  }, [])
   const suggestedMatchups = useMemo(() => {
     const remaining = new Set(selectedMatrixPlayers)
     const suggestions: SuggestedMatchup[] = []
@@ -193,7 +206,7 @@ function NextMeeting({ isActive }: { isActive: boolean }) {
             Next meeting in <strong>{formatTimeUntil(timeUntil)}</strong>
           </div>
           <div className="stats" aria-label="Meeting statistics">
-            <div><strong>{selectedPlayers.length}</strong><span>attending</span></div>
+            <div><strong>{confirmedAttendeeCount ?? selectedPlayers.length}</strong><span>attending</span></div>
             <div><strong>{matrixPlayers.length}</strong><span>players available</span></div>
           </div>
         </div>
@@ -208,7 +221,7 @@ function NextMeeting({ isActive }: { isActive: boolean }) {
       </div>
 
       <section className="attendees" aria-labelledby="attendees-heading">
-        <div><h3 id="attendees-heading">Players Attending</h3><p>Select players attending. Each player appears in one suggested matchup.</p></div>
+        <div><h3 id="attendees-heading">Players Attending</h3><p>Confirmed players appear in one suggested matchup.</p></div>
         <div className="planner-players">
           {matrixPlayers.map((player) => {
             const streak = consecutiveGames.get(player) ?? 0
@@ -229,12 +242,13 @@ function NextMeeting({ isActive }: { isActive: boolean }) {
             </label>
           )})}
         </div>
-        <p className="attendee-count">{selectedPlayers.length} players attending</p>
+        <p className="attendee-count">{confirmedAttendeeCount ?? selectedPlayers.length} players attending</p>
       </section>
+      <MapVoting onAttendanceChange={handleAttendanceChange} onWinningMapsChange={handleWinningMapsChange} />
 
       {selectedPlayers.length > 0 && (
         <section className="maps-section" aria-labelledby="maps-heading">
-          <header className="section-heading"><h3 id="maps-heading">Available Maps</h3><span>{availableMaps.length} available</span></header>
+          <header className="section-heading"><h3 id="maps-heading">{winningMapNames !== null ? 'Winning Maps' : 'Available Maps'}</h3><span>{availableMaps.length} available</span></header>
           <div className="available-map-list">{availableMaps.map((map) => <span className="available-map" key={map.name}><strong>{map.name}</strong><small>{map.owners.filter((owner) => selectedPlayers.includes(owner)).join(', ')}</small></span>)}</div>
           {availableMaps.length === 0 && <p className="no-maps">No maps available for selected players.</p>}
         </section>
@@ -319,7 +333,8 @@ function NextMeeting({ isActive }: { isActive: boolean }) {
         )}
       </section>
       <MapWheel
-        maps={availableMaps}
+        maps={MAPS}
+        preselectedMapNames={winningMapNames ?? []}
         isOpen={spinningMatchup !== null}
         onClose={() => setSpinningMatchup(null)}
         onSelect={handleMapSelect}

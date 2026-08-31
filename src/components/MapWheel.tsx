@@ -4,6 +4,7 @@ import spinEndSound from '../assets/oh-my-god.mp3'
 
 interface MapWheelProps {
   maps: MapData[]
+  preselectedMapNames: string[]
   isOpen: boolean
   onClose: () => void
   onSelect: (map: MapData) => void
@@ -16,16 +17,17 @@ const getWinningIndex = (angle: number, segmentAngle: number, segmentCount: numb
   return ((index % segmentCount) + segmentCount) % segmentCount
 }
 
-function MapWheel({ maps, isOpen, onClose, onSelect }: MapWheelProps) {
+function MapWheel({ maps, preselectedMapNames, isOpen, onClose, onSelect }: MapWheelProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const confettiRef = useRef<HTMLCanvasElement | null>(null)
   const spinEndSoundRef = useRef<HTMLAudioElement | null>(null)
   const [spinning, setSpinning] = useState(false)
   const [selectedMap, setSelectedMap] = useState<MapData | null>(null)
   const [winnerDialogOpen, setWinnerDialogOpen] = useState(false)
-  const [excludedMaps, setExcludedMaps] = useState<string[]>([])
+  const [includedMapNames, setIncludedMapNames] = useState<string[]>([])
   const animationFrameRef = useRef<number | undefined>(undefined)
-  const availableMaps = maps.filter((map) => !excludedMaps.includes(map.name))
+  const wasOpenRef = useRef(false)
+  const availableMaps = maps.filter((map) => includedMapNames.includes(map.name))
 
   const playSpinEndSound = () => {
     const sound = spinEndSoundRef.current ?? new Audio(spinEndSound)
@@ -95,7 +97,7 @@ function MapWheel({ maps, isOpen, onClose, onSelect }: MapWheelProps) {
 
   const handleRemoveFromPool = () => {
     if (!selectedMap) return
-    setExcludedMaps((current) => current.includes(selectedMap.name) ? current : [...current, selectedMap.name])
+    setIncludedMapNames((current) => current.filter((name) => name !== selectedMap.name))
     setWinnerDialogOpen(false)
   }
 
@@ -203,9 +205,12 @@ function MapWheel({ maps, isOpen, onClose, onSelect }: MapWheelProps) {
       setSpinning(false)
       setSelectedMap(null)
       setWinnerDialogOpen(false)
-      setExcludedMaps([])
+      setIncludedMapNames([])
+    } else if (!wasOpenRef.current) {
+      setIncludedMapNames(preselectedMapNames)
     }
-  }, [isOpen, maps])
+    wasOpenRef.current = isOpen
+  }, [isOpen, preselectedMapNames])
 
   useEffect(() => {
     if (isOpen && canvasRef.current) {
@@ -222,7 +227,7 @@ function MapWheel({ maps, isOpen, onClose, onSelect }: MapWheelProps) {
       ctx.scale(dpr, dpr)
       if (availableMaps.length > 0) drawWheel(0)
     }
-  }, [isOpen, maps, excludedMaps])
+  }, [isOpen, maps, includedMapNames])
 
   if (!isOpen) return null
 
@@ -260,10 +265,10 @@ function MapWheel({ maps, isOpen, onClose, onSelect }: MapWheelProps) {
           </div>
           <aside className="wheel-options" aria-label="Map options">
             <strong>Map options</strong>
-            <small>Exclude maps before spinning.</small>
+            <small>Vote leaders are preselected. Add any map.</small>
             {maps.map((map) => {
-              const isExcluded = excludedMaps.includes(map.name)
-              return <label key={map.name}><input type="checkbox" checked={!isExcluded} onChange={() => setExcludedMaps((current) => isExcluded ? current.filter((name) => name !== map.name) : [...current, map.name])} disabled={spinning} /><span>{map.name}</span></label>
+              const isIncluded = includedMapNames.includes(map.name)
+              return <label key={map.name}><input type="checkbox" checked={isIncluded} onChange={() => setIncludedMapNames((current) => isIncluded ? current.filter((name) => name !== map.name) : [...current, map.name])} disabled={spinning} /><span>{map.name}</span></label>
             })}
             {availableMaps.length === 0 && <em>Select at least one map.</em>}
           </aside>

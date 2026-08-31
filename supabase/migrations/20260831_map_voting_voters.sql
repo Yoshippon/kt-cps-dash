@@ -1,0 +1,53 @@
+-- Show voters beside each map. Run after 20260831_map_voting.sql.
+
+drop function if exists public.get_map_vote_summary(uuid);
+
+create function public.get_map_vote_summary(p_meeting_id uuid)
+returns table (
+  map_id uuid,
+  map_name text,
+  total_votes bigint,
+  registered_votes bigint,
+  anonymous_votes bigint,
+  voter_names text[],
+  attendance_count integer,
+  vote_limit integer
+)
+language sql
+stable
+security definer
+set search_path = public
+as $$
+  with attendance as (
+    select count(*)::integer as count
+    from public.meeting_attendees
+    where meeting_id = p_meeting_id
+  ),
+  limits as (
+    select count, greatest(2, count / 2) as value from attendance
+  )
+  select
+    maps.id,
+    maps.name,
+    count(map_votes.map_id) filter (where map_votes.rank <= limits.value),
+    count(map_votes.map_id) filter (where map_votes.rank <= limits.value and map_votes.voter_kind = 'registered'),
+    count(map_votes.map_id) filter (where map_votes.rank <= limits.value and map_votes.voter_kind = 'anonymous'),
+    coalesce(
+      array_agg(coalesce(players.name, 'Guest') order by map_votes.created_at)
+        filter (where map_votes.rank <= limits.value),
+      '{}'::text[]
+    ),
+    limits.count,
+    limits.value
+  from public.maps as maps
+  cross join limits
+  left join public.map_votes
+    on map_votes.meeting_id = p_meeting_id
+    and map_votes.map_id = maps.id
+  left join public.players
+    on players.id = map_votes.player_id
+  group by maps.id, maps.name, limits.count, limits.value
+  order by maps.name;
+$$;
+
+grant execute on function public.get_map_vote_summary(uuid) to authenticated;

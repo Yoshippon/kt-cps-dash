@@ -70,6 +70,45 @@ export type PlayerRow = {
   updated_at: string
 }
 
+export type MeetingRow = {
+  id: string
+  meeting_date: string
+  opens_at: string
+  closes_at: string
+  created_at: string
+}
+
+export type MeetingAttendeeRow = {
+  meeting_id: string
+  voter_id: string
+  voter_kind: 'anonymous' | 'registered'
+  player_id: string | null
+  created_at: string
+}
+
+export type MapVoteRow = {
+  meeting_id: string
+  voter_id: string
+  map_id: string
+  rank: number
+  voter_kind: 'anonymous' | 'registered'
+  player_id: string | null
+  created_at: string
+}
+
+export type MapVoteSummaryRow = {
+  map_id: string
+  map_name: string
+  total_votes: number
+  registered_votes: number
+  anonymous_votes: number
+  voter_names: string[]
+  attendee_player_names: string[]
+  attendance_count: number
+  vote_limit: number
+  map_count: number
+}
+
 export type Database = {
   public: {
     Tables: {
@@ -97,6 +136,24 @@ export type Database = {
         Update: Partial<Omit<MapRow, 'id' | 'created_at' | 'updated_at'>>
         Relationships: []
       }
+      meetings: {
+        Row: MeetingRow
+        Insert: Omit<MeetingRow, 'id' | 'created_at'>
+        Update: Partial<Omit<MeetingRow, 'id' | 'created_at' | 'meeting_date'>>
+        Relationships: []
+      }
+      meeting_attendees: {
+        Row: MeetingAttendeeRow
+        Insert: Omit<MeetingAttendeeRow, 'voter_kind' | 'player_id' | 'created_at'>
+        Update: never
+        Relationships: []
+      }
+      map_votes: {
+        Row: MapVoteRow
+        Insert: Omit<MapVoteRow, 'voter_kind' | 'player_id' | 'created_at'>
+        Update: never
+        Relationships: []
+      }
       crit_ops: {
         Row: CritOpRow
         Insert: Omit<CritOpRow, 'id' | 'created_at' | 'updated_at'>
@@ -119,6 +176,26 @@ export type Database = {
       claim_player: {
         Args: { p_token: string }
         Returns: PlayerRow
+      }
+      ensure_next_meeting: {
+        Args: Record<string, never>
+        Returns: MeetingRow
+      }
+      get_map_vote_summary: {
+        Args: { p_meeting_id: string }
+        Returns: MapVoteSummaryRow[]
+      }
+      replace_map_votes: {
+        Args: { p_meeting_id: string; p_map_ids: string[]; p_voter_id: string }
+        Returns: undefined
+      }
+      get_my_map_vote_state: {
+        Args: { p_meeting_id: string; p_voter_id: string }
+        Returns: { attendee: boolean; selected_map_ids: string[] }[]
+      }
+      set_meeting_attendance: {
+        Args: { p_meeting_id: string; p_attending: boolean; p_voter_id: string }
+        Returns: undefined
       }
     }
     Enums: Record<string, never>

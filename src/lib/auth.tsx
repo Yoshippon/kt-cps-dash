@@ -9,6 +9,7 @@ type AuthContextValue = {
   /** The players row linked to the signed-in account, if any has been claimed. */
   player: PlayerRow | null
   isLoggedIn: boolean
+  isGuest: boolean
   isAdmin: boolean
   signInWithEmail: (email: string, redirectExtra?: string) => Promise<void>
   signOut: () => Promise<void>
@@ -22,6 +23,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState(true)
   const [session, setSession] = useState<Session | null>(null)
   const [player, setPlayer] = useState<PlayerRow | null>(null)
+  const isGuest = false
 
   const loadPlayer = useCallback(async (userId: string | undefined) => {
     if (!hasSupabaseConfig || !userId) {
@@ -41,8 +43,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     supabase.auth.getSession().then(({ data }) => {
       setSession(data.session)
-      loadPlayer(data.session?.user.id).finally(() => setLoading(false))
-    })
+      return loadPlayer(data.session?.user.id)
+    }).finally(() => setLoading(false))
 
     const { data: subscription } = supabase.auth.onAuthStateChange((_event, nextSession) => {
       setSession(nextSession)
@@ -82,7 +84,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     loading,
     session,
     player,
-    isLoggedIn: Boolean(session),
+    isLoggedIn: Boolean(session) && !isGuest,
+    isGuest,
     isAdmin: Boolean(player?.is_admin),
     signInWithEmail,
     signOut,
