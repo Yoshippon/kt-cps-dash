@@ -204,11 +204,20 @@ h1 { margin: 2px 0 0; font: 700 18px var(--display); letter-spacing: 0; color: v
 .vote-filter { display: flex; align-items: center; gap: 7px; color: var(--muted); font: 700 10px var(--mono); text-transform: uppercase; letter-spacing: .5px; }
 .vote-summary { display: flex; flex-wrap: wrap; gap: 10px 20px; margin-bottom: 12px; color: var(--muted); font: 10px var(--mono); text-transform: uppercase; letter-spacing: .5px; }
 .vote-summary strong { color: var(--orange); font-size: 14px; }
+.attendance-statuses { display: grid; gap: 6px; margin: 0 0 12px; }
+.attendance-statuses p { display: flex; align-items: baseline; flex-wrap: wrap; gap: 7px; margin: 0; color: var(--muted); font: 10px var(--mono); text-transform: uppercase; letter-spacing: .5px; }
+.attendance-statuses strong { color: var(--green); font-size: 10px; }
+.attendance-statuses p:nth-child(2) strong { color: #c0392b; }
+.attendance-statuses span { color: var(--ink); font-weight: 700; text-transform: none; letter-spacing: 0; }
 .vote-remaining { display: flex; align-items: center; justify-content: space-between; gap: 14px; margin-bottom: 12px; color: var(--muted); font: 700 10px var(--mono); text-transform: uppercase; letter-spacing: .5px; }
 .vote-remaining strong { color: var(--orange); font-size: 14px; }
 .vote-progress { width: 70px; height: 7px; overflow: hidden; background: rgba(221, 93, 50, .12); }
 .vote-progress span { display: block; height: 100%; background: var(--orange); transition: width .18s ease-out; }
 .attendance-button { border: 1px solid var(--orange); background: transparent; color: var(--orange); cursor: pointer; padding: 9px 11px; font: 700 10px var(--mono); text-transform: uppercase; letter-spacing: .5px; }
+.attendance-actions { display: flex; flex-wrap: wrap; gap: 8px; }
+.attendance-button.selected { background: var(--orange); color: white; }
+.attendance-button.absent { border-color: #c0392b; color: #c0392b; }
+.attendance-button.absent.selected { background: #c0392b; color: white; }
 .attendance-button:disabled, .vote-map:disabled { cursor: not-allowed; opacity: .5; }
 .vote-hint, .vote-status { margin: 12px 0; color: var(--muted); font: 11px var(--mono); }
 .vote-error { margin: 12px 0; color: #c0392b; font: 11px var(--mono); }

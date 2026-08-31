@@ -67,12 +67,12 @@ function MapVoting({ onAttendanceChange, onWinningMapsChange }: MapVotingProps) 
     )
   }, [meeting, onAttendanceChange, onWinningMapsChange, rankedMaps])
 
-  const toggleAttendance = async () => {
-    if (!meeting) return
+  const setAttendance = async (attending: boolean) => {
+    if (!meeting || (meeting.attendanceResponse && meeting.attendee === attending)) return
     setSaving(true)
     setError(null)
     try {
-      await setMapVoteAttendance(meeting.id, session?.user.id ?? guestVoterId, !meeting.attendee)
+      await setMapVoteAttendance(meeting.id, session?.user.id ?? guestVoterId, attending)
       await loadMeeting()
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Could not update attendance.')
@@ -143,6 +143,16 @@ function MapVoting({ onAttendanceChange, onWinningMapsChange }: MapVotingProps) 
             <span><strong>{meeting.attendanceCount}</strong> playing Friday</span>
             <span><strong>{meeting.voteLimit}</strong> map choices each</span>
           </div>
+          {(meeting.attendeePlayerNames.length > 0 || meeting.unavailablePlayerNames.length > 0) && (
+            <div className="attendance-statuses" aria-label="Player attendance responses">
+              {meeting.attendeePlayerNames.length > 0 && (
+                <p><strong>Playing</strong><span>{meeting.attendeePlayerNames.join(', ')}</span></p>
+              )}
+              {meeting.unavailablePlayerNames.length > 0 && (
+                <p><strong>Not playing</strong><span>{meeting.unavailablePlayerNames.join(', ')}</span></p>
+              )}
+            </div>
+          )}
           <div className="vote-remaining" aria-label={`${votesRemaining} votes remaining`}>
             <span><strong>{votesRemaining}</strong> votes remaining</span>
             <div className="vote-progress" role="progressbar" aria-valuemin={0} aria-valuemax={meeting.voteLimit} aria-valuenow={selectedMapIds.length}>
@@ -150,9 +160,26 @@ function MapVoting({ onAttendanceChange, onWinningMapsChange }: MapVotingProps) 
             </div>
           </div>
           {isLoggedIn && (
-            <button type="button" className="attendance-button" onClick={() => void toggleAttendance()} disabled={saving}>
-              {meeting.attendee ? 'I am not playing Friday' : 'I am playing Friday'}
-            </button>
+            <div className="attendance-actions" aria-label="Your Friday attendance">
+              <button
+                type="button"
+                className={meeting.attendanceResponse && meeting.attendee ? 'attendance-button selected' : 'attendance-button'}
+                onClick={() => void setAttendance(true)}
+                disabled={saving}
+                aria-pressed={meeting.attendanceResponse && meeting.attendee}
+              >
+                I am playing Friday
+              </button>
+              <button
+                type="button"
+                className={meeting.attendanceResponse && !meeting.attendee ? 'attendance-button absent selected' : 'attendance-button absent'}
+                onClick={() => void setAttendance(false)}
+                disabled={saving}
+                aria-pressed={meeting.attendanceResponse && !meeting.attendee}
+              >
+                I am not playing Friday
+              </button>
+            </div>
           )}
           <p className="vote-hint">
             {meeting.attendee

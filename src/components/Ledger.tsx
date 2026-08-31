@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
+import { useSearchParams } from 'react-router'
 import { formatDate } from '../utils/date'
 import { fetchMatches, fetchMatchFormOptions, updateMatch, type MatchFormOptions, type MatchRecord } from '../services/matches'
 import { deleteMatchImage, uploadMatchImages, type MatchImage } from '../services/matchImages'
@@ -21,7 +22,9 @@ function Ledger({ isActive }: { isActive: boolean }) {
   const [isUpdatingImages, setIsUpdatingImages] = useState(false)
   const [imageError, setImageError] = useState<string | null>(null)
   const [selectedImage, setSelectedImage] = useState<MatchImage | null>(null)
-  const [expandedMatchId, setExpandedMatchId] = useState<string | null>(null)
+  const [searchParams, setSearchParams] = useSearchParams()
+  const sharedMatchId = searchParams.get('match')
+  const expandedMatchId = sharedMatchId && MATCHES.some((match) => match.id === sharedMatchId) ? sharedMatchId : null
   const selectedImages = useMemo(() => {
     if (!selectedImage) return []
     return MATCHES.find((match) => match.images.some((image) => image.id === selectedImage.id))?.images ?? [selectedImage]
@@ -149,6 +152,15 @@ function Ledger({ isActive }: { isActive: boolean }) {
     setDateToFilter('')
   }
 
+  const toggleMatch = (matchId: string) => {
+    setSearchParams((currentParams) => {
+      const nextParams = new URLSearchParams(currentParams)
+      if (sharedMatchId === matchId) nextParams.delete('match')
+      else nextParams.set('match', matchId)
+      return nextParams
+    })
+  }
+
   return (
     <div hidden={!isActive}>
       <section className="intro" aria-labelledby="matches-heading">
@@ -170,7 +182,7 @@ function Ledger({ isActive }: { isActive: boolean }) {
           const isExpanded = expandedMatchId === match.id
           const detailsId = `match-details-${match.id}`
           return <article className="match-row" key={`${match.date}-${match.player1}-${match.player2}-${index}`}>
-            <button type="button" className="match-row-summary" aria-expanded={isExpanded} aria-controls={detailsId} onClick={() => setExpandedMatchId((current) => current === match.id ? null : match.id ?? null)}>
+            <button type="button" className="match-row-summary" aria-expanded={isExpanded} aria-controls={detailsId} onClick={() => match.id && toggleMatch(match.id)}>
               <div className="players">
                 {match.player1AvatarUrl
                   ? <img className="match-player-avatar" src={match.player1AvatarUrl} alt="" />

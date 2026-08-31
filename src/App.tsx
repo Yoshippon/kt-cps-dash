@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { Navigate, NavLink, Route, Routes } from 'react-router'
 import Ledger from './components/Ledger'
 import Matchups from './components/Matchups'
 import Community from './components/Community'
@@ -12,8 +12,8 @@ import { AuthProvider, useAuth } from './lib/auth'
 import './App.css'
 
 function AppShell() {
-  const [activeTab, setActiveTab] = useState<'matches' | 'matchups' | 'community' | 'next-meeting' | 'kill-teams' | 'profile' | 'admin'>('next-meeting')
   const { isAdmin, isLoggedIn } = useAuth()
+  const tabClassName = ({ isActive }: { isActive: boolean }) => isActive ? 'tab active' : 'tab'
 
   return (
     <main className="app-shell">
@@ -23,21 +23,25 @@ function AppShell() {
       </header>
       <ClaimBanner />
       <nav className="tabs" aria-label="Dashboard views">
-        <button className={activeTab === 'next-meeting' ? 'tab active' : 'tab'} type="button" onClick={() => setActiveTab('next-meeting')}>Next Meeting</button>
-        <button className={activeTab === 'matches' ? 'tab active' : 'tab'} type="button" onClick={() => setActiveTab('matches')}>Matches</button>
-        <button className={activeTab === 'matchups' ? 'tab active' : 'tab'} type="button" onClick={() => setActiveTab('matchups')}>Matchups</button>
-        <button className={activeTab === 'community' ? 'tab active' : 'tab'} type="button" onClick={() => setActiveTab('community')}>Community</button>
-        <button className={activeTab === 'kill-teams' ? 'tab active' : 'tab'} type="button" onClick={() => setActiveTab('kill-teams')}>Kill Teams</button>
-        {isLoggedIn && <button className={activeTab === 'profile' ? 'tab active' : 'tab'} type="button" onClick={() => setActiveTab('profile')}>Profile</button>}
-        {isAdmin && <button className={activeTab === 'admin' ? 'tab active' : 'tab'} type="button" onClick={() => setActiveTab('admin')}>Admin</button>}
+        <NavLink className={tabClassName} to="/next-meeting">Next Meeting</NavLink>
+        <NavLink className={tabClassName} to="/matches">Matches</NavLink>
+        <NavLink className={tabClassName} to="/matchups">Matchups</NavLink>
+        <NavLink className={tabClassName} to="/community">Community</NavLink>
+        <NavLink className={tabClassName} to="/kill-teams">Kill Teams</NavLink>
+        {isLoggedIn && <NavLink className={tabClassName} to="/profile">Profile</NavLink>}
+        {isAdmin && <NavLink className={tabClassName} to="/admin">Admin</NavLink>}
       </nav>
-      <NextMeeting isActive={activeTab === 'next-meeting'} />
-      <Ledger isActive={activeTab === 'matches'} />
-      <Matchups isActive={activeTab === 'matchups'} />
-      <Community isActive={activeTab === 'community'} />
-      <KillTeams isActive={activeTab === 'kill-teams'} />
-      {isLoggedIn && <Profile isActive={activeTab === 'profile'} />}
-      {isAdmin && <AdminPlayers isActive={activeTab === 'admin'} />}
+      <Routes>
+        <Route path="/" element={<Navigate replace to="/next-meeting" />} />
+        <Route path="/next-meeting" element={<NextMeeting isActive />} />
+        <Route path="/matches" element={<Ledger isActive />} />
+        <Route path="/matchups" element={<Matchups isActive />} />
+        <Route path="/community" element={<Community isActive />} />
+        <Route path="/kill-teams" element={<KillTeams isActive />} />
+        <Route path="/profile" element={isLoggedIn ? <Profile isActive /> : <Navigate replace to="/next-meeting" />} />
+        <Route path="/admin" element={isAdmin ? <AdminPlayers isActive /> : <Navigate replace to="/next-meeting" />} />
+        <Route path="*" element={<Navigate replace to="/next-meeting" />} />
+      </Routes>
     </main>
   )
 }

@@ -9,7 +9,9 @@ export type MapVoteMeeting = {
   voteLimit: number
   mapCount: number
   attendeePlayerNames: string[]
+  unavailablePlayerNames: string[]
   attendee: boolean
+  attendanceResponse: boolean
   selectedMapIds: string[]
   maps: MapVoteSummaryRow[]
 }
@@ -50,7 +52,9 @@ export async function fetchMapVoteMeeting(voterId: string): Promise<MapVoteMeeti
     voteLimit: maps[0]?.vote_limit ?? 2,
     mapCount: maps[0]?.map_count ?? 0,
     attendeePlayerNames: maps[0]?.attendee_player_names ?? [],
+    unavailablePlayerNames: maps[0]?.unavailable_player_names ?? [],
     attendee: currentVoterState?.attendee ?? false,
+    attendanceResponse: currentVoterState?.responded ?? false,
     selectedMapIds: currentVoterState?.selected_map_ids ?? [],
     maps,
   }

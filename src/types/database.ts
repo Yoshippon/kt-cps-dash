@@ -113,6 +113,7 @@ export type MeetingAttendeeRow = {
   voter_id: string
   voter_kind: 'anonymous' | 'registered'
   player_id: string | null
+  is_attending: boolean
   created_at: string
 }
 
@@ -134,6 +135,7 @@ export type MapVoteSummaryRow = {
   anonymous_votes: number
   voter_names: string[]
   attendee_player_names: string[]
+  unavailable_player_names: string[]
   attendance_count: number
   vote_limit: number
   map_count: number
@@ -245,7 +247,7 @@ export type Database = {
       }
       get_my_map_vote_state: {
         Args: { p_meeting_id: string; p_voter_id: string }
-        Returns: { attendee: boolean; selected_map_ids: string[] }[]
+        Returns: { attendee: boolean; responded: boolean; selected_map_ids: string[] }[]
       }
       set_meeting_attendance: {
         Args: { p_meeting_id: string; p_attending: boolean; p_voter_id: string }
