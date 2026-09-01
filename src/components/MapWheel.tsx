@@ -259,7 +259,7 @@ function MapWheel({ maps, preselectedMapNames, isOpen, onClose, onSelect }: MapW
               onClick={spin}
               disabled={spinning || availableMaps.length === 0}
             >
-              {spinning ? 'Spinning...' : selectedMap ? `Selected: ${selectedMap.name}` : 'Spin Wheel'}
+              {spinning ? 'Spinning...' : selectedMap ? 'Spin Again' : 'Spin Wheel'}
             </button>
             {selectedMap && <div className="wheel-result" role="status"><span>Selected map</span><strong>{selectedMap.name}</strong></div>}
           </div>

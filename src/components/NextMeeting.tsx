@@ -19,7 +19,7 @@ const getPlayersForWindow = (days: number) => [...new Set(MATCHES.flatMap((match
   .sort()
 
 const getPairKey = (firstPlayer: string, secondPlayer: string) => [firstPlayer, secondPlayer].sort().join('::')
-type SuggestedMatchup = { firstPlayer: string; secondPlayer: string; lastPlayed: string | undefined; map?: string }
+type SuggestedMatchup = { firstPlayer: string; secondPlayer: string; lastPlayed: string | undefined; map?: MapData }
 const getWeekKey = (date: string) => {
   const day = new Date(`${date}T00:00:00Z`)
   const mondayOffset = (day.getUTCDay() + 6) % 7
@@ -149,7 +149,7 @@ function NextMeeting({ isActive }: { isActive: boolean }) {
   }, [bannedMatchups, consecutiveGames, latestMatchups, lockedMatchups, selectedMatrixPlayers, randomSeed])
 
   const matchupsWithMaps = useMemo(() => {
-    if (availableMaps.length === 0 || suggestedMatchups.suggestions.length === 0) {
+    if (suggestedMatchups.suggestions.length === 0) {
       return suggestedMatchups.suggestions.map((m) => ({ ...m, map: undefined }))
     }
     const mapPool = [...availableMaps]
@@ -160,10 +160,13 @@ function NextMeeting({ isActive }: { isActive: boolean }) {
       const j = seed % (i + 1)
       ;[mapPool[i], mapPool[j]] = [mapPool[j], mapPool[i]]
     }
-    return suggestedMatchups.suggestions.map((matchup, index) => ({
-      ...matchup,
-      map: selectedMaps[`${matchup.firstPlayer}-${matchup.secondPlayer}`] ?? mapPool[index % mapPool.length]
-    }))
+    return suggestedMatchups.suggestions.map((matchup, index) => {
+      const fallbackMap = mapPool.length > 0 ? mapPool[index % mapPool.length] : undefined
+      return {
+        ...matchup,
+        map: selectedMaps[`${matchup.firstPlayer}-${matchup.secondPlayer}`] ?? fallbackMap,
+      }
+    })
   }, [availableMaps, mapSeed, selectedMaps, suggestedMatchups])
 
   const addMatchupRule = (type: 'lock' | 'ban') => {
@@ -207,10 +210,11 @@ function NextMeeting({ isActive }: { isActive: boolean }) {
           </div>
           <div className="stats" aria-label="Meeting statistics">
             <div><strong>{confirmedAttendeeCount ?? selectedPlayers.length}</strong><span>attending</span></div>
-            <div><strong>{matrixPlayers.length}</strong><span>players available</span></div>
           </div>
         </div>
       </section>
+      <MapVoting onAttendanceChange={handleAttendanceChange} onWinningMapsChange={handleWinningMapsChange} />
+
       <div className="matrix-toolbar">
         <span>{matrixPlayers.length} {matrixPlayers.length === 1 ? 'player' : 'players'} shown</span>
         <label>Show players
@@ -244,7 +248,6 @@ function NextMeeting({ isActive }: { isActive: boolean }) {
         </div>
         <p className="attendee-count">{confirmedAttendeeCount ?? selectedPlayers.length} players attending</p>
       </section>
-      <MapVoting onAttendanceChange={handleAttendanceChange} onWinningMapsChange={handleWinningMapsChange} />
 
       {selectedPlayers.length > 0 && (
         <section className="maps-section" aria-labelledby="maps-heading">
