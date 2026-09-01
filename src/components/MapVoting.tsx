@@ -10,6 +10,23 @@ type MapVotingProps = {
 
 type VoteMapStyle = CSSProperties & { '--vote-share': string }
 
+const mapOrder = [
+  'Octarius',
+  'Chalnath',
+  'Nachmund',
+  'Moroch',
+  'Gallowdark',
+  'Bheta Decima',
+  'Volkus',
+  'Tomb World',
+  'Ipiranga X',
+  'WTC',
+  'Dust II',
+  'Bunda Secundus',
+]
+
+const mapOrderIndex = new Map(mapOrder.map((mapName, index) => [mapName, index]))
+
 function MapVoting({ onAttendanceChange, onWinningMapsChange }: MapVotingProps) {
   const { loading: authLoading, session, isAdmin, isLoggedIn } = useAuth()
   const [guestVoterId] = useState(() => {
@@ -49,10 +66,23 @@ function MapVoting({ onAttendanceChange, onWinningMapsChange }: MapVotingProps) 
     void loadMeeting()
   }, [authLoading, loadMeeting])
 
-  const rankedMaps = useMemo(() => meeting?.maps.map((map) => ({
-    ...map,
-    displayedVotes: includeAnonymous ? map.total_votes : map.registered_votes,
-  })).sort((first, second) => second.displayedVotes - first.displayedVotes || first.map_name.localeCompare(second.map_name)) ?? [], [includeAnonymous, meeting])
+  const rankedMaps = useMemo(() => {
+    if (!meeting) return []
+
+    const noMapsHaveVotes = meeting.maps.every((map) => map.total_votes === 0)
+    return meeting.maps
+      .map((map) => ({
+        ...map,
+        displayedVotes: includeAnonymous ? map.total_votes : map.registered_votes,
+      }))
+      .sort((first, second) => {
+        if (noMapsHaveVotes) {
+          return (mapOrderIndex.get(first.map_name) ?? Infinity) - (mapOrderIndex.get(second.map_name) ?? Infinity)
+            || first.map_name.localeCompare(second.map_name)
+        }
+        return second.displayedVotes - first.displayedVotes || first.map_name.localeCompare(second.map_name)
+      })
+  }, [includeAnonymous, meeting])
   const highestVoteCount = Math.max(0, ...rankedMaps.map((map) => map.displayedVotes))
   const votesRemaining = meeting ? Math.max(0, meeting.voteLimit - selectedMapIds.length) : 0
 
