@@ -6,8 +6,9 @@ alter table public.meeting_attendees
 alter table public.map_votes
   drop constraint if exists map_votes_voter_id_fkey;
 
-drop function if exists public.set_meeting_attendance(uuid, boolean);
-drop function if exists public.replace_map_votes(uuid, uuid[]);
+drop function if exists public.set_meeting_attendance(uuid, uuid, boolean);
+drop function if exists public.replace_map_votes(uuid, uuid, uuid[]);
+drop function if exists public.get_my_map_vote_state(uuid, uuid);
 
 create function public.set_meeting_attendance(
   p_meeting_id uuid,

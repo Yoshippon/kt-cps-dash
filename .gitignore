@@ -12,6 +12,9 @@ dist
 dist-ssr
 *.local
 
+# Supabase CLI local project metadata
+supabase/.temp/
+
 # Yarn Berry
 .yarn/install-state.gz
 .yarn/cache
