@@ -1,4 +1,4 @@
--- Show voters beside each map. Run after 20260831_map_voting.sql.
+-- Show voters beside each map. Run after 20260831010000_map_voting.sql.
 
 drop function if exists public.get_map_vote_summary(uuid);
 

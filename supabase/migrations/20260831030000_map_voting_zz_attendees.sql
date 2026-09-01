@@ -1,5 +1,5 @@
 -- Return named confirmed attendees with map-vote totals.
--- Run after 20260831_map_voting_voters.sql.
+-- Run after 20260831020000_map_voting_voters.sql.
 
 drop function if exists public.get_map_vote_summary(uuid);
 
