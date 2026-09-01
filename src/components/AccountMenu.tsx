@@ -37,7 +37,15 @@ function AccountMenu() {
 
   return (
     <div className="account-menu">
-      <button type="button" className="account-signin" onClick={() => setIsOpen((open) => !open)}>Sign in</button>
+      <button
+        type="button"
+        className="account-signin"
+        title="Already have matches listed? Ask an admin for your claim invitation before signing in. Do not create a separate account."
+        onClick={() => setIsOpen((open) => !open)}
+      >
+        Sign in
+      </button>
+      <span className="account-signin-hint">Have match history? Ask admin for claim invite first.</span>
       {isOpen && (
         <div className="account-popover">
           {status === 'sent' ? (
