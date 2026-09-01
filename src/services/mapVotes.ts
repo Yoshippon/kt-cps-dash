@@ -10,10 +10,12 @@ export type MapVoteMeeting = {
   mapCount: number
   attendeePlayerNames: string[]
   unavailablePlayerNames: string[]
+  unavailablePlayerIds: string[]
   attendee: boolean
   attendanceResponse: boolean
   selectedMapIds: string[]
   maps: MapVoteSummaryRow[]
+  mapOwnerIdsByMapId: Map<string, string[]>
 }
 
 function requireSupabase() {
@@ -33,14 +35,21 @@ export async function fetchMapVoteMeeting(voterId: string): Promise<MapVoteMeeti
   const [
     { data: summaryData, error: summaryError },
     { data: voterState, error: voterStateError },
+    { data: ownershipData, error: ownershipError },
   ] = await Promise.all([
     supabase.rpc('get_map_vote_summary', { p_meeting_id: meeting.id }),
     supabase.rpc('get_my_map_vote_state', { p_meeting_id: meeting.id, p_voter_id: voterId }),
+    supabase.from('player_map_ownership').select('map_id, player_id'),
   ])
 
-  if (summaryError || voterStateError) throw summaryError ?? voterStateError
+  if (summaryError || voterStateError || ownershipError) throw summaryError ?? voterStateError ?? ownershipError
 
   const maps = (summaryData as MapVoteSummaryRow[] | null) ?? []
+  const mapOwnerIdsByMapId = new Map<string, string[]>()
+  for (const ownership of ownershipData ?? []) {
+    const ownerIds = mapOwnerIdsByMapId.get(ownership.map_id) ?? []
+    mapOwnerIdsByMapId.set(ownership.map_id, [...ownerIds, ownership.player_id])
+  }
   const currentVoterState = Array.isArray(voterState)
     ? voterState[0]
     : null
@@ -53,10 +62,12 @@ export async function fetchMapVoteMeeting(voterId: string): Promise<MapVoteMeeti
     mapCount: maps[0]?.map_count ?? 0,
     attendeePlayerNames: maps[0]?.attendee_player_names ?? [],
     unavailablePlayerNames: maps[0]?.unavailable_player_names ?? [],
+    unavailablePlayerIds: maps[0]?.unavailable_player_ids ?? [],
     attendee: currentVoterState?.attendee ?? false,
     attendanceResponse: currentVoterState?.responded ?? false,
     selectedMapIds: currentVoterState?.selected_map_ids ?? [],
     maps,
+    mapOwnerIdsByMapId,
   }
 }
 

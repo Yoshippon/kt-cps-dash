@@ -69,8 +69,13 @@ function MapVoting({ onAttendanceChange, onWinningMapsChange }: MapVotingProps) 
   const rankedMaps = useMemo(() => {
     if (!meeting) return []
 
+    const unavailablePlayerIds = new Set(meeting.unavailablePlayerIds)
     const noMapsHaveVotes = meeting.maps.every((map) => map.total_votes === 0)
     return meeting.maps
+      .filter((map) => {
+        const ownerIds = meeting.mapOwnerIdsByMapId.get(map.map_id) ?? []
+        return ownerIds.length === 0 || ownerIds.some((ownerId) => !unavailablePlayerIds.has(ownerId))
+      })
       .map((map) => ({
         ...map,
         displayedVotes: includeAnonymous ? map.total_votes : map.registered_votes,

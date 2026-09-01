@@ -90,6 +90,11 @@ export type PlayerTeamOwnershipRow = {
   team_id: string
 }
 
+export type PlayerMapOwnershipRow = {
+  player_id: string
+  map_id: string
+}
+
 export type PlayerTeamImageRow = {
   id: string
   player_id: string
@@ -136,6 +141,7 @@ export type MapVoteSummaryRow = {
   voter_names: string[]
   attendee_player_names: string[]
   unavailable_player_names: string[]
+  unavailable_player_ids: string[]
   attendance_count: number
   vote_limit: number
   map_count: number
@@ -183,6 +189,12 @@ export type Database = {
       player_team_ownership: {
         Row: PlayerTeamOwnershipRow
         Insert: PlayerTeamOwnershipRow
+        Update: never
+        Relationships: []
+      }
+      player_map_ownership: {
+        Row: PlayerMapOwnershipRow
+        Insert: PlayerMapOwnershipRow
         Update: never
         Relationships: []
       }
