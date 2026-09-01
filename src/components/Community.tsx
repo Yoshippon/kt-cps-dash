@@ -14,14 +14,18 @@ const formatRate = (stat: StatLine) => `${winRate(stat).toFixed(0)}%`
 function Community({ isActive }: { isActive: boolean }) {
   const [playerFilter, setPlayerFilter] = useState('')
   const [teamFilter, setTeamFilter] = useState('')
+  const [dateFromFilter, setDateFromFilter] = useState('')
+  const [dateToFilter, setDateToFilter] = useState('')
   const [view, setView] = useState<CommunityView>('table')
   const eligibleMatches = useMemo(() => MATCHES.filter((match) => {
     if (isMirrorMatch(match)) return false
     const includesPlayer = !playerFilter || match.player1 === playerFilter || match.player2 === playerFilter
     const includesTeam = !teamFilter || match.teamOne === teamFilter || match.teamTwo === teamFilter
     const matchesPlayerTeam = !playerFilter || !teamFilter || playerPlayedWithTeam(match, playerFilter, teamFilter)
-    return includesPlayer && includesTeam && matchesPlayerTeam
-  }), [playerFilter, teamFilter])
+    const isAfterStartDate = !dateFromFilter || match.date >= dateFromFilter
+    const isBeforeEndDate = !dateToFilter || match.date <= dateToFilter
+    return includesPlayer && includesTeam && matchesPlayerTeam && isAfterStartDate && isBeforeEndDate
+  }), [dateFromFilter, dateToFilter, playerFilter, teamFilter])
   const teamStats = useMemo(() => {
     const stats = new Map<string, StatLine>()
     eligibleMatches.forEach((match) => {
@@ -59,6 +63,8 @@ function Community({ isActive }: { isActive: boolean }) {
   const clearFilters = () => {
     setPlayerFilter('')
     setTeamFilter('')
+    setDateFromFilter('')
+    setDateToFilter('')
   }
 
   return (
@@ -70,7 +76,9 @@ function Community({ isActive }: { isActive: boolean }) {
       <div className="community-filters">
         <label>Player<select value={playerFilter} onChange={(event) => { const player = event.target.value; setPlayerFilter(player); if (teamFilter && !MATCHES.some((match) => !isMirrorMatch(match) && playerPlayedWithTeam(match, player, teamFilter))) setTeamFilter('') }}><option value="">All players</option>{players.map((player) => <option key={player} value={player}>{player}</option>)}</select></label>
         <label>Team<select value={teamFilter} onChange={(event) => { const team = event.target.value; setTeamFilter(team); if (playerFilter && !MATCHES.some((match) => !isMirrorMatch(match) && playerPlayedWithTeam(match, playerFilter, team))) setPlayerFilter('') }}><option value="">All teams</option>{teams.map((team) => <option key={team} value={team}>{team}</option>)}</select></label>
-        {(playerFilter || teamFilter) && <button type="button" className="clear-filters" onClick={clearFilters}>Clear filters</button>}
+        <label>From<input type="date" value={dateFromFilter} onChange={(event) => setDateFromFilter(event.target.value)} max={dateToFilter || undefined} /></label>
+        <label>To<input type="date" value={dateToFilter} onChange={(event) => setDateToFilter(event.target.value)} min={dateFromFilter || undefined} /></label>
+        {(playerFilter || teamFilter || dateFromFilter || dateToFilter) && <button type="button" className="clear-filters" onClick={clearFilters}>Clear filters</button>}
       </div>
       <section className="community-section" aria-labelledby="team-rates-heading">
         <header className="community-section-heading">
