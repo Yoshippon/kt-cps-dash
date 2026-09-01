@@ -42,6 +42,7 @@ h1 { margin: 2px 0 0; font: 700 18px var(--display); letter-spacing: 0; color: v
 .stats strong { color: var(--ink); font: 700 28px var(--display); }
 .stats span, .toolbar, time, .map, .status { color: var(--muted); font: 11px var(--mono); text-transform: uppercase; letter-spacing: .6px; }
 .toolbar { display: flex; justify-content: space-between; align-items: center; gap: 16px; border-top: 2px solid var(--ink); border-bottom: 1px solid var(--line); padding: 14px 0; }
+.match-actions { display: flex; justify-content: flex-end; padding: 14px 0; border-bottom: 1px solid var(--line); }
 .filter-button { display: inline-flex; flex: 0 0 auto; align-items: center; min-height: 24px; background: transparent; color: var(--ink); padding: 0; }
 .filter-button span { color: var(--orange); font-size: 16px; margin-left: 6px; }
 .applied-filters { display: grid; grid-template-columns: repeat(3, max-content); justify-content: end; gap: 5px; margin-left: auto; }

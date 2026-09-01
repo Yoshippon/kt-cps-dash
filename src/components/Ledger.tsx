@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { useSearchParams } from 'react-router'
 import { formatDate } from '../utils/date'
-import { fetchMatches, fetchMatchFormOptions, updateMatch, type MatchFormOptions, type MatchRecord } from '../services/matches'
+import { createMatch, fetchMatches, fetchMatchFormOptions, updateMatch, type MatchFormOptions, type MatchRecord } from '../services/matches'
 import { deleteMatchImage, uploadMatchImages, type MatchImage } from '../services/matchImages'
 import MatchEditModal from './MatchEditModal'
 import { useAuth } from '../lib/auth'
@@ -17,6 +17,7 @@ function Ledger({ isActive }: { isActive: boolean }) {
   const [MATCHES, setMatches] = useState<MatchRecord[]>([])
   const [formOptions, setFormOptions] = useState<MatchFormOptions>({ maps: [], teams: [], players: [], critOps: [], tacOps: [] })
   const [editingMatch, setEditingMatch] = useState<MatchRecord | null>(null)
+  const [isCreatingMatch, setIsCreatingMatch] = useState(false)
   const [isSaving, setIsSaving] = useState(false)
   const [saveError, setSaveError] = useState<string | null>(null)
   const [isUpdatingImages, setIsUpdatingImages] = useState(false)
@@ -60,9 +61,15 @@ function Ledger({ isActive }: { isActive: boolean }) {
     setIsSaving(true)
     setSaveError(null)
     try {
-      await updateMatch(draft)
-      setMatches((current) => current.map((match) => (match.id === draft.id ? draft : match)))
+      if (isCreatingMatch) {
+        const createdMatch = await createMatch(draft)
+        setMatches((current) => [createdMatch, ...current])
+      } else {
+        await updateMatch(draft)
+        setMatches((current) => current.map((match) => (match.id === draft.id ? draft : match)))
+      }
       setEditingMatch(null)
+      setIsCreatingMatch(false)
     } catch (err) {
       setSaveError(err instanceof Error ? err.message : 'Failed to save match.')
     } finally {
@@ -76,6 +83,41 @@ function Ledger({ isActive }: { isActive: boolean }) {
     if (!match.id || !canEditMatch(match)) return
 
     setEditingMatch(match)
+    setIsCreatingMatch(false)
+    setSaveError(null)
+    setImageError(null)
+    fetchMatchFormOptions()
+      .then(setFormOptions)
+      .catch((err) => setSaveError(err instanceof Error ? err.message : 'Failed to load match options.'))
+  }
+
+  const handleCreate = () => {
+    if (!player) return
+
+    const now = new Date()
+    const date = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`
+    setEditingMatch({
+      matchId: null,
+      date,
+      map: formOptions.maps[0] ?? '',
+      teamOne: formOptions.teams[0] ?? '',
+      teamTwo: formOptions.teams[1] ?? formOptions.teams[0] ?? '',
+      player1: player.name,
+      player2: '',
+      isTied: false,
+      isHomebrew: false,
+      isPlayer1Skip: false,
+      isPlayer2Skip: false,
+      player1Score: null,
+      player2Score: null,
+      player1Primary: null,
+      player2Primary: null,
+      player1Tac: null,
+      player2Tac: null,
+      critOp: null,
+      images: [],
+    })
+    setIsCreatingMatch(true)
     setSaveError(null)
     setImageError(null)
     fetchMatchFormOptions()
@@ -167,7 +209,7 @@ function Ledger({ isActive }: { isActive: boolean }) {
         <div><h2 id="matches-heading">Matches</h2></div>
         <div className="stats" aria-label="Match statistics"><div><strong>{filteredMatches.length}</strong><span>games logged</span></div><div><strong>{filteredMatches.filter((match) => match.isTied).length}</strong><span>draws</span></div><div><strong>{playerCount}</strong><span>players</span></div></div>
       </section>
-      <div className="toolbar"><span>{sortedMatches.length} {sortedMatches.length === 1 ? 'match' : 'matches'}{hasFilters ? ' found' : ''}</span>{hasFilters && <span className="applied-filters" aria-label={`Applied filters: ${appliedFilters.join(', ')}`}>{appliedFilters.map((filter) => <span key={filter}>{filter}</span>)}</span>}<button type="button" className="filter-button" aria-expanded={isFilterOpen} aria-controls="match-filters" onClick={() => setIsFilterOpen((isOpen) => !isOpen)}>Filters applied <span aria-hidden="true">{isFilterOpen ? '⌃' : '⌄'}</span></button></div>
+      <div className="toolbar"><span>{sortedMatches.length} {sortedMatches.length === 1 ? 'match' : 'matches'}{hasFilters ? ' found' : ''}</span>{hasFilters && <span className="applied-filters" aria-label={`Applied filters: ${appliedFilters.join(', ')}`}>{appliedFilters.map((filter) => <span key={filter}>{filter}</span>)}</span>}<button type="button" className="filter-button" aria-expanded={isFilterOpen} aria-controls="match-filters" onClick={() => setIsFilterOpen((isOpen) => !isOpen)}>{hasFilters ? 'Filters applied' : 'Apply filters'} <span aria-hidden="true">{isFilterOpen ? '⌃' : '⌄'}</span></button></div>
       {isFilterOpen && <div className="filter-panel" id="match-filters">
         <label>Player<select value={playerFilter} onChange={(event) => setPlayerFilter(event.target.value)}><option value="">All players</option>{allPlayers.map((player) => <option key={player} value={player}>{player}</option>)}</select></label>
         <label>Team<select value={teamFilter} onChange={(event) => setTeamFilter(event.target.value)}><option value="">All teams</option>{teams.map((team) => <option key={team} value={team}>{team}</option>)}</select></label>
@@ -176,6 +218,7 @@ function Ledger({ isActive }: { isActive: boolean }) {
         <label>To<input type="date" value={dateToFilter} onChange={(event) => setDateToFilter(event.target.value)} min={dateFromFilter || undefined} /></label>
         {hasFilters && <button type="button" className="clear-filters" onClick={clearFilters}>Clear filters</button>}
       </div>}
+      {player && <div className="match-actions"><button type="button" className="add-match" onClick={handleCreate}><span aria-hidden="true">+</span>Add match</button></div>}
       <section className="match-list" aria-label="All matches">
         {matchGroups.length > 0 ? matchGroups.map((group) => <div className="date-block" key={group.date}><header className="date-header"><time dateTime={group.date}>{formatDate(group.date)}</time><span>{group.matches.length} {group.matches.length === 1 ? 'game' : 'games'}</span></header><div className="date-matches">{group.matches.map((match, index) => {
           const editable = canEditMatch(match)
@@ -209,12 +252,13 @@ function Ledger({ isActive }: { isActive: boolean }) {
       {editingMatch && (
         <MatchEditModal
           match={editingMatch}
+          mode={isCreatingMatch ? 'create' : 'edit'}
           options={formOptions}
           isSaving={isSaving}
           error={saveError}
           isUpdatingImages={isUpdatingImages}
           imageError={imageError}
-          onCancel={() => { setEditingMatch(null); setSaveError(null); setImageError(null) }}
+          onCancel={() => { setEditingMatch(null); setIsCreatingMatch(false); setSaveError(null); setImageError(null) }}
           onSave={handleSave}
           onUploadImages={handleUploadImages}
           onDeleteImage={handleDeleteImage}

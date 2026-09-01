@@ -405,6 +405,9 @@ drop policy if exists "Write all players" on public.players;
 create policy "Admins manage players" on public.players
   for all using (public.is_admin()) with check (public.is_admin());
 
+create policy "Claimed players create opponents" on public.players
+  for insert with check (public.current_player_id() is not null);
+
 drop policy if exists "Write all teams" on public.teams;
 create policy "Admins manage teams" on public.teams
   for all using (public.is_admin()) with check (public.is_admin());

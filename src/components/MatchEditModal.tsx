@@ -11,6 +11,7 @@ const tacOpArchetypeClasses: Record<string, string> = {
 
 interface MatchEditModalProps {
   match: MatchRecord
+  mode: 'create' | 'edit'
   options: MatchFormOptions
   isSaving: boolean
   error: string | null
@@ -43,7 +44,18 @@ function TacOpSelect({ value, tacOps, onChange }: { value: string | null | undef
   )
 }
 
-function MatchEditModal({ match, options, isSaving, error, isUpdatingImages, imageError, onCancel, onSave, onUploadImages, onDeleteImage }: MatchEditModalProps) {
+function PlayerField({ label, value, players, onChange }: { label: string; value: string; players: string[]; onChange: (value: string) => void }) {
+  const listId = `${label.toLowerCase().replaceAll(' ', '-')}-options`
+
+  return (
+    <label>{label}
+      <input list={listId} value={value} onChange={(event) => onChange(event.target.value)} />
+      <datalist id={listId}>{players.map((name) => <option key={name} value={name} />)}</datalist>
+    </label>
+  )
+}
+
+function MatchEditModal({ match, mode, options, isSaving, error, isUpdatingImages, imageError, onCancel, onSave, onUploadImages, onDeleteImage }: MatchEditModalProps) {
   const [draft, setDraft] = useState<MatchRecord>(match)
 
   useEffect(() => {
@@ -74,11 +86,14 @@ function MatchEditModal({ match, options, isSaving, error, isUpdatingImages, ima
     <div className="wheel-overlay" role="dialog" aria-modal="true" aria-labelledby="match-edit-heading">
       <div className="wheel-modal match-edit-modal">
         <header className="match-edit-header">
-          <h3 id="match-edit-heading">Edit match</h3>
+          <h3 id="match-edit-heading">{mode === 'create' ? 'Add match' : 'Edit match'}</h3>
           <button type="button" className="wheel-close" aria-label="Close" onClick={onCancel} disabled={isSaving}>&times;</button>
         </header>
         <div className="match-edit-body">
           <div className="match-edit-grid">
+          <label>Date
+            <input type="date" value={draft.date} onChange={(event) => setField('date', event.target.value)} />
+          </label>
           <label>Map
             <select value={draft.map} onChange={(event) => setField('map', event.target.value)}>
               {!options.maps.includes(draft.map) && <option value={draft.map}>{draft.map}</option>}
@@ -93,18 +108,8 @@ function MatchEditModal({ match, options, isSaving, error, isUpdatingImages, ima
             </select>
           </label>
 
-          <label>Player 1
-            <select value={draft.player1} onChange={(event) => setField('player1', event.target.value)}>
-              {!options.players.includes(draft.player1) && <option value={draft.player1}>{draft.player1}</option>}
-              {options.players.map((name) => <option key={name} value={name}>{name}</option>)}
-            </select>
-          </label>
-          <label>Player 2
-            <select value={draft.player2} onChange={(event) => setField('player2', event.target.value)}>
-              {!options.players.includes(draft.player2) && <option value={draft.player2}>{draft.player2}</option>}
-              {options.players.map((name) => <option key={name} value={name}>{name}</option>)}
-            </select>
-          </label>
+          <PlayerField label="Player 1" value={draft.player1} players={options.players} onChange={(value) => setField('player1', value)} />
+          <PlayerField label="Player 2" value={draft.player2} players={options.players} onChange={(value) => setField('player2', value)} />
 
           <label>Team 1
             <select value={draft.teamOne} onChange={(event) => setField('teamOne', event.target.value)}>
@@ -132,9 +137,25 @@ function MatchEditModal({ match, options, isSaving, error, isUpdatingImages, ima
           <label>Player 2 tac op
             <TacOpSelect value={draft.player2Tac} tacOps={options.tacOps} onChange={(value) => setField('player2Tac', value)} />
           </label>
+          <label>
+            <input type="checkbox" checked={draft.isTied} onChange={(event) => setField('isTied', event.target.checked)} />
+            Draw
+          </label>
+          <label>
+            <input type="checkbox" checked={draft.isHomebrew} onChange={(event) => setField('isHomebrew', event.target.checked)} />
+            Homebrew
+          </label>
+          <label>
+            <input type="checkbox" checked={draft.isPlayer1Skip} onChange={(event) => setField('isPlayer1Skip', event.target.checked)} />
+            Player 1 skip
+          </label>
+          <label>
+            <input type="checkbox" checked={draft.isPlayer2Skip} onChange={(event) => setField('isPlayer2Skip', event.target.checked)} />
+            Player 2 skip
+          </label>
           </div>
 
-          <section className="match-image-editor" aria-labelledby="match-images-heading">
+          {mode === 'edit' && <section className="match-image-editor" aria-labelledby="match-images-heading">
             <div><h4 id="match-images-heading">Match images</h4><p>JPEG, PNG, or WebP. Maximum 10 MB each.</p></div>
             <label className="match-image-upload">Add images
               <input type="file" accept="image/jpeg,image/png,image/webp" multiple disabled={isUpdatingImages} onChange={(event) => {
@@ -146,13 +167,13 @@ function MatchEditModal({ match, options, isSaving, error, isUpdatingImages, ima
             {draft.images.length > 0 && <div className="match-image-editor-list">{draft.images.map((image, index) => <figure key={image.id}><img src={image.url} alt={image.caption ?? `Match photo ${index + 1}`} /><button type="button" onClick={() => onDeleteImage(image)} disabled={isUpdatingImages}>Remove</button></figure>)}</div>}
             {isUpdatingImages && <p className="match-image-status">Updating images…</p>}
             {imageError && <p className="match-edit-error">{imageError}</p>}
-          </section>
+          </section>}
 
           {error && <p className="match-edit-error">{error}</p>}
 
           <div className="wheel-dialog-actions">
             <button type="button" className="wheel-dialog-secondary" onClick={onCancel} disabled={isSaving}>Cancel</button>
-            <button type="button" className="wheel-dialog-primary" onClick={() => onSave(draft)} disabled={isSaving}>{isSaving ? 'Saving…' : 'Save changes'}</button>
+            <button type="button" className="wheel-dialog-primary" onClick={() => onSave(draft)} disabled={isSaving}>{isSaving ? 'Saving…' : mode === 'create' ? 'Create match' : 'Save changes'}</button>
           </div>
         </div>
       </div>

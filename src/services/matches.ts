@@ -40,28 +40,6 @@ export type TacOpOption = {
   archetype: string
 }
 
-const mapRowToMatch = (row: MatchRow): MatchRecord => ({
-  id: row.id,
-  matchId: row.match_id ?? null,
-  date: row.date,
-  map: row.map,
-  teamOne: row.team_one,
-  teamTwo: row.team_two,
-  player1: row.player_one,
-  player2: row.player_two,
-  isTied: row.is_tied,
-  isHomebrew: row.is_homebrew,
-  isPlayer1Skip: row.is_player_one_skip,
-  isPlayer2Skip: row.is_player_two_skip,
-  player1Score: row.player_one_score,
-  player2Score: row.player_two_score,
-  player1Primary: row.player_one_primary,
-  player2Primary: row.player_two_primary,
-  player1Tac: row.player_one_tac,
-  player2Tac: row.player_two_tac,
-  images: [],
-})
-
 export async function fetchMatches(): Promise<MatchRecord[]> {
   if (!hasSupabaseConfig) return []
 
@@ -191,19 +169,53 @@ export async function createMatch(match: MatchRecord): Promise<MatchRecord> {
     throw new Error('Supabase is not configured. Add VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY.')
   }
 
-  const [{ data: mapRows }, { data: teamRows }, { data: playerRows }] = await Promise.all([
+  const playerOneName = match.player1.trim()
+  const playerTwoName = match.player2.trim()
+  if (!playerOneName || !playerTwoName) {
+    throw new Error('Both players are required.')
+  }
+
+  const [
+    { data: mapRow, error: mapError },
+    { data: teamRows, error: teamError },
+    { data: playerRows, error: playerError },
+    { data: critOpRow, error: critOpError },
+  ] = await Promise.all([
     supabase.from('maps').select('id, name').eq('name', match.map).maybeSingle(),
     supabase.from('teams').select('id, name'),
     supabase.from('players').select('id, name'),
+    match.critOp
+      ? supabase.from('crit_ops').select('id, name').eq('name', match.critOp).maybeSingle()
+      : Promise.resolve({ data: null, error: null }),
   ])
 
-  const mapRowsAny = (mapRows as any) ?? null
+  if (mapError || teamError || playerError || critOpError) {
+    throw mapError ?? teamError ?? playerError ?? critOpError
+  }
+
   const teamRowsAny = Array.isArray(teamRows) ? (teamRows as any[]) : []
   const playerRowsAny = Array.isArray(playerRows) ? (playerRows as any[]) : []
 
-  const mapId = mapRowsAny?.id
+  const mapId = (mapRow as any)?.id
+  const critOpId = (critOpRow as any)?.id ?? null
   const teamIdByName = new Map(teamRowsAny.map((row) => [row.name, row.id]))
-  const playerIdByName = new Map(playerRowsAny.map((row) => [row.name, row.id]))
+  const playerRowByName = new Map(playerRowsAny.map((row) => [row.name.toLocaleLowerCase(), row]))
+  const missingPlayerNames = [...new Set([playerOneName, playerTwoName].filter((name) => !playerRowByName.has(name.toLocaleLowerCase())))]
+
+  const createdPlayers = await Promise.all(missingPlayerNames.map(async (name) => {
+    const { data, error } = await supabase
+      .from('players')
+      .insert({ name })
+      .select('id, name')
+      .single()
+
+    if (error) throw error
+    return data as { id: string; name: string }
+  }))
+  createdPlayers.forEach((createdPlayer) => playerRowByName.set(createdPlayer.name.toLocaleLowerCase(), createdPlayer))
+
+  const playerOne = playerRowByName.get(playerOneName.toLocaleLowerCase())
+  const playerTwo = playerRowByName.get(playerTwoName.toLocaleLowerCase())
 
   const payload: Record<string, unknown> = {
     match_id: match.matchId ?? `match-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
@@ -211,8 +223,8 @@ export async function createMatch(match: MatchRecord): Promise<MatchRecord> {
     map_id: mapId,
     team_one_id: teamIdByName.get(match.teamOne) ?? null,
     team_two_id: teamIdByName.get(match.teamTwo) ?? null,
-    player_one_id: playerIdByName.get(match.player1) ?? null,
-    player_two_id: playerIdByName.get(match.player2) ?? null,
+    player_one_id: playerOne?.id ?? null,
+    player_two_id: playerTwo?.id ?? null,
     is_tied: match.isTied,
     is_homebrew: match.isHomebrew,
     is_player_one_skip: match.isPlayer1Skip,
@@ -223,6 +235,7 @@ export async function createMatch(match: MatchRecord): Promise<MatchRecord> {
     player_two_primary: match.player2Primary ?? null,
     player_one_tac: match.player1Tac ?? null,
     player_two_tac: match.player2Tac ?? null,
+    crit_op_id: critOpId,
   }
 
   if (!mapId || !payload.player_one_id || !payload.player_two_id) {
@@ -242,7 +255,14 @@ export async function createMatch(match: MatchRecord): Promise<MatchRecord> {
     throw new Error('No match was returned from Supabase after insert.')
   }
 
-  return mapRowToMatch(row)
+  return {
+    ...match,
+    id: row.id,
+    matchId: row.match_id,
+    player1: playerOne?.name ?? playerOneName,
+    player2: playerTwo?.name ?? playerTwoName,
+    images: [],
+  }
 }
 
 export async function updateMatch(match: MatchRecord): Promise<MatchRecord> {
