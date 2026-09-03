@@ -4,7 +4,7 @@ import { hasSupabaseConfig } from '../lib/supabase'
 import { fetchMapVoteMeeting, replaceMapVotes, setMapVoteAttendance, type MapVoteMeeting } from '../services/mapVotes'
 
 type MapVotingProps = {
-  onAttendanceChange: (playerNames: string[], attendeeCount: number) => void
+  onAttendanceChange: (playerNames: string[], changedByUser: boolean) => void
   onWinningMapsChange: (mapNames: string[]) => void
 }
 
@@ -44,19 +44,20 @@ function MapVoting({ onAttendanceChange, onWinningMapsChange }: MapVotingProps) 
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
-  const loadMeeting = useCallback(async () => {
+  const loadMeeting = useCallback(async (attendanceChanged = false) => {
     setLoading(true)
     setError(null)
     try {
       const nextMeeting = await fetchMapVoteMeeting(session?.user.id ?? guestVoterId)
       setMeeting(nextMeeting)
       setSelectedMapIds(nextMeeting.selectedMapIds)
+      onAttendanceChange(nextMeeting.attendeePlayerNames, attendanceChanged)
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Could not load map voting.')
     } finally {
       setLoading(false)
     }
-  }, [guestVoterId, session])
+  }, [guestVoterId, onAttendanceChange, session])
 
   useEffect(() => {
     if (!hasSupabaseConfig || authLoading) {
@@ -93,14 +94,13 @@ function MapVoting({ onAttendanceChange, onWinningMapsChange }: MapVotingProps) 
 
   useEffect(() => {
     if (!meeting) return
-    onAttendanceChange(meeting.attendeePlayerNames, meeting.attendanceCount)
     onWinningMapsChange(
       rankedMaps
         .filter((map) => map.displayedVotes > 0)
         .slice(0, meeting.mapCount)
         .map((map) => map.map_name)
     )
-  }, [meeting, onAttendanceChange, onWinningMapsChange, rankedMaps])
+  }, [meeting, onWinningMapsChange, rankedMaps])
 
   const setAttendance = async (attending: boolean) => {
     if (!meeting || (meeting.attendanceResponse && meeting.attendee === attending)) return
@@ -108,7 +108,7 @@ function MapVoting({ onAttendanceChange, onWinningMapsChange }: MapVotingProps) 
     setError(null)
     try {
       await setMapVoteAttendance(meeting.id, session?.user.id ?? guestVoterId, attending)
-      await loadMeeting()
+      await loadMeeting(true)
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Could not update attendance.')
     } finally {

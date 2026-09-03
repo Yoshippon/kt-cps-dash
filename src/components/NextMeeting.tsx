@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useState, useEffect } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import { MATCHES, MAPS } from '../data'
 import type { MapData } from '../data'
 import { formatDate, getElapsedDays, getElapsedTime, getTimeUntilNextFriday19, formatTimeUntil } from '../utils/date'
@@ -20,6 +20,59 @@ const getPlayersForWindow = (days: number) => [...new Set(MATCHES.flatMap((match
 
 const getPairKey = (firstPlayer: string, secondPlayer: string) => [firstPlayer, secondPlayer].sort().join('::')
 type SuggestedMatchup = { firstPlayer: string; secondPlayer: string; lastPlayed: string | undefined; map?: MapData }
+type MatchupPlan = { pairs: SuggestedMatchup[]; recencyScores: number[] }
+
+const compareMatchupPlans = (first: MatchupPlan, second: MatchupPlan) => {
+  for (let index = 0; index < first.recencyScores.length; index += 1) {
+    if (first.recencyScores[index] !== second.recencyScores[index]) {
+      return first.recencyScores[index] - second.recencyScores[index]
+    }
+  }
+  return 0
+}
+
+const seededOrder = (value: string, seed: number) => {
+  let hash = seed
+  for (const character of value) hash = Math.imul(hash ^ character.charCodeAt(0), 16777619)
+  return hash >>> 0
+}
+
+const selectBestMatchups = (
+  players: string[],
+  latestMatchups: Map<string, string>,
+  bannedMatchups: Set<string>,
+  randomSeed: number,
+): SuggestedMatchup[] => {
+  const solve = (remainingPlayers: string[]): MatchupPlan | null => {
+    if (remainingPlayers.length === 0) return { pairs: [], recencyScores: [] }
+
+    const [firstPlayer, ...otherPlayers] = remainingPlayers
+    let bestPlan: MatchupPlan | null = null
+    const partners = [...otherPlayers].sort((first, second) =>
+      seededOrder(getPairKey(firstPlayer, first), randomSeed) - seededOrder(getPairKey(firstPlayer, second), randomSeed))
+
+    for (const secondPlayer of partners) {
+      const pair = getPairKey(firstPlayer, secondPlayer)
+      if (bannedMatchups.has(pair)) continue
+
+      const nextPlan = solve(otherPlayers.filter((player) => player !== secondPlayer))
+      if (!nextPlan) continue
+
+      const lastPlayed = latestMatchups.get(pair)
+      const plan = {
+        pairs: [{ firstPlayer, secondPlayer, lastPlayed }, ...nextPlan.pairs],
+        recencyScores: [lastPlayed ? Date.parse(`${lastPlayed}T00:00:00Z`) : Number.NEGATIVE_INFINITY, ...nextPlan.recencyScores]
+          .sort((first, second) => second - first),
+      }
+      if (!bestPlan || (randomSeed === 0 && compareMatchupPlans(plan, bestPlan) < 0)) bestPlan = plan
+    }
+
+    return bestPlan
+  }
+
+  return solve(players)?.pairs ?? []
+}
+
 const getWeekKey = (date: string) => {
   const day = new Date(`${date}T00:00:00Z`)
   const mondayOffset = (day.getUTCDay() + 6) % 7
@@ -59,7 +112,6 @@ function NextMeeting({ isActive }: { isActive: boolean }) {
   const [mapSeed, setMapSeed] = useState(0)
   const [spinningMatchup, setSpinningMatchup] = useState<string | null>(null)
   const [selectedMaps, setSelectedMaps] = useState<Record<string, MapData>>({})
-  const [confirmedAttendeeCount, setConfirmedAttendeeCount] = useState<number | null>(null)
   const [winningMapNames, setWinningMapNames] = useState<string[] | null>(null)
   const selectedWindow = PLAYER_WINDOWS.find((window) => window.value === playerWindow) ?? PLAYER_WINDOWS[0]
   const matrixPlayers = getPlayersForWindow(selectedWindow.days)
@@ -73,7 +125,16 @@ function NextMeeting({ isActive }: { isActive: boolean }) {
     return latest
   }, [])
   const recentPlayers = useMemo(() => matrixPlayers.slice(0, 4), [matrixPlayers])
-  const [selectedPlayers, setSelectedPlayers] = useState<string[]>(() => recentPlayers)
+  const [selectedPlayers, setSelectedPlayers] = useState<string[]>(() => {
+    const savedPlayers = window.sessionStorage.getItem('kt-cps-selected-attendees')
+    return savedPlayers
+      ? savedPlayers.split('\n').filter((player) => recentPlayers.includes(player))
+      : recentPlayers
+  })
+
+  useEffect(() => {
+    window.sessionStorage.setItem('kt-cps-selected-attendees', selectedPlayers.join('\n'))
+  }, [selectedPlayers])
 
   const selectedMatrixPlayers = selectedPlayers.filter((player) => matrixPlayers.includes(player))
   const maxStreak = Math.max(0, ...matrixPlayers.map((player) => consecutiveGames.get(player) ?? 0))
@@ -84,9 +145,8 @@ function NextMeeting({ isActive }: { isActive: boolean }) {
     if (selectedPlayers.length === 0) return []
     return MAPS.filter((map) => map.owners.some((owner) => selectedPlayers.includes(owner)))
   }, [selectedPlayers, winningMapNames])
-  const handleAttendanceChange = useCallback((playerNames: string[], attendeeCount: number) => {
-    setSelectedPlayers(playerNames)
-    setConfirmedAttendeeCount(attendeeCount)
+  const handleAttendanceChange = useCallback((playerNames: string[], changedByUser: boolean) => {
+    if (changedByUser || playerNames.length > 0) setSelectedPlayers(playerNames)
   }, [])
   const handleWinningMapsChange = useCallback((mapNames: string[]) => {
     setWinningMapNames(mapNames)
@@ -109,41 +169,7 @@ function NextMeeting({ isActive }: { isActive: boolean }) {
       : undefined
     if (byePlayer) remaining.delete(byePlayer)
 
-    const remainingPlayers = [...remaining]
-    
-    // Fisher-Yates shuffle using randomSeed
-    const shuffled = [...remainingPlayers]
-    let seed = randomSeed
-    for (let i = shuffled.length - 1; i > 0; i--) {
-      seed = (seed * 1664525 + 1013904223) >>> 0
-      const j = seed % (i + 1)
-      ;[shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]]
-    }
-
-    for (let i = 0; i < shuffled.length - 1; i += 2) {
-      const firstPlayer = shuffled[i]
-      const secondPlayer = shuffled[i + 1]
-      const pair = getPairKey(firstPlayer, secondPlayer)
-      if (bannedMatchups.includes(pair)) {
-        // Try to find alternative partner
-        let found = false
-        for (let k = i + 2; k < shuffled.length; k++) {
-          const altPair = getPairKey(firstPlayer, shuffled[k])
-          if (!bannedMatchups.includes(altPair)) {
-            ;[shuffled[i + 1], shuffled[k]] = [shuffled[k], shuffled[i + 1]]
-            suggestions.push({ firstPlayer, secondPlayer: shuffled[i + 1], lastPlayed: latestMatchups.get(getPairKey(firstPlayer, shuffled[i + 1])) })
-            found = true
-            break
-          }
-        }
-        if (!found) {
-          // Skip this player if no valid partner
-          continue
-        }
-      } else {
-        suggestions.push({ firstPlayer, secondPlayer, lastPlayed: latestMatchups.get(pair) })
-      }
-    }
+    suggestions.push(...selectBestMatchups([...remaining].sort(), latestMatchups, new Set(bannedMatchups), randomSeed))
 
     return { suggestions, byePlayer }
   }, [bannedMatchups, consecutiveGames, latestMatchups, lockedMatchups, selectedMatrixPlayers, randomSeed])
@@ -209,7 +235,7 @@ function NextMeeting({ isActive }: { isActive: boolean }) {
             Next meeting in <strong>{formatTimeUntil(timeUntil)}</strong>
           </div>
           <div className="stats" aria-label="Meeting statistics">
-            <div><strong>{confirmedAttendeeCount ?? selectedPlayers.length}</strong><span>attending</span></div>
+            <div><strong>{selectedPlayers.length}</strong><span>attending</span></div>
           </div>
         </div>
       </section>
@@ -246,7 +272,7 @@ function NextMeeting({ isActive }: { isActive: boolean }) {
             </label>
           )})}
         </div>
-        <p className="attendee-count">{confirmedAttendeeCount ?? selectedPlayers.length} players attending</p>
+        <p className="attendee-count">{selectedPlayers.length} players attending</p>
       </section>
 
       {selectedPlayers.length > 0 && (
