@@ -40,6 +40,27 @@ export type TacOpOption = {
   archetype: string
 }
 
+export async function createPlayer(name: string): Promise<string> {
+  if (!hasSupabaseConfig) {
+    throw new Error('Supabase is not configured. Add VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY.')
+  }
+
+  const playerName = name.trim()
+  if (!playerName) {
+    throw new Error('Player name is required.')
+  }
+
+  const { data, error } = await supabase
+    .from('players')
+    .insert({ name: playerName })
+    .select('name')
+    .single()
+
+  if (error) throw error
+
+  return (data as { name: string }).name
+}
+
 export async function fetchMatches(): Promise<MatchRecord[]> {
   if (!hasSupabaseConfig) return []
 

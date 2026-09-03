@@ -19,6 +19,7 @@ interface MatchEditModalProps {
   imageError: string | null
   onCancel: () => void
   onSave: (match: MatchRecord) => void
+  onCreatePlayer: (name: string) => Promise<void>
   onUploadImages: (files: File[]) => void
   onDeleteImage: (image: MatchImage) => void
 }
@@ -45,18 +46,22 @@ function TacOpSelect({ value, tacOps, onChange }: { value: string | null | undef
 }
 
 function PlayerField({ label, value, players, onChange }: { label: string; value: string; players: string[]; onChange: (value: string) => void }) {
-  const listId = `${label.toLowerCase().replaceAll(' ', '-')}-options`
-
   return (
     <label>{label}
-      <input list={listId} value={value} onChange={(event) => onChange(event.target.value)} />
-      <datalist id={listId}>{players.map((name) => <option key={name} value={name} />)}</datalist>
+      <select value={value} onChange={(event) => onChange(event.target.value)}>
+        <option value="">Select a player</option>
+        {value && !players.includes(value) && <option value={value}>{value}</option>}
+        {players.map((name) => <option key={name} value={name}>{name}</option>)}
+      </select>
     </label>
   )
 }
 
-function MatchEditModal({ match, mode, options, isSaving, error, isUpdatingImages, imageError, onCancel, onSave, onUploadImages, onDeleteImage }: MatchEditModalProps) {
+function MatchEditModal({ match, mode, options, isSaving, error, isUpdatingImages, imageError, onCancel, onSave, onCreatePlayer, onUploadImages, onDeleteImage }: MatchEditModalProps) {
   const [draft, setDraft] = useState<MatchRecord>(match)
+  const [newPlayerName, setNewPlayerName] = useState('')
+  const [newPlayerError, setNewPlayerError] = useState<string | null>(null)
+  const [isCreatingPlayer, setIsCreatingPlayer] = useState(false)
 
   useEffect(() => {
     setDraft(match)
@@ -81,6 +86,19 @@ function MatchEditModal({ match, mode, options, isSaving, error, isUpdatingImage
   }
 
   const toScore = (value: string) => (value === '' ? null : Number(value))
+
+  const handleCreatePlayer = async () => {
+    setIsCreatingPlayer(true)
+    setNewPlayerError(null)
+    try {
+      await onCreatePlayer(newPlayerName)
+      setNewPlayerName('')
+    } catch (err) {
+      setNewPlayerError(err instanceof Error ? err.message : 'Failed to create player.')
+    } finally {
+      setIsCreatingPlayer(false)
+    }
+  }
 
   return (
     <div className="wheel-overlay" role="dialog" aria-modal="true" aria-labelledby="match-edit-heading">
@@ -137,23 +155,44 @@ function MatchEditModal({ match, mode, options, isSaving, error, isUpdatingImage
           <label>Player 2 tac op
             <TacOpSelect value={draft.player2Tac} tacOps={options.tacOps} onChange={(value) => setField('player2Tac', value)} />
           </label>
-          <label>
-            <input type="checkbox" checked={draft.isTied} onChange={(event) => setField('isTied', event.target.checked)} />
-            Draw
-          </label>
-          <label>
-            <input type="checkbox" checked={draft.isHomebrew} onChange={(event) => setField('isHomebrew', event.target.checked)} />
-            Homebrew
-          </label>
-          <label>
-            <input type="checkbox" checked={draft.isPlayer1Skip} onChange={(event) => setField('isPlayer1Skip', event.target.checked)} />
-            Player 1 skip
-          </label>
-          <label>
-            <input type="checkbox" checked={draft.isPlayer2Skip} onChange={(event) => setField('isPlayer2Skip', event.target.checked)} />
-            Player 2 skip
-          </label>
           </div>
+
+          <details className="new-player" onToggle={(event) => {
+            if (event.currentTarget.open) setNewPlayerError(null)
+          }}>
+            <summary>Adding a new player?</summary>
+            <div>
+              <label>Player name
+                <input value={newPlayerName} onChange={(event) => setNewPlayerName(event.target.value)} />
+              </label>
+              <button type="button" onClick={handleCreatePlayer} disabled={isCreatingPlayer}>
+                {isCreatingPlayer ? 'Adding…' : 'Add player'}
+              </button>
+            </div>
+            {newPlayerError && <p className="match-edit-error">{newPlayerError}</p>}
+          </details>
+
+          <section className="match-options" aria-labelledby="match-options-heading">
+            <h4 id="match-options-heading">Match options</h4>
+            <div className="match-options-list">
+              <label className="match-option">
+                <input type="checkbox" checked={draft.isTied} onChange={(event) => setField('isTied', event.target.checked)} />
+                <span><strong>Draw</strong></span>
+              </label>
+              <label className="match-option">
+                <input type="checkbox" checked={draft.isHomebrew} onChange={(event) => setField('isHomebrew', event.target.checked)} />
+                <span><strong>Homebrew</strong><small>Use if any teams or rules are homebrewed.</small></span>
+              </label>
+              <label className="match-option">
+                <input type="checkbox" checked={draft.isPlayer1Skip} onChange={(event) => setField('isPlayer1Skip', event.target.checked)} />
+                <span><strong>Player 1 skip</strong><small>Use for a tutorial or when teaching a new player. Player 1 streak will not increase.</small></span>
+              </label>
+              <label className="match-option">
+                <input type="checkbox" checked={draft.isPlayer2Skip} onChange={(event) => setField('isPlayer2Skip', event.target.checked)} />
+                <span><strong>Player 2 skip</strong><small>Use for a tutorial or when teaching a new player. Player 2 streak will not increase.</small></span>
+              </label>
+            </div>
+          </section>
 
           {mode === 'edit' && <section className="match-image-editor" aria-labelledby="match-images-heading">
             <div><h4 id="match-images-heading">Match images</h4><p>JPEG, PNG, or WebP. Maximum 10 MB each.</p></div>

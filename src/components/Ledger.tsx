@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { useSearchParams } from 'react-router'
 import { formatDate } from '../utils/date'
-import { createMatch, fetchMatches, fetchMatchFormOptions, updateMatch, type MatchFormOptions, type MatchRecord } from '../services/matches'
+import { createMatch, createPlayer, fetchMatches, fetchMatchFormOptions, updateMatch, type MatchFormOptions, type MatchRecord } from '../services/matches'
 import { deleteMatchImage, uploadMatchImages, type MatchImage } from '../services/matchImages'
 import MatchEditModal from './MatchEditModal'
 import { useAuth } from '../lib/auth'
@@ -75,6 +75,11 @@ function Ledger({ isActive }: { isActive: boolean }) {
     } finally {
       setIsSaving(false)
     }
+  }
+
+  const handleCreatePlayer = async (name: string) => {
+    await createPlayer(name)
+    setFormOptions(await fetchMatchFormOptions())
   }
 
   const canEditMatch = (match: MatchRecord) => isAdmin || Boolean(player && (match.player1 === player.name || match.player2 === player.name))
@@ -256,6 +261,7 @@ function Ledger({ isActive }: { isActive: boolean }) {
           options={formOptions}
           isSaving={isSaving}
           error={saveError}
+          onCreatePlayer={handleCreatePlayer}
           isUpdatingImages={isUpdatingImages}
           imageError={imageError}
           onCancel={() => { setEditingMatch(null); setIsCreatingMatch(false); setSaveError(null); setImageError(null) }}
