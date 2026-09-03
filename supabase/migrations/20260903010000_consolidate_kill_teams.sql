@@ -22,12 +22,6 @@ alter table public.kill_teams
   add column if not exists kill_op integer null,
   add column if not exists trooper_apl integer null;
 
-insert into public.kill_teams (name, description)
-select name, description
-from public.teams
-on conflict (name) do update
-set description = coalesce(public.kill_teams.description, excluded.description);
-
 alter table public.player_team_images
   drop constraint if exists player_team_images_player_id_team_id_fkey;
 
@@ -38,23 +32,39 @@ alter table public.matches
   drop constraint if exists matches_team_one_id_fkey,
   drop constraint if exists matches_team_two_id_fkey;
 
-update public.player_team_ownership ownership
-set team_id = kill_team.id
-from public.teams team
-join public.kill_teams kill_team on kill_team.name = team.name
-where ownership.team_id = team.id;
+-- Older projects have a separate `teams` catalog to merge. Fresh projects
+-- already use `kill_teams`, so no legacy rows need migration.
+do $$
+begin
+  if to_regclass('public.teams') is not null then
+    insert into public.kill_teams (name, description)
+    select name, description
+    from public.teams
+    on conflict (name) do update
+    set description = coalesce(public.kill_teams.description, excluded.description);
 
-update public.matches match
-set team_one_id = kill_team.id
-from public.teams team
-join public.kill_teams kill_team on kill_team.name = team.name
-where match.team_one_id = team.id;
+    update public.player_team_ownership ownership
+    set team_id = kill_team.id
+    from public.teams team
+    join public.kill_teams kill_team on kill_team.name = team.name
+    where ownership.team_id = team.id;
 
-update public.matches match
-set team_two_id = kill_team.id
-from public.teams team
-join public.kill_teams kill_team on kill_team.name = team.name
-where match.team_two_id = team.id;
+    update public.matches match
+    set team_one_id = kill_team.id
+    from public.teams team
+    join public.kill_teams kill_team on kill_team.name = team.name
+    where match.team_one_id = team.id;
+
+    update public.matches match
+    set team_two_id = kill_team.id
+    from public.teams team
+    join public.kill_teams kill_team on kill_team.name = team.name
+    where match.team_two_id = team.id;
+
+    drop table public.teams;
+  end if;
+end
+$$;
 
 alter table public.player_team_ownership
   add constraint player_team_ownership_team_id_fkey
@@ -71,5 +81,3 @@ alter table public.matches
   foreign key (team_one_id) references public.kill_teams(id) on delete set null,
   add constraint matches_team_two_id_fkey
   foreign key (team_two_id) references public.kill_teams(id) on delete set null;
-
-drop table public.teams;
