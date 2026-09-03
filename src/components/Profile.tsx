@@ -13,13 +13,13 @@ import {
   type PlayerProfile,
   type ProfileImage,
 } from '../services/profile'
-import type { TeamRow } from '../types/database'
+import type { KillTeamRow } from '../types/database'
 
 function Profile({ isActive }: { isActive: boolean }) {
   const { player, session } = useAuth()
   const [profile, setProfile] = useState<PlayerProfile>({ avatarPath: null, avatarUrl: null })
   const [teams, setTeams] = useState<OwnedTeam[]>([])
-  const [teamOptions, setTeamOptions] = useState<TeamRow[]>([])
+  const [teamOptions, setTeamOptions] = useState<KillTeamRow[]>([])
   const [selectedTeamId, setSelectedTeamId] = useState('')
   const [isLoading, setIsLoading] = useState(false)
   const [busyAction, setBusyAction] = useState<string | null>(null)

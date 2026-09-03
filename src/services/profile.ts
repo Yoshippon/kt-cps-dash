@@ -1,6 +1,6 @@
 import { hasSupabaseConfig, supabase } from '../lib/supabase'
 import { MEDIA_BUCKET } from './matchImages'
-import type { PlayerProfileRow, PlayerTeamImageRow, TeamRow } from '../types/database'
+import type { KillTeamRow, PlayerProfileRow, PlayerTeamImageRow } from '../types/database'
 
 const MAX_IMAGE_SIZE_BYTES = 10 * 1024 * 1024
 const ACCEPTED_IMAGE_TYPES = new Set(['image/jpeg', 'image/png', 'image/webp'])
@@ -72,11 +72,11 @@ export async function uploadAvatar(playerId: string, userId: string, previousAva
   return { avatarPath: storagePath, avatarUrl: publicUrl(storagePath) }
 }
 
-export async function fetchTeamOptions(): Promise<TeamRow[]> {
+export async function fetchTeamOptions(): Promise<KillTeamRow[]> {
   requireSupabase()
-  const { data, error } = await supabase.from('teams').select('id, name, description, created_at, updated_at').order('name', { ascending: true })
+  const { data, error } = await supabase.from('kill_teams').select('id, name, description, created_at, updated_at').order('name', { ascending: true })
   if (error) throw error
-  return (data as TeamRow[] | null) ?? []
+  return (data as KillTeamRow[] | null) ?? []
 }
 
 export async function fetchOwnedTeams(playerId: string): Promise<OwnedTeam[]> {
@@ -88,7 +88,7 @@ export async function fetchOwnedTeams(playerId: string): Promise<OwnedTeam[]> {
     { data: imageRows, error: imageError },
   ] = await Promise.all([
     supabase.from('player_team_ownership').select('team_id').eq('player_id', playerId),
-    supabase.from('teams').select('id, name'),
+    supabase.from('kill_teams').select('id, name'),
     supabase.from('player_team_images').select('id, team_id, storage_path').eq('player_id', playerId).order('sort_order', { ascending: true }).order('created_at', { ascending: true }),
   ])
   if (ownershipError || teamError || imageError) throw ownershipError ?? teamError ?? imageError
@@ -101,7 +101,7 @@ export async function fetchOwnedTeams(playerId: string): Promise<OwnedTeam[]> {
     imagesByTeamId.set(image.team_id, images)
   })
 
-  return ((teamRows as Pick<TeamRow, 'id' | 'name'>[] | null) ?? [])
+  return ((teamRows as Pick<KillTeamRow, 'id' | 'name'>[] | null) ?? [])
     .filter((team) => teamIds.has(team.id))
     .map((team) => ({ ...team, images: imagesByTeamId.get(team.id) ?? [] }))
 }

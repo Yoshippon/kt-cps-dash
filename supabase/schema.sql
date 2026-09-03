@@ -7,14 +7,6 @@ create table if not exists public.players (
   updated_at timestamptz not null default now()
 );
 
-create table if not exists public.teams (
-  id uuid primary key default gen_random_uuid(),
-  name text not null unique,
-  description text null,
-  created_at timestamptz not null default now(),
-  updated_at timestamptz not null default now()
-);
-
 create table if not exists public.maps (
   id uuid primary key default gen_random_uuid(),
   name text not null unique,
@@ -96,13 +88,33 @@ create table if not exists public.kill_teams (
   name text not null unique,
   archetype_id uuid null references public.archetypes(id) on delete set null,
   description text null,
+  generic_faction text null,
+  forty_k_faction text null,
+  season integer null,
+  box_number text null,
+  box_name text null,
+  category text null,
+  operatives integer null,
+  wounds integer null,
+  apl integer null,
+  release_date date null,
+  min_operatives integer null,
+  max_operatives integer null,
+  min_wounds integer null,
+  max_wounds integer null,
+  min_apl integer null,
+  max_apl integer null,
+  min_activations integer null,
+  max_activations integer null,
+  kill_op integer null,
+  trooper_apl integer null,
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now()
 );
 
 create table if not exists public.player_team_ownership (
   player_id uuid not null references public.players(id) on delete cascade,
-  team_id uuid not null references public.teams(id) on delete cascade,
+  team_id uuid not null references public.kill_teams(id) on delete cascade,
   primary key (player_id, team_id)
 );
 
@@ -116,8 +128,8 @@ create table if not exists public.matches (
   id uuid primary key default gen_random_uuid(),
   date date not null,
   map_id uuid not null references public.maps(id) on delete restrict,
-  team_one_id uuid null references public.teams(id) on delete set null,
-  team_two_id uuid null references public.teams(id) on delete set null,
+  team_one_id uuid null references public.kill_teams(id) on delete set null,
+  team_two_id uuid null references public.kill_teams(id) on delete set null,
   player_one_id uuid null references public.players(id) on delete set null,
   player_two_id uuid null references public.players(id) on delete set null,
   crit_op_id uuid null references public.crit_ops(id) on delete set null,
@@ -151,7 +163,6 @@ alter table public.matches
 create unique index if not exists matches_match_id_idx on public.matches (match_id);
 
 create index if not exists players_name_idx on public.players (name);
-create index if not exists teams_name_idx on public.teams (name);
 create index if not exists maps_name_idx on public.maps (name);
 create index if not exists archetypes_category_idx on public.archetypes (category);
 create index if not exists crit_ops_number_idx on public.crit_ops (number);
@@ -172,7 +183,6 @@ create index if not exists matches_player_two_idx on public.matches (player_two_
 create index if not exists matches_crit_op_idx on public.matches (crit_op_id);
 
 alter table public.players enable row level security;
-alter table public.teams enable row level security;
 alter table public.maps enable row level security;
 alter table public.archetypes enable row level security;
 alter table public.crit_ops enable row level security;
@@ -186,9 +196,6 @@ alter table public.matches enable row level security;
 
 create policy "Read all players" on public.players for select using (true);
 create policy "Write all players" on public.players for all using (auth.uid() is not null) with check (auth.uid() is not null);
-
-create policy "Read all teams" on public.teams for select using (true);
-create policy "Write all teams" on public.teams for all using (auth.uid() is not null) with check (auth.uid() is not null);
 
 create policy "Read all maps" on public.maps for select using (true);
 create policy "Write all maps" on public.maps for all using (auth.uid() is not null) with check (auth.uid() is not null);
@@ -230,11 +237,6 @@ $$ language plpgsql;
 
 create trigger set_players_updated_at
 before update on public.players
-for each row
-execute function public.set_updated_at();
-
-create trigger set_teams_updated_at
-before update on public.teams
 for each row
 execute function public.set_updated_at();
 
@@ -407,10 +409,6 @@ create policy "Admins manage players" on public.players
 
 create policy "Claimed players create opponents" on public.players
   for insert with check (public.current_player_id() is not null);
-
-drop policy if exists "Write all teams" on public.teams;
-create policy "Admins manage teams" on public.teams
-  for all using (public.is_admin()) with check (public.is_admin());
 
 drop policy if exists "Write all maps" on public.maps;
 create policy "Admins manage maps" on public.maps

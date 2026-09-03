@@ -77,7 +77,7 @@ const loadMatches = async (): Promise<Match[]> => {
     supabase.from('matches').select('id, match_id, date, map_id, team_one_id, team_two_id, player_one_id, player_two_id, is_tied, is_homebrew, is_player_one_skip, is_player_two_skip'),
     supabase.from('maps').select('id, name'),
     supabase.from('players').select('id, name'),
-    supabase.from('teams').select('id, name'),
+    supabase.from('kill_teams').select('id, name'),
   ])
 
   const matchRowsAny = Array.isArray(matchRows) ? (matchRows as any[]) : []

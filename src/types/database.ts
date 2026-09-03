@@ -77,10 +77,31 @@ export type PlayerProfileRow = {
   updated_at: string
 }
 
-export type TeamRow = {
+export type KillTeamRow = {
   id: string
   name: string
+  archetype_id: string | null
   description: string | null
+  generic_faction: string | null
+  forty_k_faction: string | null
+  season: number | null
+  box_number: string | null
+  box_name: string | null
+  category: string | null
+  operatives: number | null
+  wounds: number | null
+  apl: number | null
+  release_date: string | null
+  min_operatives: number | null
+  max_operatives: number | null
+  min_wounds: number | null
+  max_wounds: number | null
+  min_apl: number | null
+  max_apl: number | null
+  min_activations: number | null
+  max_activations: number | null
+  kill_op: number | null
+  trooper_apl: number | null
   created_at: string
   updated_at: string
 }
@@ -180,10 +201,10 @@ export type Database = {
         Update: Partial<Omit<MapRow, 'id' | 'created_at' | 'updated_at'>>
         Relationships: []
       }
-      teams: {
-        Row: TeamRow
-        Insert: Omit<TeamRow, 'id' | 'created_at' | 'updated_at'>
-        Update: Partial<Omit<TeamRow, 'id' | 'created_at' | 'updated_at'>>
+      kill_teams: {
+        Row: KillTeamRow
+        Insert: Omit<KillTeamRow, 'id' | 'created_at' | 'updated_at'>
+        Update: Partial<Omit<KillTeamRow, 'id' | 'created_at' | 'updated_at'>>
         Relationships: []
       }
       player_team_ownership: {

@@ -87,7 +87,29 @@ const teamGroups = rawTeams.flatMap((group) =>
 const killTeamRows = [...new Map(
   teamGroups
     .filter((item) => item && item.killTeam)
-    .map((item) => [item.killTeam, { name: item.killTeam }]),
+    .map((item) => [item.killTeam, {
+      name: item.killTeam,
+      generic_faction: item.genericFaction,
+      forty_k_faction: item.fortyKFaction,
+      season: item.season,
+      box_number: String(item.boxNumber),
+      box_name: item.boxName,
+      category: item.category,
+      operatives: item.operatives,
+      wounds: item.wounds,
+      apl: item.apl,
+      release_date: item.releaseDate,
+      min_operatives: item.minOperatives,
+      max_operatives: item.maxOperatives,
+      min_wounds: item.minWounds,
+      max_wounds: item.maxWounds,
+      min_apl: item.minApl,
+      max_apl: item.maxApl,
+      min_activations: item.minActivations,
+      max_activations: item.maxActivations,
+      kill_op: item.killOp,
+      trooper_apl: item.trooperApl,
+    }]),
 ).values()]
 
 const mapRows = [...new Map(
@@ -99,12 +121,7 @@ const playerNames = [...new Set(
     .concat(maps.flatMap((map) => map.owners)),
 )]
 
-const teamNames = [...new Set(
-  matches.flatMap((match) => [match.teamOne, match.teamTwo]),
-)]
-
 const playerRows = playerNames.map((name) => ({ name }))
-const teamRows = teamNames.map((name) => ({ name }))
 
 const tacOpArchetypes = [
   { name: 'Seek And Destroy', description: 'Stake out a kill and remove priority threats.' },
@@ -131,12 +148,6 @@ const { error: mapError } = await supabase
 
 if (mapError) throw mapError
 
-const { error: teamError } = await supabase
-  .from('teams')
-  .upsert(teamRows, { onConflict: 'name' })
-
-if (teamError) throw teamError
-
 const { error: killTeamError } = await supabase
   .from('kill_teams')
   .upsert(killTeamRows, { onConflict: 'name' })
@@ -159,13 +170,13 @@ if (mapFetchError) throw mapFetchError
 
 const mapIdByName = new Map(mapData.map((row) => [row.name, row.id]))
 
-const { data: teamData, error: teamFetchError } = await supabase
-  .from('teams')
+const { data: killTeamData, error: killTeamFetchError } = await supabase
+  .from('kill_teams')
   .select('id, name')
 
-if (teamFetchError) throw teamFetchError
+if (killTeamFetchError) throw killTeamFetchError
 
-const teamIdByName = new Map(teamData.map((row) => [row.name, row.id]))
+const killTeamIdByName = new Map(killTeamData.map((row) => [row.name, row.id]))
 
 const mapOwnershipRows = [...new Map(
   maps.flatMap((map) =>
@@ -191,8 +202,8 @@ const teamOwnershipRows = [...new Map(
     const rows = []
     const p1Id = playerIdByName.get(match.player1)
     const p2Id = playerIdByName.get(match.player2)
-    const t1Id = teamIdByName.get(match.teamOne)
-    const t2Id = teamIdByName.get(match.teamTwo)
+    const t1Id = killTeamIdByName.get(match.teamOne)
+    const t2Id = killTeamIdByName.get(match.teamTwo)
 
     if (p1Id && t1Id) rows.push([`${p1Id}:${t1Id}`, { player_id: p1Id, team_id: t1Id }])
     if (p2Id && t2Id) rows.push([`${p2Id}:${t2Id}`, { player_id: p2Id, team_id: t2Id }])

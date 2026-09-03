@@ -87,7 +87,7 @@ const { data: maps, error: mapsError } = await supabase
 if (mapsError) throw mapsError
 
 const { data: teams, error: teamsError } = await supabase
-  .from('teams')
+  .from('kill_teams')
   .select('id, name')
 
 if (teamsError) throw teamsError

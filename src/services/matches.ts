@@ -77,7 +77,7 @@ export async function fetchMatches(): Promise<MatchRecord[]> {
     supabase.from('maps').select('id, name'),
     supabase.from('players').select('id, name'),
     supabase.from('player_profiles').select('player_id, avatar_path'),
-    supabase.from('teams').select('id, name'),
+    supabase.from('kill_teams').select('id, name'),
     supabase.from('crit_ops').select('id, name'),
     fetchMatchImages(),
   ])
@@ -141,7 +141,7 @@ export async function fetchMatchFormOptions(): Promise<MatchFormOptions> {
     { data: latestOpsPack, error: opsPackError },
   ] = await Promise.all([
     supabase.from('maps').select('name').order('name', { ascending: true }),
-    supabase.from('teams').select('name').order('name', { ascending: true }),
+    supabase.from('kill_teams').select('name').order('name', { ascending: true }),
     supabase.from('players').select('name').order('name', { ascending: true }),
     supabase.from('approved_ops_packs').select('id').order('year', { ascending: false }).limit(1).maybeSingle(),
   ])
@@ -203,7 +203,7 @@ export async function createMatch(match: MatchRecord): Promise<MatchRecord> {
     { data: critOpRow, error: critOpError },
   ] = await Promise.all([
     supabase.from('maps').select('id, name').eq('name', match.map).maybeSingle(),
-    supabase.from('teams').select('id, name'),
+    supabase.from('kill_teams').select('id, name'),
     supabase.from('players').select('id, name'),
     match.critOp
       ? supabase.from('crit_ops').select('id, name').eq('name', match.critOp).maybeSingle()
@@ -301,7 +301,7 @@ export async function updateMatch(match: MatchRecord): Promise<MatchRecord> {
     { data: critOpRow },
   ] = await Promise.all([
     supabase.from('maps').select('id, name').eq('name', match.map).maybeSingle(),
-    supabase.from('teams').select('id, name'),
+    supabase.from('kill_teams').select('id, name'),
     supabase.from('players').select('id, name'),
     match.critOp
       ? supabase.from('crit_ops').select('id, name').eq('name', match.critOp).maybeSingle()
