@@ -205,8 +205,10 @@ h1 { margin: 2px 0 0; font: 700 18px var(--display); letter-spacing: 0; color: v
 .player-profile-link:hover .match-player-avatar, .player-profile-link:focus-visible .match-player-avatar { position: relative; z-index: 3; transform: scale(4); box-shadow: 0 4px 12px rgba(30, 36, 38, .3); }
 .players .match-player-avatar-placeholder { display: grid; flex: 0 0 28px; place-items: center; background: var(--ink); color: var(--paper); font: 700 12px var(--mono); }
 .teams { display: flex; flex-direction: column; gap: 5px; color: var(--muted); font-size: 13px; }
-.teams span:first-child::before, .teams span:last-child::before { content: ''; display: inline-block; width: 6px; height: 6px; margin: 0 8px 2px 0; background: var(--orange); }
-.teams span:last-child::before { background: var(--blue); }
+.teams span::before { content: ''; display: inline-block; width: 6px; height: 6px; margin: 0 8px 2px 0; background: var(--muted); }
+.teams .team-faction-imperium::before { background: var(--blue); }
+.teams .team-faction-chaos::before { background: #b43a3a; }
+.teams .team-faction-xenos::before { background: #70a87c; }
 .match-meta { display: flex; flex-direction: column; align-items: flex-start; gap: 9px; }
 .map { color: var(--ink); font-weight: 700; }
 .status { display: flex; align-items: center; gap: 6px; }

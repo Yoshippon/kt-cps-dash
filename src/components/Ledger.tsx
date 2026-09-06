@@ -6,6 +6,19 @@ import { deleteMatchImage, uploadMatchImages, type MatchImage } from '../service
 import MatchEditModal from './MatchEditModal'
 import { useAuth } from '../lib/auth'
 
+function getTeamFactionClass(faction: string | null | undefined) {
+  switch (faction?.trim().toLowerCase()) {
+    case 'imperium':
+      return 'team-faction-imperium'
+    case 'chaos':
+      return 'team-faction-chaos'
+    case 'xenos':
+      return 'team-faction-xenos'
+    default:
+      return 'team-faction-unknown'
+  }
+}
+
 function Ledger({ isActive }: { isActive: boolean }) {
   const { isAdmin, player } = useAuth()
   const [isFilterOpen, setIsFilterOpen] = useState(false)
@@ -237,7 +250,7 @@ function Ledger({ isActive }: { isActive: boolean }) {
                 <span>vs</span>
                 <PlayerProfileLink id={match.player2Id} name={match.player2} avatarUrl={match.player2AvatarUrl} />
               </div>
-              <div className="teams"><span>{match.teamOne}</span><span>{match.teamTwo}</span></div>
+              <div className="teams"><span className={getTeamFactionClass(match.teamOneFaction)}>{match.teamOne}</span><span className={getTeamFactionClass(match.teamTwoFaction)}>{match.teamTwo}</span></div>
               <div className="match-meta"><span className="map">{match.map}</span>{match.isHomebrew && <span className="homebrew">Homebrew</span>}</div>
               <span className="match-expand-indicator" aria-hidden="true">{isExpanded ? '−' : '+'}</span>
             </div>

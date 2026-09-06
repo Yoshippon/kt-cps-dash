@@ -9,6 +9,8 @@ export type MatchRecord = {
   map: string
   teamOne: string
   teamTwo: string
+  teamOneFaction?: string | null
+  teamTwoFaction?: string | null
   player1: string
   player2: string
   player1Id?: string
@@ -79,7 +81,7 @@ export async function fetchMatches(): Promise<MatchRecord[]> {
     supabase.from('maps').select('id, name'),
     supabase.from('players').select('id, name'),
     supabase.from('player_profiles').select('player_id, avatar_path'),
-    supabase.from('kill_teams').select('id, name'),
+    supabase.from('kill_teams').select('id, name, generic_faction'),
     supabase.from('crit_ops').select('id, name'),
     fetchMatchImages(),
   ])
@@ -98,7 +100,10 @@ export async function fetchMatches(): Promise<MatchRecord[]> {
   const playerAvatarUrlById = new Map(profileRowsAny
     .filter((profile) => profile.avatar_path)
     .map((profile) => [profile.player_id, supabase.storage.from(MEDIA_BUCKET).getPublicUrl(profile.avatar_path!).data.publicUrl]))
-  const teamIdByName = new Map(teamRowsAny.map((row) => [row.id, row.name]))
+  const teamById = new Map(teamRowsAny.map((row) => [row.id, {
+    name: row.name,
+    faction: row.generic_faction as string | null,
+  }]))
   const critOpIdByName = new Map(critOpRowsAny.map((row) => [row.id, row.name]))
   const imagesByMatchId = new Map<string, MatchImage[]>()
   images.forEach((image) => {
@@ -112,8 +117,10 @@ export async function fetchMatches(): Promise<MatchRecord[]> {
     matchId: row.match_id ?? null,
     date: row.date,
     map: row.map_id ? mapIdByName.get(row.map_id) ?? 'Unknown map' : 'Unknown map',
-    teamOne: row.team_one_id ? teamIdByName.get(row.team_one_id) ?? 'Unknown team' : 'Unknown team',
-    teamTwo: row.team_two_id ? teamIdByName.get(row.team_two_id) ?? 'Unknown team' : 'Unknown team',
+    teamOne: row.team_one_id ? teamById.get(row.team_one_id)?.name ?? 'Unknown team' : 'Unknown team',
+    teamTwo: row.team_two_id ? teamById.get(row.team_two_id)?.name ?? 'Unknown team' : 'Unknown team',
+    teamOneFaction: row.team_one_id ? teamById.get(row.team_one_id)?.faction ?? null : null,
+    teamTwoFaction: row.team_two_id ? teamById.get(row.team_two_id)?.faction ?? null : null,
     player1: row.player_one_id ? playerNameById.get(row.player_one_id) ?? 'Unknown player' : 'Unknown player',
     player2: row.player_two_id ? playerNameById.get(row.player_two_id) ?? 'Unknown player' : 'Unknown player',
     player1Id: row.player_one_id ?? undefined,
