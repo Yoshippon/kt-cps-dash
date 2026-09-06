@@ -39,6 +39,7 @@ function AppShell() {
         <Route path="/community" element={<Community isActive />} />
         <Route path="/kill-teams" element={<KillTeams isActive />} />
         <Route path="/profile" element={isLoggedIn ? <Profile isActive /> : <Navigate replace to="/next-meeting" />} />
+        <Route path="/players/:playerId" element={<Profile isActive />} />
         <Route path="/admin" element={isAdmin ? <AdminPlayers isActive /> : <Navigate replace to="/next-meeting" />} />
         <Route path="*" element={<Navigate replace to="/next-meeting" />} />
       </Routes>

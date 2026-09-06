@@ -1,9 +1,11 @@
 import { useEffect, useMemo, useState } from 'react'
+import { useParams } from 'react-router'
 import { useAuth } from '../lib/auth'
 import {
   addOwnedTeam,
   deleteTeamImage,
   fetchOwnedTeams,
+  fetchPlayer,
   fetchProfile,
   fetchTeamOptions,
   removeOwnedTeam,
@@ -17,36 +19,47 @@ import type { KillTeamRow } from '../types/database'
 
 function Profile({ isActive }: { isActive: boolean }) {
   const { player, session } = useAuth()
+  const { playerId } = useParams()
+  const targetPlayerId = playerId ?? player?.id
+  const isOwnProfile = Boolean(player && targetPlayerId === player.id)
+  const [profilePlayer, setProfilePlayer] = useState(playerId ? null : player)
   const [profile, setProfile] = useState<PlayerProfile>({ avatarPath: null, avatarUrl: null })
   const [teams, setTeams] = useState<OwnedTeam[]>([])
   const [teamOptions, setTeamOptions] = useState<KillTeamRow[]>([])
   const [selectedTeamId, setSelectedTeamId] = useState('')
-  const [isLoading, setIsLoading] = useState(false)
+  const [isLoading, setIsLoading] = useState(true)
   const [busyAction, setBusyAction] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
 
   const availableTeams = useMemo(() => teamOptions.filter((team) => !teams.some((ownedTeam) => ownedTeam.id === team.id)), [teamOptions, teams])
 
   useEffect(() => {
-    if (!isActive || !player) return
-    Promise.all([fetchProfile(player.id), fetchOwnedTeams(player.id), fetchTeamOptions()])
-      .then(([nextProfile, nextTeams, nextTeamOptions]) => {
+    if (!isActive || !targetPlayerId) return
+
+    Promise.all([
+      fetchPlayer(targetPlayerId),
+      fetchProfile(targetPlayerId),
+      fetchOwnedTeams(targetPlayerId),
+      isOwnProfile ? fetchTeamOptions() : Promise.resolve([]),
+    ])
+      .then(([nextPlayer, nextProfile, nextTeams, nextTeamOptions]) => {
         setError(null)
+        setProfilePlayer(nextPlayer)
         setProfile(nextProfile)
         setTeams(nextTeams)
         setTeamOptions(nextTeamOptions)
       })
       .catch((err) => setError(err instanceof Error ? err.message : 'Failed to load profile.'))
       .finally(() => setIsLoading(false))
-  }, [isActive, player])
+  }, [isActive, isOwnProfile, targetPlayerId])
 
   const handleAvatarUpload = async (files: FileList | null) => {
     const file = files?.[0]
-    if (!file || !player || !session?.user.id) return
+    if (!file || !isOwnProfile || !targetPlayerId || !session?.user.id) return
     setBusyAction('avatar')
     setError(null)
     try {
-      setProfile(await uploadAvatar(player.id, session.user.id, profile.avatarPath, file))
+      setProfile(await uploadAvatar(targetPlayerId, session.user.id, profile.avatarPath, file))
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to upload profile photo.')
     } finally {
@@ -55,11 +68,11 @@ function Profile({ isActive }: { isActive: boolean }) {
   }
 
   const handleAddTeam = async () => {
-    if (!player || !selectedTeamId) return
+    if (!isOwnProfile || !targetPlayerId || !selectedTeamId) return
     setBusyAction('add-team')
     setError(null)
     try {
-      await addOwnedTeam(player.id, selectedTeamId)
+      await addOwnedTeam(targetPlayerId, selectedTeamId)
       const team = teamOptions.find((option) => option.id === selectedTeamId)
       if (team) setTeams((current) => [...current, { id: team.id, name: team.name, images: [] }])
       setSelectedTeamId('')
@@ -71,11 +84,11 @@ function Profile({ isActive }: { isActive: boolean }) {
   }
 
   const handleRemoveTeam = async (team: OwnedTeam) => {
-    if (!player) return
+    if (!isOwnProfile || !targetPlayerId) return
     setBusyAction(`remove-${team.id}`)
     setError(null)
     try {
-      await removeOwnedTeam(player.id, team)
+      await removeOwnedTeam(targetPlayerId, team)
       setTeams((current) => current.filter((ownedTeam) => ownedTeam.id !== team.id))
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to remove team.')
@@ -85,11 +98,11 @@ function Profile({ isActive }: { isActive: boolean }) {
   }
 
   const handleTeamImageUpload = async (teamId: string, files: FileList | null) => {
-    if (!player || !files) return
+    if (!isOwnProfile || !targetPlayerId || !files) return
     setBusyAction(`upload-${teamId}`)
     setError(null)
     try {
-      const images = await uploadTeamImages(player.id, teamId, Array.from(files))
+      const images = await uploadTeamImages(targetPlayerId, teamId, Array.from(files))
       setTeams((current) => current.map((team) => team.id === teamId ? { ...team, images: [...team.images, ...images] } : team))
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to upload team photos.')
@@ -116,21 +129,21 @@ function Profile({ isActive }: { isActive: boolean }) {
       <section className="intro" aria-labelledby="profile-heading">
         <div>
           <h2 id="profile-heading">Profile</h2>
-          <p className="intro-copy">Your collection, your photos, your profile.</p>
+          <p className="intro-copy">{isOwnProfile ? 'Your collection, your photos, your profile.' : 'Collection and photos from community player.'}</p>
         </div>
       </section>
 
-      {!player && <div className="empty-state"><strong>Claim your player first</strong><span>Ask an admin for a claim link to manage your profile and teams.</span></div>}
-      {player && (
+      {!isLoading && !profilePlayer && <div className="empty-state"><strong>Player not found</strong><span>This profile is unavailable.</span></div>}
+      {profilePlayer && (
         <>
           <section className="profile-summary" aria-label="Profile photo">
-            {profile.avatarUrl ? <img className="profile-avatar" src={profile.avatarUrl} alt={`${player.name}'s profile`} /> : <div className="profile-avatar profile-avatar-placeholder" aria-hidden="true">{player.name.slice(0, 1)}</div>}
+            {profile.avatarUrl ? <img className="profile-avatar" src={profile.avatarUrl} alt={`${profilePlayer.name}'s profile`} /> : <div className="profile-avatar profile-avatar-placeholder" aria-hidden="true">{profilePlayer.name.slice(0, 1)}</div>}
             <div>
-              <h3>{player.name}</h3>
-              <label className="profile-upload">
-                {busyAction === 'avatar' ? 'Uploading…' : profile.avatarUrl ? 'Replace profile photo' : 'Upload profile photo'}
-                <input type="file" accept="image/jpeg,image/png,image/webp" disabled={busyAction !== null} onChange={(event) => handleAvatarUpload(event.target.files)} />
-              </label>
+              <h3>{profilePlayer.name}</h3>
+              {isOwnProfile && <label className="profile-upload">
+                  {busyAction === 'avatar' ? 'Uploading…' : profile.avatarUrl ? 'Replace profile photo' : 'Upload profile photo'}
+                  <input type="file" accept="image/jpeg,image/png,image/webp" disabled={busyAction !== null} onChange={(event) => handleAvatarUpload(event.target.files)} />
+                </label>}
             </div>
           </section>
 
@@ -138,8 +151,8 @@ function Profile({ isActive }: { isActive: boolean }) {
           {isLoading ? <p className="profile-status">Loading profile…</p> : (
             <section className="profile-teams" aria-labelledby="profile-teams-heading">
               <div className="profile-teams-heading">
-                <h3 id="profile-teams-heading">My teams</h3>
-                {availableTeams.length > 0 && (
+                <h3 id="profile-teams-heading">{isOwnProfile ? 'My teams' : 'Teams'}</h3>
+                {isOwnProfile && availableTeams.length > 0 && (
                   <div className="profile-add-team">
                     <select aria-label="Team to add" value={selectedTeamId} onChange={(event) => setSelectedTeamId(event.target.value)} disabled={busyAction !== null}>
                       <option value="">Select team</option>
@@ -153,12 +166,12 @@ function Profile({ isActive }: { isActive: boolean }) {
                 <div className="profile-team-list">
                   {teams.map((team) => (
                     <article className="profile-team-card" key={team.id}>
-                      <header><h4>{team.name}</h4><button type="button" onClick={() => handleRemoveTeam(team)} disabled={busyAction !== null}>{busyAction === `remove-${team.id}` ? 'Removing…' : 'Remove team'}</button></header>
-                      <label className="profile-upload">
-                        {busyAction === `upload-${team.id}` ? 'Uploading…' : 'Add team photos'}
-                        <input type="file" multiple accept="image/jpeg,image/png,image/webp" disabled={busyAction !== null} onChange={(event) => handleTeamImageUpload(team.id, event.target.files)} />
-                      </label>
-                      {team.images.length > 0 && <div className="profile-team-images">{team.images.map((image, index) => <figure key={image.id}><img src={image.url} alt={`${team.name} photo ${index + 1}`} /><button type="button" onClick={() => handleDeleteImage(team.id, image)} disabled={busyAction !== null}>{busyAction === `delete-${image.id}` ? 'Deleting…' : 'Delete'}</button></figure>)}</div>}
+                      <header><h4>{team.name}</h4>{isOwnProfile && <button type="button" onClick={() => handleRemoveTeam(team)} disabled={busyAction !== null}>{busyAction === `remove-${team.id}` ? 'Removing…' : 'Remove team'}</button>}</header>
+                      {isOwnProfile && <label className="profile-upload">
+                          {busyAction === `upload-${team.id}` ? 'Uploading…' : 'Add team photos'}
+                          <input type="file" multiple accept="image/jpeg,image/png,image/webp" disabled={busyAction !== null} onChange={(event) => handleTeamImageUpload(team.id, event.target.files)} />
+                        </label>}
+                      {team.images.length > 0 && <div className="profile-team-images">{team.images.map((image, index) => <figure key={image.id}><img src={image.url} alt={`${team.name} photo ${index + 1}`} />{isOwnProfile && <button type="button" onClick={() => handleDeleteImage(team.id, image)} disabled={busyAction !== null}>{busyAction === `delete-${image.id}` ? 'Deleting…' : 'Delete'}</button>}</figure>)}</div>}
                     </article>
                   ))}
                 </div>

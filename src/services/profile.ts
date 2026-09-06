@@ -1,6 +1,6 @@
 import { hasSupabaseConfig, supabase } from '../lib/supabase'
 import { MEDIA_BUCKET } from './matchImages'
-import type { KillTeamRow, PlayerProfileRow, PlayerTeamImageRow } from '../types/database'
+import type { KillTeamRow, PlayerProfileRow, PlayerRow, PlayerTeamImageRow } from '../types/database'
 
 const MAX_IMAGE_SIZE_BYTES = 10 * 1024 * 1024
 const ACCEPTED_IMAGE_TYPES = new Set(['image/jpeg', 'image/png', 'image/webp'])
@@ -47,6 +47,14 @@ export async function fetchProfile(playerId: string): Promise<PlayerProfile> {
 
   const profile = data as Pick<PlayerProfileRow, 'avatar_path'> | null
   return { avatarPath: profile?.avatar_path ?? null, avatarUrl: profile?.avatar_path ? publicUrl(profile.avatar_path) : null }
+}
+
+export async function fetchPlayer(playerId: string): Promise<PlayerRow | null> {
+  requireSupabase()
+
+  const { data, error } = await supabase.from('players').select('id, name, user_id, is_admin, created_at, updated_at').eq('id', playerId).maybeSingle()
+  if (error) throw error
+  return data as PlayerRow | null
 }
 
 export async function uploadAvatar(playerId: string, userId: string, previousAvatarPath: string | null, file: File): Promise<PlayerProfile> {

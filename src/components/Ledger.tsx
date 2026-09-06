@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
-import { useSearchParams } from 'react-router'
+import { Link, useSearchParams } from 'react-router'
 import { formatDate } from '../utils/date'
 import { createMatch, createPlayer, fetchMatches, fetchMatchFormOptions, updateMatch, type MatchFormOptions, type MatchRecord } from '../services/matches'
 import { deleteMatchImage, uploadMatchImages, type MatchImage } from '../services/matchImages'
@@ -230,22 +230,17 @@ function Ledger({ isActive }: { isActive: boolean }) {
           const isExpanded = expandedMatchId === match.id
           const detailsId = `match-details-${match.id}`
           return <article className="match-row" key={`${match.date}-${match.player1}-${match.player2}-${index}`}>
-            <button type="button" className="match-row-summary" aria-expanded={isExpanded} aria-controls={detailsId} onClick={() => match.id && toggleMatch(match.id)}>
+            <div className="match-row-summary">
+              <button type="button" className="match-row-expand-button" aria-expanded={isExpanded} aria-controls={detailsId} aria-label={`${isExpanded ? 'Collapse' : 'Expand'} match between ${match.player1} and ${match.player2}`} onClick={() => match.id && toggleMatch(match.id)} />
               <div className="players">
-                {match.player1AvatarUrl
-                  ? <img className="match-player-avatar" src={match.player1AvatarUrl} alt="" />
-                  : <span className="match-player-avatar match-player-avatar-placeholder" aria-hidden="true">{match.player1.trim().slice(0, 1).toUpperCase()}</span>}
-                <strong>{match.player1}</strong>
+                <PlayerProfileLink id={match.player1Id} name={match.player1} avatarUrl={match.player1AvatarUrl} />
                 <span>vs</span>
-                {match.player2AvatarUrl
-                  ? <img className="match-player-avatar" src={match.player2AvatarUrl} alt="" />
-                  : <span className="match-player-avatar match-player-avatar-placeholder" aria-hidden="true">{match.player2.trim().slice(0, 1).toUpperCase()}</span>}
-                <strong>{match.player2}</strong>
+                <PlayerProfileLink id={match.player2Id} name={match.player2} avatarUrl={match.player2AvatarUrl} />
               </div>
               <div className="teams"><span>{match.teamOne}</span><span>{match.teamTwo}</span></div>
               <div className="match-meta"><span className="map">{match.map}</span>{match.isHomebrew && <span className="homebrew">Homebrew</span>}</div>
               <span className="match-expand-indicator" aria-hidden="true">{isExpanded ? '−' : '+'}</span>
-            </button>
+            </div>
             {isExpanded && <div className="match-row-expanded" id={detailsId}>
               <dl className="match-details" aria-label="Match details"><div><dt>Crit op</dt><dd>{match.critOp ?? 'None'}</dd></div><div><dt>Score</dt><dd>{match.player1Score ?? '—'} – {match.player2Score ?? '—'}</dd></div><div><dt>{match.player1} tac op</dt><dd>{match.player1Tac ?? 'None'}</dd></div><div><dt>{match.player2} tac op</dt><dd>{match.player2Tac ?? 'None'}</dd></div></dl>
               {match.images.length > 0 && <div className="match-images" aria-label="Match images">{match.images.map((image, imageIndex) => <button type="button" className="match-image-thumbnail" key={image.id} onClick={() => setSelectedImage(image)}><img src={image.url} alt={image.caption ?? `Match photo ${imageIndex + 1}`} /></button>)}</div>}
@@ -283,6 +278,15 @@ function Ledger({ isActive }: { isActive: boolean }) {
       </div>}
     </div>
   )
+}
+
+function PlayerProfileLink({ id, name, avatarUrl }: { id?: string; name: string; avatarUrl?: string }) {
+  const avatar = avatarUrl
+    ? <img className="match-player-avatar" src={avatarUrl} alt="" />
+    : <span className="match-player-avatar match-player-avatar-placeholder" aria-hidden="true">{name.trim().slice(0, 1).toUpperCase()}</span>
+  const content = <>{avatar}<strong>{name}</strong></>
+
+  return id ? <Link className="player-profile-link" to={`/players/${id}`} aria-label={`View ${name}'s profile`}>{content}</Link> : <span className="player-profile-link">{content}</span>
 }
 
 export default Ledger

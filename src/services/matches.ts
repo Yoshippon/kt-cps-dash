@@ -11,6 +11,8 @@ export type MatchRecord = {
   teamTwo: string
   player1: string
   player2: string
+  player1Id?: string
+  player2Id?: string
   player1AvatarUrl?: string
   player2AvatarUrl?: string
   isTied: boolean
@@ -92,7 +94,7 @@ export async function fetchMatches(): Promise<MatchRecord[]> {
   const rows = Array.isArray(matchRows) ? (matchRows as any[]) : []
 
   const mapIdByName = new Map(mapRowsAny.map((row) => [row.id, row.name]))
-  const playerIdByName = new Map(playerRowsAny.map((row) => [row.id, row.name]))
+  const playerNameById = new Map(playerRowsAny.map((row) => [row.id, row.name]))
   const playerAvatarUrlById = new Map(profileRowsAny
     .filter((profile) => profile.avatar_path)
     .map((profile) => [profile.player_id, supabase.storage.from(MEDIA_BUCKET).getPublicUrl(profile.avatar_path!).data.publicUrl]))
@@ -112,8 +114,10 @@ export async function fetchMatches(): Promise<MatchRecord[]> {
     map: row.map_id ? mapIdByName.get(row.map_id) ?? 'Unknown map' : 'Unknown map',
     teamOne: row.team_one_id ? teamIdByName.get(row.team_one_id) ?? 'Unknown team' : 'Unknown team',
     teamTwo: row.team_two_id ? teamIdByName.get(row.team_two_id) ?? 'Unknown team' : 'Unknown team',
-    player1: row.player_one_id ? playerIdByName.get(row.player_one_id) ?? 'Unknown player' : 'Unknown player',
-    player2: row.player_two_id ? playerIdByName.get(row.player_two_id) ?? 'Unknown player' : 'Unknown player',
+    player1: row.player_one_id ? playerNameById.get(row.player_one_id) ?? 'Unknown player' : 'Unknown player',
+    player2: row.player_two_id ? playerNameById.get(row.player_two_id) ?? 'Unknown player' : 'Unknown player',
+    player1Id: row.player_one_id ?? undefined,
+    player2Id: row.player_two_id ?? undefined,
     player1AvatarUrl: row.player_one_id ? playerAvatarUrlById.get(row.player_one_id) : undefined,
     player2AvatarUrl: row.player_two_id ? playerAvatarUrlById.get(row.player_two_id) : undefined,
     isTied: Boolean(row.is_tied),
