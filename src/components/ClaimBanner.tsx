@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useAuth } from '../lib/auth'
 
 /**
@@ -13,6 +13,7 @@ function ClaimBanner() {
   const [phase, setPhase] = useState<'idle' | 'sending' | 'sent' | 'claiming' | 'done' | 'error'>('idle')
   const [error, setError] = useState<string | null>(null)
   const [claimedName, setClaimedName] = useState<string | null>(null)
+  const claimedTokenRef = useRef<string | null>(null)
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search)
@@ -21,8 +22,9 @@ function ClaimBanner() {
   }, [])
 
   useEffect(() => {
-    if (!token || !isLoggedIn || loading || phase === 'done' || phase === 'claiming') return
+    if (!token || !isLoggedIn || loading || phase === 'done' || phase === 'claiming' || claimedTokenRef.current === token) return
 
+    claimedTokenRef.current = token
     setPhase('claiming')
     claimWithToken(token)
       .then((claimed) => {
