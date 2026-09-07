@@ -58,7 +58,7 @@ export async function fetchMapVoteMeeting(voterId: string): Promise<MapVoteMeeti
     meetingDate: meeting.meeting_date,
     closesAt: meeting.closes_at,
     attendanceCount: maps[0]?.attendance_count ?? 0,
-    voteLimit: maps[0]?.vote_limit ?? 2,
+    voteLimit: maps[0]?.vote_limit ?? 5,
     mapCount: maps[0]?.map_count ?? 0,
     attendeePlayerNames: maps[0]?.attendee_player_names ?? [],
     unavailablePlayerNames: maps[0]?.unavailable_player_names ?? [],

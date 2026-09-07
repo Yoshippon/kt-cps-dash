@@ -138,6 +138,9 @@ function NextMeeting({ isActive }: { isActive: boolean }) {
 
   const selectedMatrixPlayers = selectedPlayers.filter((player) => matrixPlayers.includes(player))
   const maxStreak = Math.max(0, ...matrixPlayers.map((player) => consecutiveGames.get(player) ?? 0))
+  const attendingPlayers = [...matrixPlayers].sort((firstPlayer, secondPlayer) =>
+    (consecutiveGames.get(secondPlayer) ?? 0) - (consecutiveGames.get(firstPlayer) ?? 0)
+    || firstPlayer.localeCompare(secondPlayer))
   const availableMaps = useMemo(() => {
     if (winningMapNames !== null) {
       return MAPS.filter((map) => winningMapNames.includes(map.name))
@@ -253,7 +256,7 @@ function NextMeeting({ isActive }: { isActive: boolean }) {
       <section className="attendees" aria-labelledby="attendees-heading">
         <div><h3 id="attendees-heading">Players Attending</h3><p>Confirmed players appear in one suggested matchup.</p></div>
         <div className="planner-players">
-          {matrixPlayers.map((player) => {
+          {attendingPlayers.map((player) => {
             const streak = consecutiveGames.get(player) ?? 0
             const isLongestStreak = streak === maxStreak && streak > 0
             return (
