@@ -84,6 +84,9 @@ h1 { margin: 2px 0 0; font: 700 18px var(--display); letter-spacing: 0; color: v
 .kill-team-controls select,
 .kill-team-controls input[type='month'] { border: 1px solid var(--line); background: var(--paper); color: var(--ink); padding: 10px 12px; font: 13px var(--display); }
 .kill-team-clear-filter { border: 0; background: transparent; color: var(--orange); cursor: pointer; padding: 10px 0; font: 700 10px var(--mono); text-transform: uppercase; letter-spacing: .6px; }
+.kill-team-import-logos { border: 1px solid var(--orange); background: transparent; color: var(--orange); cursor: pointer; padding: 10px 12px; font: 700 10px var(--mono); text-transform: uppercase; letter-spacing: .6px; }
+.kill-team-import-logos:disabled { cursor: not-allowed; opacity: .5; }
+.kill-team-logo-status { margin: 0 0 12px; color: var(--muted); font: 11px var(--mono); }
 .kill-team-table-wrap { overflow-x: auto; border-left: 2px solid var(--orange); background: rgba(221, 93, 50, .045); }
 .kill-team-table { width: 100%; border-collapse: collapse; min-width: 980px; }
 .kill-team-table th, .kill-team-table td { padding: 12px 14px; border-bottom: 1px solid var(--line); text-align: left; font: 12px var(--mono); }
@@ -204,11 +207,16 @@ h1 { margin: 2px 0 0; font: 700 18px var(--display); letter-spacing: 0; color: v
 .match-player-avatar { width: 28px; height: 28px; border: 1px solid var(--line); border-radius: 50%; object-fit: cover; transition: transform .16s ease, box-shadow .16s ease; }
 .player-profile-link:hover .match-player-avatar, .player-profile-link:focus-visible .match-player-avatar { position: relative; z-index: 3; transform: scale(4); box-shadow: 0 4px 12px rgba(30, 36, 38, .3); }
 .players .match-player-avatar-placeholder { display: grid; flex: 0 0 28px; place-items: center; background: var(--ink); color: var(--paper); font: 700 12px var(--mono); }
-.teams { display: flex; flex-direction: column; gap: 5px; color: var(--muted); font-size: 13px; }
-.teams span::before { content: ''; display: inline-block; width: 6px; height: 6px; margin: 0 8px 2px 0; background: var(--muted); }
-.teams .team-faction-imperium::before { background: var(--blue); }
-.teams .team-faction-chaos::before { background: #b43a3a; }
-.teams .team-faction-xenos::before { background: #70a87c; }
+.teams { display: flex; align-items: center; flex-wrap: wrap; gap: 9px; color: var(--muted); font-size: 13px; }
+.team-name { display: flex; align-items: center; gap: 8px; }
+.team-versus { color: var(--orange); font: 10px var(--mono); text-transform: uppercase; }
+.match-team-avatar { display: block; width: 30px; height: 30px; overflow: hidden; border: 1px solid var(--line); border-radius: 50%; pointer-events: auto; transform-origin: center center; transition: transform .16s ease, box-shadow .16s ease; }
+.match-team-avatar img { display: block; width: 100%; height: 100%; object-fit: cover; object-position: center center; transform: translateY(2px); }
+.match-team-avatar:hover { position: relative; z-index: 3; transform: scale(4); box-shadow: 0 4px 12px rgba(30, 36, 38, .3); }
+.team-name > .team-faction-imperium::before, .team-name > .team-faction-chaos::before, .team-name > .team-faction-xenos::before, .team-name > .team-faction-unknown::before { content: ''; display: inline-block; width: 6px; height: 6px; margin: 0 8px 2px 0; background: var(--muted); }
+.team-name > .team-faction-imperium::before { background: var(--blue); }
+.team-name > .team-faction-chaos::before { background: #b43a3a; }
+.team-name > .team-faction-xenos::before { background: #70a87c; }
 .match-meta { display: flex; flex-direction: column; align-items: flex-start; gap: 9px; }
 .map { color: var(--ink); font-weight: 700; }
 .status { display: flex; align-items: center; gap: 6px; }

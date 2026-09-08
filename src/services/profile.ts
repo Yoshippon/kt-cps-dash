@@ -4,6 +4,57 @@ import type { KillTeamRow, PlayerProfileRow, PlayerRow, PlayerTeamImageRow } fro
 
 const MAX_IMAGE_SIZE_BYTES = 10 * 1024 * 1024
 const ACCEPTED_IMAGE_TYPES = new Set(['image/jpeg', 'image/png', 'image/webp'])
+const TEAM_LOGO_FILES: Record<string, string> = {
+  'Angels of Death': 'angels_of_death.png',
+  Battleclade: 'battleclade.png',
+  'Blades of Khaine': 'blades_of_khaine.png',
+  Blooded: 'blooded.png',
+  'Brood Brothers': 'brood_brothers.png',
+  'Canoptek Circle': 'canoptek_circle.png',
+  'Celestial Insidiants': 'celestian_insidiants.png',
+  'Chaos Cult': 'chaos_cult.png',
+  'Corsair Voidscarred': 'corsair_voidscarred.png',
+  'Death Korps': 'death_korps.png',
+  Deathwatch: 'deathwatch.png',
+  'Elucidian Starstriders': 'elucidian_starstriders.png',
+  'Exaction Squad': 'exaction_squad.png',
+  Exodites: 'exodite_dragon_masters.png',
+  'Farstalker Kinband': 'farstalker_kinband.png',
+  'Fellgor Ravagers': 'fellgor_ravagers.png',
+  'Gellerpox Infected': 'gellerpox_infected.png',
+  Goremongers: 'goremongers.png',
+  'Hand of the Archon': 'hand_of_the_archon.png',
+  'Hearthkyn Salvagers': 'hearthkyn_salvagers.png',
+  'Hernkyn Yaegirs': 'hernkyn_yaegirs.png',
+  'Hierotek Circle': 'hierotek_circle.png',
+  'Hunter Clade': 'hunter_clade.png',
+  'Imperial Navy Breachers': 'imperial_navy_breachers.png',
+  'Inquisitorial Agents': 'inquisitorial_agents.png',
+  Kasrkin: 'kasrkin.png',
+  Kommandos: 'kommandos.png',
+  Legionaries: 'legionaries.png',
+  Mandrakes: 'mandrakes.png',
+  Murderwing: 'murderwing.png',
+  'Nemesis Claw': 'nemesis_claw.png',
+  Novitiates: 'novitiates.png',
+  Pathfinders: 'pathfinders.png',
+  'Phobos Strike Team': 'phobos_strike_team.png',
+  'Plague Marines': 'plague_marines.png',
+  Ratlings: 'ratlings.png',
+  Raveners: 'raveners.png',
+  Sanctifiers: 'sanctifiers.png',
+  'Scout Squad': 'scout_squad.png',
+  Spectres: 'spectre_squad.png',
+  'Strike Force Variel': 'angels_of_death.png',
+  'Tempestus Aquilons': 'tempestus_aquilons.png',
+  'Vespid Stingwings': 'vespid_stingwings.png',
+  'Void-dancer Troupe': 'void_dancer_troupe.png',
+  Warpcoven: 'warpcoven.png',
+  'Wolf Scouts': 'wolf_scouts.png',
+  'Wrecka Crew': 'wrecka_krew.png',
+  Wyrmblade: 'wyrmblade.png',
+  'XV26 Stealth Battlesuits': 'xv26_stealth_battlesuits.png',
+}
 
 export type ProfileImage = {
   id: string
@@ -20,6 +71,11 @@ export type OwnedTeam = {
 export type PlayerProfile = {
   avatarPath: string | null
   avatarUrl: string | null
+}
+
+export type TeamLogoImport = {
+  uploaded: number
+  missing: string[]
 }
 
 const publicUrl = (storagePath: string) => supabase.storage.from(MEDIA_BUCKET).getPublicUrl(storagePath).data.publicUrl
@@ -85,6 +141,40 @@ export async function fetchTeamOptions(): Promise<KillTeamRow[]> {
   const { data, error } = await supabase.from('kill_teams').select('id, name, description, created_at, updated_at').order('name', { ascending: true })
   if (error) throw error
   return (data as KillTeamRow[] | null) ?? []
+}
+
+export async function importTeamLogos(): Promise<TeamLogoImport> {
+  requireSupabase()
+
+  const { data, error } = await supabase.from('kill_teams').select('id, name')
+  if (error) throw error
+
+  const missing: string[] = []
+  let uploaded = 0
+
+  for (const team of (data as Pick<KillTeamRow, 'id' | 'name'>[] | null) ?? []) {
+    const fileName = TEAM_LOGO_FILES[team.name]
+    if (!fileName) {
+      missing.push(team.name)
+      continue
+    }
+
+    const response = await fetch(`/${fileName}`)
+    if (!response.ok) throw new Error(`Could not read ${fileName} for ${team.name}.`)
+
+    const storagePath = `team-logos/${team.id}.png`
+    const { error: uploadError } = await supabase.storage
+      .from(MEDIA_BUCKET)
+      .upload(storagePath, await response.blob(), { cacheControl: '3600', contentType: 'image/png', upsert: true })
+    if (uploadError) throw uploadError
+
+    const { error: updateError } = await supabase.from('kill_teams').update({ logo_path: storagePath }).eq('id', team.id)
+    if (updateError) throw updateError
+
+    uploaded += 1
+  }
+
+  return { uploaded, missing }
 }
 
 export async function fetchOwnedTeams(playerId: string): Promise<OwnedTeam[]> {

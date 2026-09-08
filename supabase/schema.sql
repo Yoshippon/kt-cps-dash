@@ -86,6 +86,7 @@ alter table public.crit_ops
 create table if not exists public.kill_teams (
   id uuid primary key default gen_random_uuid(),
   name text not null unique,
+  logo_path text null unique,
   archetype_id uuid null references public.archetypes(id) on delete set null,
   description text null,
   generic_faction text null,

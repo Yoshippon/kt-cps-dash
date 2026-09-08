@@ -11,6 +11,8 @@ export type MatchRecord = {
   teamTwo: string
   teamOneFaction?: string | null
   teamTwoFaction?: string | null
+  teamOneLogoUrl?: string
+  teamTwoLogoUrl?: string
   player1: string
   player2: string
   player1Id?: string
@@ -81,7 +83,7 @@ export async function fetchMatches(): Promise<MatchRecord[]> {
     supabase.from('maps').select('id, name'),
     supabase.from('players').select('id, name'),
     supabase.from('player_profiles').select('player_id, avatar_path'),
-    supabase.from('kill_teams').select('id, name, generic_faction'),
+    supabase.from('kill_teams').select('id, name, generic_faction, logo_path'),
     supabase.from('crit_ops').select('id, name'),
     fetchMatchImages(),
   ])
@@ -103,6 +105,7 @@ export async function fetchMatches(): Promise<MatchRecord[]> {
   const teamById = new Map(teamRowsAny.map((row) => [row.id, {
     name: row.name,
     faction: row.generic_faction as string | null,
+    logoUrl: row.logo_path ? supabase.storage.from(MEDIA_BUCKET).getPublicUrl(row.logo_path).data.publicUrl : undefined,
   }]))
   const critOpIdByName = new Map(critOpRowsAny.map((row) => [row.id, row.name]))
   const imagesByMatchId = new Map<string, MatchImage[]>()
@@ -121,6 +124,8 @@ export async function fetchMatches(): Promise<MatchRecord[]> {
     teamTwo: row.team_two_id ? teamById.get(row.team_two_id)?.name ?? 'Unknown team' : 'Unknown team',
     teamOneFaction: row.team_one_id ? teamById.get(row.team_one_id)?.faction ?? null : null,
     teamTwoFaction: row.team_two_id ? teamById.get(row.team_two_id)?.faction ?? null : null,
+    teamOneLogoUrl: row.team_one_id ? teamById.get(row.team_one_id)?.logoUrl : undefined,
+    teamTwoLogoUrl: row.team_two_id ? teamById.get(row.team_two_id)?.logoUrl : undefined,
     player1: row.player_one_id ? playerNameById.get(row.player_one_id) ?? 'Unknown player' : 'Unknown player',
     player2: row.player_two_id ? playerNameById.get(row.player_two_id) ?? 'Unknown player' : 'Unknown player',
     player1Id: row.player_one_id ?? undefined,

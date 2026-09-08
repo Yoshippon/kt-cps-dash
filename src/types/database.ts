@@ -80,6 +80,7 @@ export type PlayerProfileRow = {
 export type KillTeamRow = {
   id: string
   name: string
+  logo_path: string | null
   archetype_id: string | null
   description: string | null
   generic_faction: string | null

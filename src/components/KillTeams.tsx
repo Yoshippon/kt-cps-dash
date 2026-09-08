@@ -1,5 +1,7 @@
 import { useMemo, useState } from 'react'
 import { TEAMS } from '../data'
+import { useAuth } from '../lib/auth'
+import { importTeamLogos } from '../services/profile'
 
 type SortKey = 'killTeam' | 'fortyKFaction' | 'category' | 'boxName' | 'season' | 'operatives' | 'wounds' | 'apl' | 'killOp' | 'releaseDate'
 type SortDirection = 'asc' | 'desc'
@@ -62,10 +64,13 @@ const columnLabels: Record<SortKey, string> = {
 }
 
 function KillTeams({ isActive }: { isActive: boolean }) {
+  const { isAdmin } = useAuth()
   const [sortKey, setSortKey] = useState<SortKey>('season')
   const [sortDirection, setSortDirection] = useState<SortDirection>('asc')
   const [releaseFrom, setReleaseFrom] = useState<string>('')
   const [releaseTo, setReleaseTo] = useState<string>('')
+  const [isImportingLogos, setIsImportingLogos] = useState(false)
+  const [logoImportStatus, setLogoImportStatus] = useState<string | null>(null)
 
   const rows = useMemo(() => {
     const flatRows = (Array.isArray(TEAMS) ? TEAMS.flatMap((group) => Array.isArray(group) ? group : [group]) : []) as KillTeamRow[]
@@ -114,6 +119,21 @@ function KillTeams({ isActive }: { isActive: boolean }) {
     setReleaseTo('')
   }
 
+  const handleLogoImport = async () => {
+    setIsImportingLogos(true)
+    setLogoImportStatus(null)
+    try {
+      const { uploaded, missing } = await importTeamLogos()
+      setLogoImportStatus(missing.length > 0
+        ? `Uploaded ${uploaded} logos. Missing: ${missing.join(', ')}.`
+        : `Uploaded ${uploaded} logos.`)
+    } catch (err) {
+      setLogoImportStatus(err instanceof Error ? err.message : 'Failed to import team logos.')
+    } finally {
+      setIsImportingLogos(false)
+    }
+  }
+
   return (
     <div hidden={!isActive}>
       <section className="intro" aria-labelledby="kill-teams-heading">
@@ -139,7 +159,13 @@ function KillTeams({ isActive }: { isActive: boolean }) {
         {(releaseFrom || releaseTo) && (
           <button type="button" className="kill-team-clear-filter" onClick={clearDateFilters}>Clear filter</button>
         )}
+        {isAdmin && (
+          <button type="button" className="kill-team-import-logos" onClick={() => void handleLogoImport()} disabled={isImportingLogos}>
+            {isImportingLogos ? 'Uploading logos…' : 'Upload public logos'}
+          </button>
+        )}
       </section>
+      {logoImportStatus && <p className="kill-team-logo-status">{logoImportStatus}</p>}
 
       <section className="kill-team-table-wrap" aria-label="Kill team catalog">
         <table className="kill-team-table">

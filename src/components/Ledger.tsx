@@ -250,7 +250,11 @@ function Ledger({ isActive }: { isActive: boolean }) {
                 <span>vs</span>
                 <PlayerProfileLink id={match.player2Id} name={match.player2} avatarUrl={match.player2AvatarUrl} />
               </div>
-              <div className="teams"><span className={getTeamFactionClass(match.teamOneFaction)}>{match.teamOne}</span><span className={getTeamFactionClass(match.teamTwoFaction)}>{match.teamTwo}</span></div>
+              <div className="teams">
+                <TeamName name={match.teamOne} faction={match.teamOneFaction} logoUrl={match.teamOneLogoUrl} />
+                <span className="team-versus">vs</span>
+                <TeamName name={match.teamTwo} faction={match.teamTwoFaction} logoUrl={match.teamTwoLogoUrl} />
+              </div>
               <div className="match-meta"><span className="map">{match.map}</span>{match.isHomebrew && <span className="homebrew">Homebrew</span>}</div>
               <span className="match-expand-indicator" aria-hidden="true">{isExpanded ? '−' : '+'}</span>
             </div>
@@ -300,6 +304,15 @@ function PlayerProfileLink({ id, name, avatarUrl }: { id?: string; name: string;
   const content = <>{avatar}<strong>{name}</strong></>
 
   return id ? <Link className="player-profile-link" to={`/players/${id}`} aria-label={`View ${name}'s profile`}>{content}</Link> : <span className="player-profile-link">{content}</span>
+}
+
+function TeamName({ name, faction, logoUrl }: { name: string; faction?: string | null; logoUrl?: string }) {
+  return (
+    <div className="team-name">
+      {logoUrl && <span className="match-team-avatar"><img src={logoUrl} alt="" /></span>}
+      <span className={getTeamFactionClass(faction)}>{name}</span>
+    </div>
+  )
 }
 
 export default Ledger
