@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useState, type CSSProperties } from 'react'
 import { Link, useSearchParams } from 'react-router'
 import { formatDate } from '../utils/date'
 import { createMatch, createPlayer, fetchMatches, fetchMatchFormOptions, updateMatch, type MatchFormOptions, type MatchRecord } from '../services/matches'
@@ -18,6 +18,8 @@ function getTeamFactionClass(faction: string | null | undefined) {
       return 'team-faction-unknown'
   }
 }
+
+type MatchRowStyle = CSSProperties & { '--match-image': string }
 
 function Ledger({ isActive }: { isActive: boolean }) {
   const { isAdmin, player } = useAuth()
@@ -177,6 +179,11 @@ function Ledger({ isActive }: { isActive: boolean }) {
     }
   }
 
+  const confirmDeleteImage = (image: MatchImage) => {
+    if (!window.confirm('Delete this match image? This cannot be undone.')) return
+    void handleDeleteImage(image)
+  }
+
   const filteredMatches = MATCHES.filter((match) => {
     const includesPlayer = !playerFilter || match.player1 === playerFilter || match.player2 === playerFilter
     const includesTeam = !teamFilter || match.teamOne === teamFilter || match.teamTwo === teamFilter
@@ -237,12 +244,18 @@ function Ledger({ isActive }: { isActive: boolean }) {
         {hasFilters && <button type="button" className="clear-filters" onClick={clearFilters}>Clear filters</button>}
       </div>}
       {player && <div className="match-actions"><button type="button" className="add-match" onClick={handleCreate}><span aria-hidden="true">+</span>Add match</button></div>}
+      {imageError && !editingMatch && <p className="match-edit-error">{imageError}</p>}
       <section className="match-list" aria-label="All matches">
         {matchGroups.length > 0 ? matchGroups.map((group) => <div className="date-block" key={group.date}><header className="date-header"><time dateTime={group.date}>{formatDate(group.date)}</time><span>{group.matches.length} {group.matches.length === 1 ? 'game' : 'games'}</span></header><div className="date-matches">{group.matches.map((match, index) => {
           const editable = canEditMatch(match)
           const isExpanded = expandedMatchId === match.id
           const detailsId = `match-details-${match.id}`
-          return <article className="match-row" key={`${match.date}-${match.player1}-${match.player2}-${index}`}>
+          const matchImageUrl = match.images[0]?.url
+          return <article
+            className={matchImageUrl ? 'match-row match-row-has-image' : 'match-row'}
+            key={`${match.date}-${match.player1}-${match.player2}-${index}`}
+            style={matchImageUrl ? { '--match-image': `url("${matchImageUrl}")` } as MatchRowStyle : undefined}
+          >
             <div className="match-row-summary">
               <button type="button" className="match-row-expand-button" aria-expanded={isExpanded} aria-controls={detailsId} aria-label={`${isExpanded ? 'Collapse' : 'Expand'} match between ${match.player1} and ${match.player2}`} onClick={() => match.id && toggleMatch(match.id)} />
               <div className="players">
@@ -260,7 +273,12 @@ function Ledger({ isActive }: { isActive: boolean }) {
             </div>
             {isExpanded && <div className="match-row-expanded" id={detailsId}>
               <dl className="match-details" aria-label="Match details"><div><dt>Crit op</dt><dd>{match.critOp ?? 'None'}</dd></div><div><dt>Score</dt><dd>{match.player1Score ?? '—'} – {match.player2Score ?? '—'}</dd></div><div><dt>{match.player1} tac op</dt><dd>{match.player1Tac ?? 'None'}</dd></div><div><dt>{match.player2} tac op</dt><dd>{match.player2Tac ?? 'None'}</dd></div></dl>
-              {match.images.length > 0 && <div className="match-images" aria-label="Match images">{match.images.map((image, imageIndex) => <button type="button" className="match-image-thumbnail" key={image.id} onClick={() => setSelectedImage(image)}><img src={image.url} alt={image.caption ?? `Match photo ${imageIndex + 1}`} /></button>)}</div>}
+              {match.images.length > 0 && <div className="match-images" aria-label="Match images">{match.images.map((image, imageIndex) => (
+                <figure className="match-image-card" key={image.id}>
+                  <button type="button" className="match-image-thumbnail" onClick={() => setSelectedImage(image)}><img src={image.url} alt={image.caption ?? `Match photo ${imageIndex + 1}`} /></button>
+                  {editable && <button type="button" className="match-image-delete" aria-label={`Delete match photo ${imageIndex + 1}`} onClick={() => confirmDeleteImage(image)} disabled={isUpdatingImages}>×</button>}
+                </figure>
+              ))}</div>}
               {editable && <button type="button" className="match-edit-button" onClick={() => handleEdit(match)}>Edit match</button>}
             </div>}
           </article>
