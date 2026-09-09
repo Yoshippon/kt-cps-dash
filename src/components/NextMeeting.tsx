@@ -109,7 +109,6 @@ function NextMeeting({ isActive }: { isActive: boolean }) {
   const [lockedMatchups, setLockedMatchups] = useState<string[]>([])
   const [bannedMatchups, setBannedMatchups] = useState<string[]>([])
   const [randomSeed, setRandomSeed] = useState(0)
-  const [mapSeed, setMapSeed] = useState(0)
   const [spinningMatchup, setSpinningMatchup] = useState<string | null>(null)
   const [selectedMaps, setSelectedMaps] = useState<Record<string, MapData>>({})
   const [winningMapNames, setWinningMapNames] = useState<string[] | null>(null)
@@ -177,26 +176,10 @@ function NextMeeting({ isActive }: { isActive: boolean }) {
     return { suggestions, byePlayer }
   }, [bannedMatchups, consecutiveGames, latestMatchups, lockedMatchups, selectedMatrixPlayers, randomSeed])
 
-  const matchupsWithMaps = useMemo(() => {
-    if (suggestedMatchups.suggestions.length === 0) {
-      return suggestedMatchups.suggestions.map((m) => ({ ...m, map: undefined }))
-    }
-    const mapPool = [...availableMaps]
-    // Fisher-Yates shuffle using mapSeed
-    let seed = mapSeed
-    for (let i = mapPool.length - 1; i > 0; i--) {
-      seed = (seed * 1664525 + 1013904223) >>> 0
-      const j = seed % (i + 1)
-      ;[mapPool[i], mapPool[j]] = [mapPool[j], mapPool[i]]
-    }
-    return suggestedMatchups.suggestions.map((matchup, index) => {
-      const fallbackMap = mapPool.length > 0 ? mapPool[index % mapPool.length] : undefined
-      return {
-        ...matchup,
-        map: selectedMaps[`${matchup.firstPlayer}-${matchup.secondPlayer}`] ?? fallbackMap,
-      }
-    })
-  }, [availableMaps, mapSeed, selectedMaps, suggestedMatchups])
+  const matchupsWithMaps = useMemo(() => suggestedMatchups.suggestions.map((matchup) => ({
+    ...matchup,
+    map: selectedMaps[`${matchup.firstPlayer}-${matchup.secondPlayer}`],
+  })), [selectedMaps, suggestedMatchups])
 
   const addMatchupRule = (type: 'lock' | 'ban') => {
     if (!ruleFirstPlayer || !ruleSecondPlayer || ruleFirstPlayer === ruleSecondPlayer) return
@@ -224,6 +207,21 @@ function NextMeeting({ isActive }: { isActive: boolean }) {
 
   const openWheel = (matchupKey: string) => {
     setSpinningMatchup(matchupKey)
+  }
+
+  const randomizeMaps = () => {
+    if (availableMaps.length === 0) return
+
+    const mapPool = [...availableMaps]
+    for (let index = mapPool.length - 1; index > 0; index -= 1) {
+      const randomIndex = Math.floor(Math.random() * (index + 1))
+      ;[mapPool[index], mapPool[randomIndex]] = [mapPool[randomIndex], mapPool[index]]
+    }
+
+    setSelectedMaps(Object.fromEntries(suggestedMatchups.suggestions.slice(0, mapPool.length).map((matchup, index) => [
+      `${matchup.firstPlayer}-${matchup.secondPlayer}`,
+      mapPool[index],
+    ])))
   }
 
   return (
@@ -313,7 +311,7 @@ function NextMeeting({ isActive }: { isActive: boolean }) {
             <button type="button" onClick={() => addMatchupRule('lock')}>Lock matchup</button>
             <button type="button" onClick={() => addMatchupRule('ban')}>Ban matchup</button>
             <button type="button" className="randomize-btn" onClick={() => setRandomSeed((s) => s + 1)}>Randomize</button>
-            <button type="button" className="randomize-btn" onClick={() => setMapSeed((s) => s + 1)}>Randomize Maps</button>
+            <button type="button" className="randomize-btn" onClick={randomizeMaps}>Randomize Maps</button>
           </div>
           {[
             ...lockedMatchups.map((pair) => ({ pair, label: 'Locked' })),
@@ -352,7 +350,7 @@ function NextMeeting({ isActive }: { isActive: boolean }) {
                   <div className="suggestion-map-row">
                     {map ? <span className="suggestion-map">Map: {map.name}</span> : <span className="suggestion-map">Map: unassigned</span>}
                     <button type="button" className="spin-btn-small" onClick={() => openWheel(matchupKey)} disabled={spinningMatchup !== null && spinningMatchup !== matchupKey}>
-                      {map ? 'Re-spin' : 'Spin for map'}
+                      Spin
                     </button>
                   </div>
                 </div>
