@@ -1,3 +1,5 @@
+export type Json = string | number | boolean | null | { [key: string]: Json | undefined } | Json[]
+
 export type MatchRow = {
   id: string
   match_id: string
@@ -108,6 +110,22 @@ export type KillTeamRow = {
   updated_at: string
 }
 
+export type TierListRow = {
+  id: string
+  owner_id: string
+  name: string
+  includes_non_classified: boolean
+  created_at: string
+  updated_at: string
+}
+
+export type TierListEntryRow = {
+  tier_list_id: string
+  team_id: string
+  tier: 'S' | 'A' | 'B' | 'C' | 'D'
+  position: number
+}
+
 export type PlayerTeamOwnershipRow = {
   player_id: string
   team_id: string
@@ -209,6 +227,18 @@ export type Database = {
         Update: Partial<Omit<KillTeamRow, 'id' | 'created_at' | 'updated_at'>>
         Relationships: []
       }
+      tier_lists: {
+        Row: TierListRow
+        Insert: Omit<TierListRow, 'id' | 'created_at' | 'updated_at'>
+        Update: Partial<Omit<TierListRow, 'id' | 'created_at' | 'updated_at' | 'owner_id' | 'includes_non_classified'>>
+        Relationships: []
+      }
+      tier_list_entries: {
+        Row: TierListEntryRow
+        Insert: TierListEntryRow
+        Update: never
+        Relationships: []
+      }
       player_team_ownership: {
         Row: PlayerTeamOwnershipRow
         Insert: PlayerTeamOwnershipRow
@@ -267,6 +297,14 @@ export type Database = {
       claim_player: {
         Args: { p_token: string }
         Returns: PlayerRow
+      }
+      create_tier_list: {
+        Args: { p_name: string | null; p_includes_non_classified: boolean }
+        Returns: TierListRow
+      }
+      replace_tier_list_entries: {
+        Args: { p_tier_list_id: string; p_entries: Json }
+        Returns: undefined
       }
       ensure_next_meeting: {
         Args: Record<string, never>

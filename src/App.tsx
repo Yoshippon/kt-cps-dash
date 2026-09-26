@@ -4,6 +4,7 @@ import Matchups from './components/Matchups'
 import Community from './components/Community'
 import NextMeeting from './components/NextMeeting'
 import KillTeams from './components/KillTeams'
+import TierLists from './components/TierLists'
 import AdminPlayers from './components/AdminPlayers'
 import AccountMenu from './components/AccountMenu'
 import ClaimBanner from './components/ClaimBanner'
@@ -28,6 +29,7 @@ function AppShell() {
         <NavLink className={tabClassName} to="/matchups">Matchups</NavLink>
         <NavLink className={tabClassName} to="/community">Community</NavLink>
         <NavLink className={tabClassName} to="/kill-teams">Kill Teams</NavLink>
+        <NavLink className={tabClassName} to="/tier-lists">Tier Lists</NavLink>
         {isLoggedIn && <NavLink className={tabClassName} to="/profile">Profile</NavLink>}
         {isAdmin && <NavLink className={tabClassName} to="/admin">Admin</NavLink>}
       </nav>
@@ -38,6 +40,7 @@ function AppShell() {
         <Route path="/matchups" element={<Matchups isActive />} />
         <Route path="/community" element={<Community isActive />} />
         <Route path="/kill-teams" element={<KillTeams isActive />} />
+        <Route path="/tier-lists" element={<TierLists isActive />} />
         <Route path="/profile" element={isLoggedIn ? <Profile isActive /> : <Navigate replace to="/next-meeting" />} />
         <Route path="/players/:playerId" element={<Profile isActive />} />
         <Route path="/admin" element={isAdmin ? <AdminPlayers isActive /> : <Navigate replace to="/next-meeting" />} />

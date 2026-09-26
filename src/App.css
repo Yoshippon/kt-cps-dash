@@ -101,6 +101,29 @@ h1 { margin: 2px 0 0; font: 700 18px var(--display); letter-spacing: 0; color: v
 .kill-team-table td { color: var(--muted); }
 .kill-team-table tbody tr:hover { background: rgba(221, 93, 50, .04); }
 .kill-team-sort-button { display: inline-flex; align-items: center; gap: 4px; }
+.tier-list-controls, .tier-list-setup { display: flex; align-items: end; gap: 12px; padding: 18px 0; border-top: 2px solid var(--ink); border-bottom: 1px solid var(--line); flex-wrap: wrap; }
+.tier-list-controls label, .tier-list-setup label { display: flex; flex-direction: column; gap: 7px; color: var(--muted); font: 10px var(--mono); text-transform: uppercase; letter-spacing: .6px; }
+.tier-list-controls select, .tier-list-setup input { min-width: 240px; border: 1px solid var(--line); background: var(--paper); color: var(--ink); padding: 10px 12px; font: 13px var(--display); }
+.tier-list-controls button, .tier-list-actions button { border: 0; background: var(--orange); color: white; cursor: pointer; padding: 11px 14px; font: 700 10px var(--mono); text-transform: uppercase; letter-spacing: .6px; }
+.tier-list-controls button:disabled, .tier-list-actions button:disabled { cursor: not-allowed; opacity: .5; }
+.tier-list-setup { border-top: 0; }
+.tier-list-setup .tier-list-checkbox { flex-direction: row; align-items: center; gap: 8px; padding: 10px 0; color: var(--ink); }
+.tier-list-checkbox input { min-width: 0; width: 16px; height: 16px; margin: 0; accent-color: var(--orange); }
+.tier-list-note { margin: 14px 0; color: var(--muted); font: 11px var(--mono); text-transform: uppercase; letter-spacing: .5px; }
+.tier-board { display: grid; gap: 8px; margin-top: 24px; }
+.tier-row { display: grid; grid-template-columns: 76px 1fr; min-height: 112px; border-left: 2px solid var(--orange); background: rgba(221, 93, 50, .045); }
+.tier-row > strong { display: grid; place-items: center; color: var(--ink); font: 700 36px var(--display); }
+.tier-row-teams, .tier-team-tray { display: flex; align-items: center; align-content: center; gap: 10px; min-height: 92px; padding: 10px; flex-wrap: wrap; border-left: 1px solid var(--line); }
+.tier-team { display: grid; grid-template-rows: 56px auto; gap: 4px; width: 72px; text-align: center; cursor: grab; }
+.tier-team:active { cursor: grabbing; }
+.tier-team img, .tier-team > span { display: grid; width: 56px; height: 56px; place-self: center; place-items: center; border: 1px solid var(--line); background: var(--paper); color: var(--ink); object-fit: contain; }
+.tier-team small { overflow: hidden; color: var(--muted); font: 8px var(--mono); text-overflow: ellipsis; text-transform: uppercase; white-space: nowrap; }
+.tier-unranked { margin-top: 24px; padding: 16px; border-left: 2px solid var(--blue); background: rgba(77, 124, 139, .07); }
+.tier-unranked > div:first-child { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; }
+.tier-unranked h3 { margin: 0; color: var(--ink); font: 700 20px var(--display); }
+.tier-unranked span { color: var(--muted); font: 10px var(--mono); text-transform: uppercase; letter-spacing: .5px; }
+.tier-team-tray { min-height: 76px; margin-top: 12px; padding: 0; border-left: 0; }
+.tier-list-actions { display: flex; justify-content: flex-end; padding-top: 16px; }
 .profile-summary { display: flex; align-items: center; gap: 20px; padding: 20px 0; border-top: 2px solid var(--ink); border-bottom: 1px solid var(--line); }
 .profile-summary h3, .profile-teams-heading h3, .profile-team-card h4 { margin: 0; color: var(--ink); font-family: var(--display); }
 .profile-summary h3 { font-size: 24px; }
@@ -370,5 +393,6 @@ h1 { margin: 2px 0 0; font: 700 18px var(--display); letter-spacing: 0; color: v
 @media (max-width: 800px) { .applied-filters { grid-template-columns: repeat(2, max-content); } }
 @media (max-width: 680px) { .toolbar { flex-wrap: wrap; } .applied-filters { order: 3; width: 100%; justify-content: start; margin-left: 0; } .filter-panel, .community-filters { grid-template-columns: 1fr; gap: 12px; } .clear-filters { justify-self: start; } .profile-teams-heading, .profile-team-card header { align-items: flex-start; flex-direction: column; } .profile-add-team { width: 100%; } .profile-add-team select { min-width: 0; flex: 1; } .preference-grid { grid-template-columns: repeat(2, 1fr); } .vote-map { grid-template-columns: 1fr auto; } .vote-map-voters { grid-column: 1 / -1; } }
 @media (max-width: 680px) { .matchup-planner { grid-template-columns: 1fr; } .suggestions { grid-column: auto; } }
+@media (max-width: 680px) { .tier-list-controls, .tier-list-setup { align-items: stretch; flex-direction: column; } .tier-list-controls select, .tier-list-setup input { min-width: 0; width: 100%; box-sizing: border-box; } .tier-row { grid-template-columns: 52px 1fr; } .tier-row > strong { font-size: 28px; } .tier-row-teams { min-height: 82px; } }
 @media (max-width: 520px) { .topbar { align-items: flex-start; gap: 14px; } .account-menu { align-items: flex-start; flex-direction: column; } .account-signin-hint { max-width: 150px; } .add-match { font-size: 0; padding: 10px 13px; } .add-match span { font-size: 22px; margin: 0; } .players { font-size: 14px; flex-wrap: wrap; } .players span { width: 100%; order: 2; } .match-row-summary { grid-template-columns: 72px 1fr auto auto; } .stats strong { font-size: 23px; } .stats span { font-size: 9px; } .matrix-toolbar { align-items: flex-start; flex-direction: column; gap: 10px; } .matrix-toolbar label { justify-content: space-between; width: 100%; } .community-section-heading { align-items: flex-start; flex-direction: column; } .win-rate-chart-row { grid-template-columns: minmax(0, 1fr) 42px; gap: 7px 10px; } .win-rate-chart-bar { grid-column: 1 / -1; grid-row: 2; } .win-rate-chart-row small { grid-column: 1 / -1; grid-row: 3; } .preference-grid { grid-template-columns: 1fr; } }
 @media (max-width: 680px) { .wheel-content { grid-template-columns: 1fr; } .wheel-options { max-height: 220px; border-left: 0; border-top: 2px solid var(--blue); } }
