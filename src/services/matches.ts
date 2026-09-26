@@ -35,10 +35,15 @@ export type MatchRecord = {
 
 export type MatchFormOptions = {
   maps: string[]
-  teams: string[]
+  teams: TeamOption[]
   players: string[]
   critOps: string[]
   tacOps: TacOpOption[]
+}
+
+export type TeamOption = {
+  name: string
+  faction: string | null
 }
 
 export type TacOpOption = {
@@ -157,7 +162,7 @@ export async function fetchMatchFormOptions(): Promise<MatchFormOptions> {
     { data: latestOpsPack, error: opsPackError },
   ] = await Promise.all([
     supabase.from('maps').select('name').order('name', { ascending: true }),
-    supabase.from('kill_teams').select('name').order('name', { ascending: true }),
+    supabase.from('kill_teams').select('name, generic_faction').order('name', { ascending: true }),
     supabase.from('players').select('name').order('name', { ascending: true }),
     supabase.from('approved_ops_packs').select('id').order('year', { ascending: false }).limit(1).maybeSingle(),
   ])
@@ -166,7 +171,10 @@ export async function fetchMatchFormOptions(): Promise<MatchFormOptions> {
 
   const formOptions = {
     maps: (mapRows as any[] ?? []).map((row) => row.name),
-    teams: (teamRows as any[] ?? []).map((row) => row.name),
+    teams: (teamRows as any[] ?? []).map((row) => ({
+      name: row.name,
+      faction: row.generic_faction,
+    })),
     players: (playerRows as any[] ?? []).map((row) => row.name),
   }
 

@@ -98,3 +98,17 @@ export async function deleteMatchImage(image: MatchImage) {
   const { error: databaseError } = await supabase.from('match_images').delete().eq('id', image.id)
   if (databaseError) throw databaseError
 }
+
+export async function reorderMatchImages(images: MatchImage[]): Promise<MatchImage[]> {
+  if (!hasSupabaseConfig) {
+    throw new Error('Supabase is not configured. Add VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY.')
+  }
+
+  const results = await Promise.all(images.map((image, sortOrder) =>
+    supabase.from('match_images').update({ sort_order: sortOrder }).eq('id', image.id)
+  ))
+  const error = results.find((result) => result.error)?.error
+  if (error) throw error
+
+  return images.map((image, sortOrder) => ({ ...image, sortOrder }))
+}

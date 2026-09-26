@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState, type CSSProperties } from 'react'
 import { Link, useSearchParams } from 'react-router'
 import { formatDate } from '../utils/date'
 import { createMatch, createPlayer, fetchMatches, fetchMatchFormOptions, updateMatch, type MatchFormOptions, type MatchRecord } from '../services/matches'
-import { deleteMatchImage, uploadMatchImages, type MatchImage } from '../services/matchImages'
+import { deleteMatchImage, reorderMatchImages, uploadMatchImages, type MatchImage } from '../services/matchImages'
 import MatchEditModal from './MatchEditModal'
 import { useAuth } from '../lib/auth'
 
@@ -72,12 +72,29 @@ function Ledger({ isActive }: { isActive: boolean }) {
     return () => window.removeEventListener('keydown', handleKeyDown)
   }, [selectedImage, selectedImageIndex, selectedImages])
 
-  const handleSave = async (draft: MatchRecord) => {
+  const handleSave = async (draft: MatchRecord, imageFiles: File[]) => {
     setIsSaving(true)
     setSaveError(null)
     try {
       if (isCreatingMatch) {
-        const createdMatch = await createMatch(draft)
+        if (imageFiles.length > 0 && !player?.user_id) {
+          throw new Error('Unable to identify image uploader.')
+        }
+        let createdMatch = await createMatch(draft)
+        if (imageFiles.length > 0) {
+          const uploaderId = player?.user_id
+          if (!uploaderId) throw new Error('Unable to identify image uploader.')
+          try {
+            const images = await uploadMatchImages(createdMatch.id!, imageFiles, uploaderId)
+            createdMatch = { ...createdMatch, images }
+          } catch (err) {
+            setMatches((current) => [createdMatch, ...current])
+            setEditingMatch(createdMatch)
+            setIsCreatingMatch(false)
+            setImageError(err instanceof Error ? `Match was created, but images could not be uploaded: ${err.message}` : 'Match was created, but images could not be uploaded.')
+            return
+          }
+        }
         setMatches((current) => [createdMatch, ...current])
       } else {
         await updateMatch(draft)
@@ -114,14 +131,16 @@ function Ledger({ isActive }: { isActive: boolean }) {
   const handleCreate = () => {
     if (!player) return
 
-    const now = new Date()
-    const date = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`
+    const previousFriday = new Date()
+    const daysSinceFriday = (previousFriday.getDay() + 2) % 7 || 7
+    previousFriday.setDate(previousFriday.getDate() - daysSinceFriday)
+    const date = `${previousFriday.getFullYear()}-${String(previousFriday.getMonth() + 1).padStart(2, '0')}-${String(previousFriday.getDate()).padStart(2, '0')}`
     setEditingMatch({
       matchId: null,
       date,
       map: formOptions.maps[0] ?? '',
-      teamOne: formOptions.teams[0] ?? '',
-      teamTwo: formOptions.teams[1] ?? formOptions.teams[0] ?? '',
+      teamOne: formOptions.teams[0]?.name ?? '',
+      teamTwo: formOptions.teams[1]?.name ?? formOptions.teams[0]?.name ?? '',
       player1: player.name,
       player2: '',
       isTied: false,
@@ -174,6 +193,24 @@ function Ledger({ isActive }: { isActive: boolean }) {
       setEditingMatch((current) => current ? { ...current, images: current.images.filter((matchImage) => matchImage.id !== image.id) } : null)
     } catch (err) {
       setImageError(err instanceof Error ? err.message : 'Failed to delete image.')
+    } finally {
+      setIsUpdatingImages(false)
+    }
+  }
+
+  const handleReorderImages = async (images: MatchImage[]) => {
+    setIsUpdatingImages(true)
+    setImageError(null)
+    try {
+      const reorderedImages = await reorderMatchImages(images)
+      const matchId = reorderedImages[0]?.matchId
+      if (!matchId) return
+      setMatches((current) => current.map((match) => (
+        match.id === matchId ? { ...match, images: reorderedImages } : match
+      )))
+      setEditingMatch((current) => current ? { ...current, images: reorderedImages } : null)
+    } catch (err) {
+      setImageError(err instanceof Error ? err.message : 'Failed to reorder images.')
     } finally {
       setIsUpdatingImages(false)
     }
@@ -298,6 +335,7 @@ function Ledger({ isActive }: { isActive: boolean }) {
           onSave={handleSave}
           onUploadImages={handleUploadImages}
           onDeleteImage={handleDeleteImage}
+          onReorderImages={handleReorderImages}
         />
       )}
       {selectedImage && <div className="image-lightbox" role="dialog" aria-modal="true" aria-label="Full-size match image" onClick={() => setSelectedImage(null)}>

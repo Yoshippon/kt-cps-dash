@@ -196,6 +196,11 @@ h1 { margin: 2px 0 0; font: 700 18px var(--display); letter-spacing: 0; color: v
 .tac-op-select.tac-op-seek-and-destroy, .tac-op-seek-and-destroy { color: #b43a3a; border-left-color: #b43a3a; }
 .tac-op-select.tac-op-security, .tac-op-security { color: var(--blue); border-left-color: var(--blue); }
 .tac-op-select.tac-op-infiltration, .tac-op-infiltration { color: var(--muted); border-left-color: var(--muted); }
+.team-select { border-left-width: 3px !important; }
+.team-select.team-select-imperium, .team-select-imperium { color: var(--blue); border-left-color: var(--blue); }
+.team-select.team-select-chaos, .team-select-chaos { color: #b43a3a; border-left-color: #b43a3a; }
+.team-select.team-select-xenos, .team-select-xenos { color: #70a87c; border-left-color: #70a87c; }
+.team-select.team-select-homebrew, .team-select-homebrew { color: var(--orange); border-left-color: var(--orange); }
 .match-image-editor { display: flex; flex-direction: column; gap: 10px; margin-top: 24px; padding-top: 18px; border-top: 1px solid var(--line); }
 .match-image-editor h4 { margin: 0; color: var(--ink); font: 700 15px var(--display); }
 .match-image-editor p { margin: 3px 0 0; color: var(--muted); font: 10px var(--mono); }
@@ -203,6 +208,8 @@ h1 { margin: 2px 0 0; font: 700 18px var(--display); letter-spacing: 0; color: v
 .match-image-upload input { display: block; margin-top: 7px; color: var(--ink); font: 11px var(--mono); }
 .match-image-editor-list { display: grid; grid-template-columns: repeat(auto-fill, minmax(116px, 1fr)); gap: 10px; }
 .match-image-editor-list figure { margin: 0; }
+.match-image-editor-item { cursor: grab; }
+.match-image-editor-item.dragging { opacity: .45; }
 .match-image-editor-list img { display: block; width: 100%; aspect-ratio: 4 / 3; object-fit: cover; border: 1px solid var(--line); }
 .match-image-editor-list button { width: 100%; margin-top: 4px; border: 0; background: transparent; color: var(--orange); cursor: pointer; font: 700 9px var(--mono); text-transform: uppercase; letter-spacing: .5px; }
 .match-image-editor-list button:disabled, .match-image-upload:has(input:disabled) { cursor: not-allowed; opacity: .5; }
