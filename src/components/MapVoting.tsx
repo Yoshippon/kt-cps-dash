@@ -6,6 +6,7 @@ import { fetchMapVoteMeeting, replaceMapVotes, setMapVoteAttendance, type MapVot
 type MapVotingProps = {
   onAttendanceChange: (playerNames: string[], changedByUser: boolean) => void
   onWinningMapsChange: (mapNames: string[]) => void
+  refreshKey: string
 }
 
 type VoteMapStyle = CSSProperties & { '--vote-share': string }
@@ -27,7 +28,7 @@ const mapOrder = [
 
 const mapOrderIndex = new Map(mapOrder.map((mapName, index) => [mapName, index]))
 
-function MapVoting({ onAttendanceChange, onWinningMapsChange }: MapVotingProps) {
+function MapVoting({ onAttendanceChange, onWinningMapsChange, refreshKey }: MapVotingProps) {
   const { loading: authLoading, session, isAdmin, isLoggedIn } = useAuth()
   const [guestVoterId] = useState(() => {
     const storageKey = 'kt-cps-map-vote-guest-id'
@@ -65,7 +66,7 @@ function MapVoting({ onAttendanceChange, onWinningMapsChange }: MapVotingProps) 
       return
     }
     void loadMeeting()
-  }, [authLoading, loadMeeting])
+  }, [authLoading, loadMeeting, refreshKey])
 
   const rankedMaps = useMemo(() => {
     if (!meeting) return []

@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { MATCHES, MAPS } from '../data'
 import type { MapData } from '../data'
-import { formatDate, getElapsedDays, getElapsedTime, getTimeUntilNextFriday19, formatTimeUntil } from '../utils/date'
+import { formatDate, formatMeetingElapsedTime, formatTimeUntil, getElapsedDays, getElapsedTime, getMeetingStatus } from '../utils/date'
 import MapWheel from './MapWheel'
 import MapVoting from './MapVoting'
 
@@ -98,10 +98,10 @@ const getConsecutiveGames = () => {
 
 function NextMeeting({ isActive }: { isActive: boolean }) {
   const [playerWindow, setPlayerWindow] = useState('3')
-  const [timeUntil, setTimeUntil] = useState(getTimeUntilNextFriday19())
+  const [meetingStatus, setMeetingStatus] = useState(getMeetingStatus())
 
   useEffect(() => {
-    const interval = setInterval(() => setTimeUntil(getTimeUntilNextFriday19()), 1000)
+    const interval = setInterval(() => setMeetingStatus(getMeetingStatus()), 1000)
     return () => clearInterval(interval)
   }, [])
   const [ruleFirstPlayer, setRuleFirstPlayer] = useState('')
@@ -125,16 +125,26 @@ function NextMeeting({ isActive }: { isActive: boolean }) {
   }, [])
   const recentPlayers = useMemo(() => matrixPlayers.slice(0, 4), [matrixPlayers])
   const savedPlayers = window.sessionStorage.getItem('kt-cps-selected-attendees')
-  const hasSavedSelectedPlayers = useRef(savedPlayers !== null)
+  const savedMeetingDate = window.sessionStorage.getItem('kt-cps-selected-attendees-meeting-date')
+  const hasSavedSelectedPlayers = useRef(savedPlayers !== null && savedMeetingDate === meetingStatus.meetingDate)
+  const meetingDateRef = useRef(meetingStatus.meetingDate)
   const [selectedPlayers, setSelectedPlayers] = useState<string[]>(() => {
-    return savedPlayers !== null
+    return savedPlayers !== null && savedMeetingDate === meetingStatus.meetingDate
       ? savedPlayers.split('\n').filter((player) => recentPlayers.includes(player))
       : recentPlayers
   })
 
   useEffect(() => {
+    if (meetingDateRef.current === meetingStatus.meetingDate) return
+    meetingDateRef.current = meetingStatus.meetingDate
+    hasSavedSelectedPlayers.current = false
+    setSelectedPlayers(recentPlayers)
+  }, [meetingStatus.meetingDate, recentPlayers])
+
+  useEffect(() => {
     window.sessionStorage.setItem('kt-cps-selected-attendees', selectedPlayers.join('\n'))
-  }, [selectedPlayers])
+    window.sessionStorage.setItem('kt-cps-selected-attendees-meeting-date', meetingStatus.meetingDate)
+  }, [meetingStatus.meetingDate, selectedPlayers])
 
   const selectedMatrixPlayers = selectedPlayers.filter((player) => matrixPlayers.includes(player))
   const maxStreak = Math.max(0, ...matrixPlayers.map((player) => consecutiveGames.get(player) ?? 0))
@@ -236,15 +246,23 @@ function NextMeeting({ isActive }: { isActive: boolean }) {
           <p className="intro-copy">Plan the upcoming Friday session: attendees and matchups.</p>
         </div>
         <div className="intro-stats">
-          <div className="countdown" aria-label="Time until next meeting">
-            Next meeting in <strong>{formatTimeUntil(timeUntil)}</strong>
+          <div className="countdown" aria-label={meetingStatus.kind === 'started' ? 'Meeting in progress' : 'Time until next meeting'}>
+            {meetingStatus.kind === 'started' ? (
+              <>Meeting Started <strong>{formatMeetingElapsedTime(meetingStatus.elapsedMs)} ago</strong></>
+            ) : (
+              <>Next meeting in <strong>{formatTimeUntil(meetingStatus.timeUntil)}</strong></>
+            )}
           </div>
           <div className="stats" aria-label="Meeting statistics">
             <div><strong>{selectedPlayers.length}</strong><span>attending</span></div>
           </div>
         </div>
       </section>
-      <MapVoting onAttendanceChange={handleAttendanceChange} onWinningMapsChange={handleWinningMapsChange} />
+      <MapVoting
+        onAttendanceChange={handleAttendanceChange}
+        onWinningMapsChange={handleWinningMapsChange}
+        refreshKey={meetingStatus.meetingDate}
+      />
 
       <div className="matrix-toolbar">
         <span>{matrixPlayers.length} {matrixPlayers.length === 1 ? 'player' : 'players'} shown</span>
