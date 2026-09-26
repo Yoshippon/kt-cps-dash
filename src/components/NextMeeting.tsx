@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { MATCHES, MAPS } from '../data'
 import type { MapData } from '../data'
 import { formatDate, formatMeetingElapsedTime, formatTimeUntil, getElapsedDays, getElapsedTime, getMeetingStatus } from '../utils/date'
+import { getConsecutiveGames } from '../utils/matches'
 import MapWheel from './MapWheel'
 import MapVoting from './MapVoting'
 
@@ -73,29 +74,6 @@ const selectBestMatchups = (
   return solve(players)?.pairs ?? []
 }
 
-const getWeekKey = (date: string) => {
-  const day = new Date(`${date}T00:00:00Z`)
-  const mondayOffset = (day.getUTCDay() + 6) % 7
-  day.setUTCDate(day.getUTCDate() - mondayOffset)
-  return day.toISOString().slice(0, 10)
-}
-
-const getConsecutiveGames = () => {
-  const weeks = [...new Set(MATCHES.map((match) => getWeekKey(match.date)))].sort().reverse()
-  const players = [...new Set(MATCHES.flatMap((match) => [match.player1, match.player2]))]
-  return new Map(players.map((player) => {
-    const playerWeeks = new Set(MATCHES
-      .filter((match) => match.player1 === player || match.player2 === player)
-      .map((match) => getWeekKey(match.date)))
-    let streak = 0
-    for (const week of weeks) {
-      if (!playerWeeks.has(week)) break
-      streak += 1
-    }
-    return [player, streak]
-  }))
-}
-
 function NextMeeting({ isActive }: { isActive: boolean }) {
   const [playerWindow, setPlayerWindow] = useState('3')
   const [meetingStatus, setMeetingStatus] = useState(getMeetingStatus())
@@ -114,7 +92,7 @@ function NextMeeting({ isActive }: { isActive: boolean }) {
   const [winningMapNames, setWinningMapNames] = useState<string[] | null>(null)
   const selectedWindow = PLAYER_WINDOWS.find((window) => window.value === playerWindow) ?? PLAYER_WINDOWS[0]
   const matrixPlayers = getPlayersForWindow(selectedWindow.days)
-  const consecutiveGames = useMemo(getConsecutiveGames, [])
+  const consecutiveGames = useMemo(() => getConsecutiveGames(MATCHES), [])
   const latestMatchups = useMemo(() => {
     const latest = new Map<string, string>()
     MATCHES.forEach((match) => {
