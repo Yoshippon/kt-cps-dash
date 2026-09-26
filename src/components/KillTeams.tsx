@@ -3,7 +3,7 @@ import { TEAMS } from '../data'
 import { useAuth } from '../lib/auth'
 import { importTeamLogos } from '../services/profile'
 
-type SortKey = 'killTeam' | 'fortyKFaction' | 'category' | 'boxName' | 'season' | 'operatives' | 'wounds' | 'apl' | 'killOp' | 'releaseDate'
+type SortKey = 'killTeam' | 'fortyKFaction' | 'category' | 'boxName' | 'season' | 'isClassified' | 'operatives' | 'wounds' | 'apl' | 'killOp' | 'releaseDate'
 type SortDirection = 'asc' | 'desc'
 
 type KillTeamRow = {
@@ -12,6 +12,7 @@ type KillTeamRow = {
   category: string
   boxName: string
   season: number
+  isClassified: boolean
   operatives: number
   wounds: number
   apl: number
@@ -56,6 +57,7 @@ const columnLabels: Record<SortKey, string> = {
   category: 'Type',
   boxName: 'Box',
   season: 'Season',
+  isClassified: 'Classified',
   operatives: 'Operatives',
   wounds: 'Wounds',
   apl: 'APL',
@@ -73,9 +75,13 @@ function KillTeams({ isActive }: { isActive: boolean }) {
   const [logoImportStatus, setLogoImportStatus] = useState<string | null>(null)
 
   const rows = useMemo(() => {
-    const flatRows = (Array.isArray(TEAMS) ? TEAMS.flatMap((group) => Array.isArray(group) ? group : [group]) : []) as KillTeamRow[]
+    const flatRows = (Array.isArray(TEAMS) ? TEAMS.flatMap((group) => Array.isArray(group) ? group : [group]) : []) as Omit<KillTeamRow, 'isClassified'>[]
+    const classifiedRows = flatRows.map((team) => ({
+      ...team,
+      isClassified: team.season > 1,
+    }))
 
-    const filteredRows = flatRows.filter((team) => {
+    const filteredRows = classifiedRows.filter((team) => {
       const releaseTime = parseReleaseDate(team.releaseDate)
       const fromTime = releaseFrom ? parseReleaseDate(releaseFrom) : null
       const toTime = releaseTo ? parseReleaseDate(releaseTo) : null
@@ -188,6 +194,7 @@ function KillTeams({ isActive }: { isActive: boolean }) {
                 <td>{team.category}</td>
                 <td>{team.boxName}</td>
                 <td>{team.season}</td>
+                <td>{team.isClassified ? 'Yes' : 'No'}</td>
                 <td>{team.operatives}</td>
                 <td>{team.wounds}</td>
                 <td>{team.apl}</td>

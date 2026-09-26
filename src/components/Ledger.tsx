@@ -52,6 +52,12 @@ function Ledger({ isActive }: { isActive: boolean }) {
     fetchMatchFormOptions().then(setFormOptions).catch(() => {})
   }, [])
 
+  const refreshMatches = async () => {
+    const matches = await fetchMatches()
+    setMatches(matches)
+    return matches
+  }
+
   useEffect(() => {
     if (!selectedImage) return
 
@@ -88,14 +94,15 @@ function Ledger({ isActive }: { isActive: boolean }) {
             const images = await uploadMatchImages(createdMatch.id!, imageFiles, uploaderId)
             createdMatch = { ...createdMatch, images }
           } catch (err) {
-            setMatches((current) => [createdMatch, ...current])
-            setEditingMatch(createdMatch)
+            const matches = await refreshMatches()
+            setEditingMatch(matches.find((match) => match.id === createdMatch.id) ?? createdMatch)
             setIsCreatingMatch(false)
             setImageError(err instanceof Error ? `Match was created, but images could not be uploaded: ${err.message}` : 'Match was created, but images could not be uploaded.')
             return
           }
         }
-        setMatches((current) => [createdMatch, ...current])
+        await refreshMatches()
+        setFormOptions(await fetchMatchFormOptions())
       } else {
         await updateMatch(draft)
         setMatches((current) => current.map((match) => (match.id === draft.id ? draft : match)))

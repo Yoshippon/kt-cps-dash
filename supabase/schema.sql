@@ -92,6 +92,7 @@ create table if not exists public.kill_teams (
   generic_faction text null,
   forty_k_faction text null,
   season integer null,
+  is_classified boolean not null default true,
   box_number text null,
   box_name text null,
   category text null,

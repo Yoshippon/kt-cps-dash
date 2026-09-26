@@ -86,6 +86,7 @@ export type KillTeamRow = {
   generic_faction: string | null
   forty_k_faction: string | null
   season: number | null
+  is_classified: boolean
   box_number: string | null
   box_name: string | null
   category: string | null
