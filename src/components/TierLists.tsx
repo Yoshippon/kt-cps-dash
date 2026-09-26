@@ -193,7 +193,10 @@ function TierLists({ isActive }: { isActive: boolean }) {
       onDragOver={(event) => {
         if (canEdit) event.preventDefault()
       }}
-      onDrop={(event) => handleDrop(event, tier, index)}
+      onDrop={(event) => {
+        event.stopPropagation()
+        handleDrop(event, tier, index)
+      }}
       title={team.name}
     >
       <span className="match-team-avatar tier-team-avatar">
