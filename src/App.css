@@ -51,9 +51,11 @@ h1 { margin: 2px 0 0; font: 700 18px var(--display); letter-spacing: 0; color: v
 .filter-panel label { display: flex; flex-direction: column; gap: 7px; color: var(--muted); font: 10px var(--mono); text-transform: uppercase; letter-spacing: .6px; }
 .filter-panel select, .filter-panel input[type='date'] { width: 100%; box-sizing: border-box; border: 1px solid var(--line); border-radius: 0; background: var(--paper); color: var(--ink); padding: 10px 12px; font: 13px var(--display); }
 .clear-filters { border: 0; background: transparent; color: var(--orange); cursor: pointer; padding: 10px 0; font: 700 10px var(--mono); text-transform: uppercase; letter-spacing: .6px; white-space: nowrap; }
-.community-filters { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)) auto; align-items: end; gap: 16px; padding: 18px 0; border-top: 2px solid var(--ink); border-bottom: 1px solid var(--line); }
+.community-filters { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)) auto auto; align-items: end; gap: 16px; padding: 18px 0; border-top: 2px solid var(--ink); border-bottom: 1px solid var(--line); }
 .community-filters label { display: flex; flex-direction: column; gap: 7px; color: var(--muted); font: 10px var(--mono); text-transform: uppercase; letter-spacing: .6px; }
 .community-filters select, .community-filters input[type='date'] { width: 100%; box-sizing: border-box; border: 1px solid var(--line); border-radius: 0; background: var(--paper); color: var(--ink); padding: 10px 12px; font: 13px var(--display); }
+.community-filters .community-checkbox { flex-direction: row; align-items: center; gap: 8px; padding-bottom: 11px; color: var(--ink); white-space: nowrap; }
+.community-checkbox input { width: 16px; height: 16px; margin: 0; accent-color: var(--orange); }
 .community-section { margin-top: 34px; border-top: 2px solid var(--ink); }
 .community-section-heading { display: flex; align-items: baseline; justify-content: space-between; gap: 16px; padding: 14px 0 10px; }
 .community-section-heading h3 { margin: 0; color: var(--ink); font: 700 20px var(--display); }
@@ -76,6 +78,9 @@ h1 { margin: 2px 0 0; font: 700 18px var(--display); letter-spacing: 0; color: v
 .community-table tr:last-child th, .community-table tr:last-child td { border-bottom: 0; }
 .community-table thead th { color: var(--muted); font-size: 10px; text-transform: uppercase; letter-spacing: .6px; }
 .community-table th:first-child, .community-table tbody th { text-align: left; }
+.community-sort-button { border: 0; background: transparent; color: inherit; cursor: pointer; font: inherit; letter-spacing: inherit; padding: 0; text-transform: inherit; }
+.community-table thead th:not(:first-child) .community-sort-button { display: block; margin-left: auto; }
+.community-sort-button:hover, .community-sort-button:focus-visible { color: var(--orange); }
 .community-table tbody th { color: var(--ink); font: 500 14px var(--display); }
 .community-table td { color: var(--muted); }
 .community-table td.rate { color: var(--orange); font-weight: 700; }

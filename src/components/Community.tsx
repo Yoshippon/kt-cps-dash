@@ -3,6 +3,8 @@ import { MATCHES } from '../data'
 
 type StatLine = { name: string; games: number; wins: number; draws: number; losses: number; points: number }
 type CommunityView = 'table' | 'chart'
+type SortColumn = 'name' | 'games' | 'wins' | 'draws' | 'losses' | 'winRate'
+type SortDirection = 'ascending' | 'descending'
 
 const isMirrorMatch = (match: typeof MATCHES[number]) => match.teamOne === match.teamTwo
 const playerPlayedWithTeam = (match: typeof MATCHES[number], player: string, team: string) => (
@@ -16,16 +18,22 @@ function Community({ isActive }: { isActive: boolean }) {
   const [teamFilter, setTeamFilter] = useState('')
   const [dateFromFilter, setDateFromFilter] = useState('')
   const [dateToFilter, setDateToFilter] = useState('')
+  const [ignoreHomebrew, setIgnoreHomebrew] = useState(false)
   const [view, setView] = useState<CommunityView>('table')
+  const [sortColumn, setSortColumn] = useState<SortColumn>('games')
+  const [sortDirection, setSortDirection] = useState<SortDirection>('descending')
+
   const eligibleMatches = useMemo(() => MATCHES.filter((match) => {
     if (isMirrorMatch(match)) return false
+    if (ignoreHomebrew && match.isHomebrew) return false
     const includesPlayer = !playerFilter || match.player1 === playerFilter || match.player2 === playerFilter
     const includesTeam = !teamFilter || match.teamOne === teamFilter || match.teamTwo === teamFilter
     const matchesPlayerTeam = !playerFilter || !teamFilter || playerPlayedWithTeam(match, playerFilter, teamFilter)
     const isAfterStartDate = !dateFromFilter || match.date >= dateFromFilter
     const isBeforeEndDate = !dateToFilter || match.date <= dateToFilter
     return includesPlayer && includesTeam && matchesPlayerTeam && isAfterStartDate && isBeforeEndDate
-  }), [dateFromFilter, dateToFilter, playerFilter, teamFilter])
+  }), [dateFromFilter, dateToFilter, ignoreHomebrew, playerFilter, teamFilter])
+
   const teamStats = useMemo(() => {
     const stats = new Map<string, StatLine>()
     eligibleMatches.forEach((match) => {
@@ -49,8 +57,17 @@ function Community({ isActive }: { isActive: boolean }) {
         stats.set(team, stat)
       })
     })
-    return [...stats.values()].sort((first, second) => winRate(second) - winRate(first) || second.games - first.games)
+    return [...stats.values()]
   }, [eligibleMatches, playerFilter, teamFilter])
+  const sortedTeamStats = useMemo(() => [...teamStats].sort((first, second) => {
+    const comparison = sortColumn === 'name'
+      ? first.name.localeCompare(second.name)
+      : sortColumn === 'winRate'
+        ? winRate(first) - winRate(second)
+        : first[sortColumn] - second[sortColumn]
+    if (comparison !== 0) return sortDirection === 'ascending' ? comparison : -comparison
+    return first.name.localeCompare(second.name)
+  }), [sortColumn, sortDirection, teamStats])
   const players = useMemo(() => [...new Set(MATCHES
     .filter((match) => !isMirrorMatch(match) && (!teamFilter || match.teamOne === teamFilter || match.teamTwo === teamFilter))
     .flatMap((match) => teamFilter && match.teamOne === teamFilter ? [match.player1] : teamFilter ? [match.player2] : [match.player1, match.player2]))].sort(), [teamFilter])
@@ -65,6 +82,15 @@ function Community({ isActive }: { isActive: boolean }) {
     setTeamFilter('')
     setDateFromFilter('')
     setDateToFilter('')
+    setIgnoreHomebrew(false)
+  }
+  const changeSort = (column: SortColumn) => {
+    if (sortColumn === column) {
+      setSortDirection((direction) => direction === 'ascending' ? 'descending' : 'ascending')
+      return
+    }
+    setSortColumn(column)
+    setSortDirection(column === 'name' ? 'ascending' : 'descending')
   }
 
   return (
@@ -78,7 +104,8 @@ function Community({ isActive }: { isActive: boolean }) {
         <label>Team<select value={teamFilter} onChange={(event) => { const team = event.target.value; setTeamFilter(team); if (playerFilter && !MATCHES.some((match) => !isMirrorMatch(match) && playerPlayedWithTeam(match, playerFilter, team))) setPlayerFilter('') }}><option value="">All teams</option>{teams.map((team) => <option key={team} value={team}>{team}</option>)}</select></label>
         <label>From<input type="date" value={dateFromFilter} onChange={(event) => setDateFromFilter(event.target.value)} max={dateToFilter || undefined} /></label>
         <label>To<input type="date" value={dateToFilter} onChange={(event) => setDateToFilter(event.target.value)} min={dateFromFilter || undefined} /></label>
-        {(playerFilter || teamFilter || dateFromFilter || dateToFilter) && <button type="button" className="clear-filters" onClick={clearFilters}>Clear filters</button>}
+        <label className="community-checkbox"><input type="checkbox" checked={ignoreHomebrew} onChange={(event) => setIgnoreHomebrew(event.target.checked)} />Ignore homebrew games</label>
+        {(playerFilter || teamFilter || dateFromFilter || dateToFilter || ignoreHomebrew) && <button type="button" className="clear-filters" onClick={clearFilters}>Clear filters</button>}
       </div>
       <section className="community-section" aria-labelledby="team-rates-heading">
         <header className="community-section-heading">
@@ -89,14 +116,16 @@ function Community({ isActive }: { isActive: boolean }) {
           </div>
         </header>
         <p className="community-section-note">Draws count as 0.5 wins</p>
-        {view === 'table' ? <StatsTable stats={teamStats} noun="team" /> : <WinRateChart stats={teamStats} />}
+        {view === 'table' ? <StatsTable stats={sortedTeamStats} noun="team" sortColumn={sortColumn} sortDirection={sortDirection} onSort={changeSort} /> : <WinRateChart stats={sortedTeamStats} />}
       </section>
     </div>
   )
 }
 
-function StatsTable({ stats, noun }: { stats: StatLine[]; noun: string }) {
-  return stats.length > 0 ? <div className="community-table-wrap"><table className="community-table"><thead><tr><th scope="col">{noun}</th><th scope="col">Games</th><th scope="col">W</th><th scope="col">D</th><th scope="col">L</th><th scope="col">Win rate</th></tr></thead><tbody>{stats.map((stat) => <tr key={stat.name}><th scope="row">{stat.name}</th><td>{stat.games}</td><td>{stat.wins}</td><td>{stat.draws}</td><td>{stat.losses}</td><td className="rate">{formatRate(stat)}</td></tr>)}</tbody></table></div> : <div className="empty-state"><strong>No matches found</strong><span>Try changing or clearing your filters.</span></div>
+function StatsTable({ stats, noun, sortColumn, sortDirection, onSort }: { stats: StatLine[]; noun: string; sortColumn: SortColumn; sortDirection: SortDirection; onSort: (column: SortColumn) => void }) {
+  const sortableHeader = (column: SortColumn, label: string) => <th scope="col" aria-sort={sortColumn === column ? sortDirection : 'none'}><button type="button" className="community-sort-button" onClick={() => onSort(column)}>{label}<span aria-hidden="true">{sortColumn === column ? sortDirection === 'ascending' ? ' ▲' : ' ▼' : ''}</span></button></th>
+
+  return stats.length > 0 ? <div className="community-table-wrap"><table className="community-table"><thead><tr>{sortableHeader('name', noun)}{sortableHeader('games', 'Games')}{sortableHeader('wins', 'W')}{sortableHeader('draws', 'D')}{sortableHeader('losses', 'L')}{sortableHeader('winRate', 'Win rate')}</tr></thead><tbody>{stats.map((stat) => <tr key={stat.name}><th scope="row">{stat.name}</th><td>{stat.games}</td><td>{stat.wins}</td><td>{stat.draws}</td><td>{stat.losses}</td><td className="rate">{formatRate(stat)}</td></tr>)}</tbody></table></div> : <div className="empty-state"><strong>No matches found</strong><span>Try changing or clearing your filters.</span></div>
 }
 
 function WinRateChart({ stats }: { stats: StatLine[] }) {
