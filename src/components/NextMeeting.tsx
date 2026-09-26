@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { MATCHES, MAPS } from '../data'
 import type { MapData } from '../data'
 import { formatDate, getElapsedDays, getElapsedTime, getTimeUntilNextFriday19, formatTimeUntil } from '../utils/date'
@@ -124,9 +124,10 @@ function NextMeeting({ isActive }: { isActive: boolean }) {
     return latest
   }, [])
   const recentPlayers = useMemo(() => matrixPlayers.slice(0, 4), [matrixPlayers])
+  const savedPlayers = window.sessionStorage.getItem('kt-cps-selected-attendees')
+  const hasSavedSelectedPlayers = useRef(savedPlayers !== null)
   const [selectedPlayers, setSelectedPlayers] = useState<string[]>(() => {
-    const savedPlayers = window.sessionStorage.getItem('kt-cps-selected-attendees')
-    return savedPlayers
+    return savedPlayers !== null
       ? savedPlayers.split('\n').filter((player) => recentPlayers.includes(player))
       : recentPlayers
   })
@@ -148,7 +149,10 @@ function NextMeeting({ isActive }: { isActive: boolean }) {
     return MAPS.filter((map) => map.owners.some((owner) => selectedPlayers.includes(owner)))
   }, [selectedPlayers, winningMapNames])
   const handleAttendanceChange = useCallback((playerNames: string[], changedByUser: boolean) => {
-    if (changedByUser || playerNames.length > 0) setSelectedPlayers(playerNames)
+    if (changedByUser || !hasSavedSelectedPlayers.current) {
+      setSelectedPlayers(playerNames)
+      hasSavedSelectedPlayers.current = true
+    }
   }, [])
   const handleWinningMapsChange = useCallback((mapNames: string[]) => {
     setWinningMapNames(mapNames)
