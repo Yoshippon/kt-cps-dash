@@ -71,7 +71,8 @@ export async function fetchTierListTeams(includesNonClassified: boolean): Promis
   requireSupabase()
   let query = supabase
     .from('kill_teams')
-    .select('id, name, logo_path, is_classified')
+    .select('id, name, logo_path, is_classified, is_homebrew')
+    .eq('is_homebrew', false)
     .order('name', { ascending: true })
 
   if (!includesNonClassified) query = query.eq('is_classified', true)
@@ -79,7 +80,7 @@ export async function fetchTierListTeams(includesNonClassified: boolean): Promis
   const { data, error } = await query
   if (error) throw error
 
-  return ((data as Array<{ id: string; name: string; logo_path: string | null; is_classified: boolean }> | null) ?? [])
+  return ((data as Array<{ id: string; name: string; logo_path: string | null; is_classified: boolean; is_homebrew: boolean }> | null) ?? [])
     .map((team) => ({
       id: team.id,
       name: team.name,

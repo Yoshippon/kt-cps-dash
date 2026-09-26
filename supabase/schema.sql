@@ -93,6 +93,7 @@ create table if not exists public.kill_teams (
   forty_k_faction text null,
   season integer null,
   is_classified boolean not null default true,
+  is_homebrew boolean not null default false,
   box_number text null,
   box_name text null,
   category text null,
@@ -525,6 +526,7 @@ begin
       or entry.tier not in ('S', 'A', 'B', 'C', 'D')
       or entry.position < 0
       or (not v_includes_non_classified and not team.is_classified)
+      or team.is_homebrew
   ) then
     raise exception 'tier list contains an invalid team or placement';
   end if;

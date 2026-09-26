@@ -89,6 +89,7 @@ export type KillTeamRow = {
   forty_k_faction: string | null
   season: number | null
   is_classified: boolean
+  is_homebrew: boolean
   box_number: string | null
   box_name: string | null
   category: string | null

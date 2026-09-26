@@ -40,13 +40,18 @@ function TierLists({ isActive }: { isActive: boolean }) {
     let isCurrent = true
     const load = async () => {
       try {
-        const lists = await fetchTierLists()
+        const [lists, initialTeams] = await Promise.all([
+          fetchTierLists(),
+          fetchTierListTeams(false),
+        ])
         if (!isCurrent) return
         setTierLists(lists)
         if (lists.length > 0) {
           setSelectedList(lists[0])
           setName(lists[0].name)
           setIncludesNonClassified(lists[0].includes_non_classified)
+        } else {
+          setTeams(initialTeams)
         }
       } catch (err) {
         if (isCurrent) setError(err instanceof Error ? err.message : 'Failed to load tier lists.')
@@ -191,9 +196,11 @@ function TierLists({ isActive }: { isActive: boolean }) {
       onDrop={(event) => handleDrop(event, tier, index)}
       title={team.name}
     >
-      {team.logoUrl
-        ? <img src={team.logoUrl} alt={team.name} />
-        : <span aria-label={team.name}>{team.name.slice(0, 2)}</span>}
+      <span className="match-team-avatar tier-team-avatar">
+        {team.logoUrl
+          ? <img src={team.logoUrl} alt={team.name} />
+          : <span className="tier-team-avatar-placeholder" aria-label={team.name}>{team.name.slice(0, 2)}</span>}
+      </span>
       <small>{team.name}</small>
     </div>
   )
@@ -258,7 +265,7 @@ function TierLists({ isActive }: { isActive: boolean }) {
 
           <section className="tier-board" aria-label="Kill team tier board">
             {TIERS.map((tier) => (
-              <div className="tier-row" key={tier}>
+              <div className={`tier-row tier-row-${tier.toLowerCase()}`} key={tier}>
                 <strong>{tier}</strong>
                 <div className="tier-row-teams" onDragOver={(event) => { if (canEdit) event.preventDefault() }} onDrop={(event) => handleDrop(event, tier)}>
                   {placementByTier[tier].map((teamId, index) => {
