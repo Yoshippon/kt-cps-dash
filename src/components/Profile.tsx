@@ -9,6 +9,7 @@ import {
   fetchProfile,
   fetchTeamOptions,
   removeOwnedTeam,
+  teamLogoUrl,
   uploadAvatar,
   uploadTeamImages,
   type OwnedTeam,
@@ -30,8 +31,14 @@ function Profile({ isActive }: { isActive: boolean }) {
   const [isLoading, setIsLoading] = useState(true)
   const [busyAction, setBusyAction] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
+  const [selectedImage, setSelectedImage] = useState<ProfileImage | null>(null)
 
   const availableTeams = useMemo(() => teamOptions.filter((team) => !teams.some((ownedTeam) => ownedTeam.id === team.id)), [teamOptions, teams])
+  const selectedImages = useMemo(() => {
+    if (!selectedImage) return []
+    return teams.find((team) => team.images.some((image) => image.id === selectedImage.id))?.images ?? [selectedImage]
+  }, [selectedImage, teams])
+  const selectedImageIndex = selectedImages.findIndex((image) => image.id === selectedImage?.id)
 
   useEffect(() => {
     if (!isActive || !targetPlayerId) return
@@ -52,6 +59,26 @@ function Profile({ isActive }: { isActive: boolean }) {
       .catch((err) => setError(err instanceof Error ? err.message : 'Failed to load profile.'))
       .finally(() => setIsLoading(false))
   }, [isActive, isOwnProfile, targetPlayerId])
+
+  useEffect(() => {
+    if (!selectedImage) return
+
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        setSelectedImage(null)
+        return
+      }
+      if (selectedImages.length < 2 || (event.key !== 'ArrowLeft' && event.key !== 'ArrowRight')) return
+
+      event.preventDefault()
+      const offset = event.key === 'ArrowLeft' ? -1 : 1
+      const nextIndex = (selectedImageIndex + offset + selectedImages.length) % selectedImages.length
+      setSelectedImage(selectedImages[nextIndex])
+    }
+
+    window.addEventListener('keydown', handleKeyDown)
+    return () => window.removeEventListener('keydown', handleKeyDown)
+  }, [selectedImage, selectedImageIndex, selectedImages])
 
   const handleAvatarUpload = async (files: FileList | null) => {
     const file = files?.[0]
@@ -74,7 +101,7 @@ function Profile({ isActive }: { isActive: boolean }) {
     try {
       await addOwnedTeam(targetPlayerId, selectedTeamId)
       const team = teamOptions.find((option) => option.id === selectedTeamId)
-      if (team) setTeams((current) => [...current, { id: team.id, name: team.name, images: [] }])
+      if (team) setTeams((current) => [...current, { id: team.id, name: team.name, logoUrl: teamLogoUrl(team.logo_path), images: [] }])
       setSelectedTeamId('')
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to add team.')
@@ -165,13 +192,19 @@ function Profile({ isActive }: { isActive: boolean }) {
               {teams.length === 0 ? <div className="empty-state"><strong>No teams yet</strong><span>Add a team from collection above.</span></div> : (
                 <div className="profile-team-list">
                   {teams.map((team) => (
-                    <article className="profile-team-card" key={team.id}>
-                      <header><h4>{team.name}</h4>{isOwnProfile && <button type="button" onClick={() => handleRemoveTeam(team)} disabled={busyAction !== null}>{busyAction === `remove-${team.id}` ? 'Removing…' : 'Remove team'}</button>}</header>
-                      {isOwnProfile && <label className="profile-upload">
-                          {busyAction === `upload-${team.id}` ? 'Uploading…' : 'Add team photos'}
-                          <input type="file" multiple accept="image/jpeg,image/png,image/webp" disabled={busyAction !== null} onChange={(event) => handleTeamImageUpload(team.id, event.target.files)} />
-                        </label>}
-                      {team.images.length > 0 && <div className="profile-team-images">{team.images.map((image, index) => <figure key={image.id}><img src={image.url} alt={`${team.name} photo ${index + 1}`} />{isOwnProfile && <button type="button" onClick={() => handleDeleteImage(team.id, image)} disabled={busyAction !== null}>{busyAction === `delete-${image.id}` ? 'Deleting…' : 'Delete'}</button>}</figure>)}</div>}
+                    <article className={`profile-team-card${team.logoUrl ? ' profile-team-card-has-logo' : ''}`} key={team.id}>
+                      {team.logoUrl && <div className="profile-team-logo"><img src={team.logoUrl} alt="" /></div>}
+                      <div className="profile-team-content">
+                        <header>
+                          <h4>{team.name}</h4>
+                          {isOwnProfile && <button type="button" onClick={() => handleRemoveTeam(team)} disabled={busyAction !== null}>{busyAction === `remove-${team.id}` ? 'Removing…' : 'Remove team'}</button>}
+                        </header>
+                        {isOwnProfile && <label className="profile-upload">
+                            {busyAction === `upload-${team.id}` ? 'Uploading…' : 'Add team photos'}
+                            <input type="file" multiple accept="image/jpeg,image/png,image/webp" disabled={busyAction !== null} onChange={(event) => handleTeamImageUpload(team.id, event.target.files)} />
+                          </label>}
+                        {team.images.length > 0 && <div className="profile-team-images">{team.images.map((image, index) => <figure key={image.id}><button type="button" className="profile-team-image-thumbnail" onClick={() => setSelectedImage(image)}><img src={image.url} alt={`${team.name} photo ${index + 1}`} /></button>{isOwnProfile && <button type="button" onClick={() => handleDeleteImage(team.id, image)} disabled={busyAction !== null}>{busyAction === `delete-${image.id}` ? 'Deleting…' : 'Delete'}</button>}</figure>)}</div>}
+                      </div>
                     </article>
                   ))}
                 </div>
@@ -180,6 +213,17 @@ function Profile({ isActive }: { isActive: boolean }) {
           )}
         </>
       )}
+      {selectedImage && <div className="image-lightbox" role="dialog" aria-modal="true" aria-label="Full-size team image" onClick={() => setSelectedImage(null)}>
+        <div className="image-lightbox-content" onClick={(event) => event.stopPropagation()}>
+          <button type="button" className="image-lightbox-close" aria-label="Close full-size image" onClick={() => setSelectedImage(null)}>&times;</button>
+          <img src={selectedImage.url} alt="Full-size team photo" />
+          {selectedImages.length > 1 && <div className="image-lightbox-controls">
+            <button type="button" onClick={() => setSelectedImage(selectedImages[(selectedImageIndex - 1 + selectedImages.length) % selectedImages.length])}>Previous</button>
+            <span>{selectedImageIndex + 1} / {selectedImages.length}</span>
+            <button type="button" onClick={() => setSelectedImage(selectedImages[(selectedImageIndex + 1) % selectedImages.length])}>Next</button>
+          </div>}
+        </div>
+      </div>}
     </div>
   )
 }

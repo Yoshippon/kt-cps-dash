@@ -65,6 +65,7 @@ export type ProfileImage = {
 export type OwnedTeam = {
   id: string
   name: string
+  logoUrl: string | null
   images: ProfileImage[]
 }
 
@@ -79,6 +80,8 @@ export type TeamLogoImport = {
 }
 
 const publicUrl = (storagePath: string) => supabase.storage.from(MEDIA_BUCKET).getPublicUrl(storagePath).data.publicUrl
+
+export const teamLogoUrl = (storagePath: string | null) => storagePath ? publicUrl(storagePath) : null
 
 const extensionForImage = (file: File) => {
   if (file.type === 'image/jpeg') return 'jpg'
@@ -138,7 +141,8 @@ export async function uploadAvatar(playerId: string, userId: string, previousAva
 
 export async function fetchTeamOptions(): Promise<KillTeamRow[]> {
   requireSupabase()
-  const { data, error } = await supabase.from('kill_teams').select('id, name, description, created_at, updated_at').order('name', { ascending: true })
+
+  const { data, error } = await supabase.from('kill_teams').select('id, name, description, logo_path, created_at, updated_at').order('name', { ascending: true })
   if (error) throw error
   return (data as KillTeamRow[] | null) ?? []
 }
@@ -186,7 +190,7 @@ export async function fetchOwnedTeams(playerId: string): Promise<OwnedTeam[]> {
     { data: imageRows, error: imageError },
   ] = await Promise.all([
     supabase.from('player_team_ownership').select('team_id').eq('player_id', playerId),
-    supabase.from('kill_teams').select('id, name'),
+    supabase.from('kill_teams').select('id, name, logo_path'),
     supabase.from('player_team_images').select('id, team_id, storage_path').eq('player_id', playerId).order('sort_order', { ascending: true }).order('created_at', { ascending: true }),
   ])
   if (ownershipError || teamError || imageError) throw ownershipError ?? teamError ?? imageError
@@ -199,9 +203,9 @@ export async function fetchOwnedTeams(playerId: string): Promise<OwnedTeam[]> {
     imagesByTeamId.set(image.team_id, images)
   })
 
-  return ((teamRows as Pick<KillTeamRow, 'id' | 'name'>[] | null) ?? [])
+  return ((teamRows as Pick<KillTeamRow, 'id' | 'name' | 'logo_path'>[] | null) ?? [])
     .filter((team) => teamIds.has(team.id))
-    .map((team) => ({ ...team, images: imagesByTeamId.get(team.id) ?? [] }))
+    .map((team) => ({ id: team.id, name: team.name, logoUrl: teamLogoUrl(team.logo_path), images: imagesByTeamId.get(team.id) ?? [] }))
 }
 
 export async function addOwnedTeam(playerId: string, teamId: string) {
