@@ -31,7 +31,7 @@ h1 { margin: 2px 0 0; font: 700 18px var(--display); letter-spacing: 0; color: v
 .admin-players-table th, .admin-players-table td { padding: 10px 12px; border-bottom: 1px solid var(--line); text-align: left; font-size: 13px; }
 .admin-players-table input { margin-left: 8px; width: 320px; font: 400 12px var(--mono); border: 1px solid var(--line); padding: 6px; }
 .intro { display: flex; flex-direction: column; gap: 24px; padding: 66px 0 48px; }
-.intro-header { display: flex; flex-direction: column; align-items: flex-start; gap: 8px; }
+.intro-header { display: grid; grid-template-columns: minmax(0, 1fr) minmax(360px, 46%); align-items: center; gap: 32px; }
 .intro h2 { margin: 10px 0 0; font: 700 clamp(40px, 6vw, 76px)/.95 var(--display); letter-spacing: -3px; color: var(--ink); }
 .intro-copy { max-width: 420px; margin: 0; color: var(--muted); font-size: 15px; }
 .intro-stats { display: flex; justify-content: space-between; align-items: center; gap: 32px; flex-wrap: wrap; }
@@ -41,6 +41,19 @@ h1 { margin: 2px 0 0; font: 700 18px var(--display); letter-spacing: 0; color: v
 .stats div { display: flex; flex-direction: column; gap: 4px; }
 .stats strong { color: var(--ink); font: 700 28px var(--display); }
 .stats span, .toolbar, time, .map, .status { color: var(--muted); font: 11px var(--mono); text-transform: uppercase; letter-spacing: .6px; }
+.recent-moments { position: relative; display: grid; grid-template-columns: minmax(0, 1fr) minmax(180px, 46%); min-height: 174px; margin: 0; overflow: hidden; border-left: 2px solid var(--orange); background: rgba(221, 93, 50, .045); }
+.recent-moments-copy { position: relative; z-index: 1; display: flex; flex-direction: column; align-items: flex-start; justify-content: center; gap: 8px; padding: 22px 12% 24px 20px; }
+.recent-moments-copy h3 { margin: 0; color: var(--ink); font: 700 clamp(22px, 2.4vw, 32px)/.95 var(--display); letter-spacing: -1px; }
+.recent-moments-copy > p:not(.section-kicker) { margin: 0; color: var(--muted); font: 11px var(--mono); text-transform: uppercase; letter-spacing: .5px; }
+.recent-moments-copy a { color: var(--orange); font: 700 10px var(--mono); text-transform: uppercase; letter-spacing: .6px; }
+.recent-moments-image { position: relative; grid-column: 2; grid-row: 1; padding: 0; border: 0; background: var(--ink); cursor: zoom-in; }
+.recent-moments-image::before { position: absolute; z-index: 1; top: 0; bottom: 0; left: -24%; width: 30%; background: linear-gradient(90deg, rgba(245, 243, 238, 1), rgba(245, 243, 238, 0)); content: ''; pointer-events: none; }
+.recent-moments-image img { display: block; width: 100%; height: 100%; object-fit: cover; }
+.recent-moments-controls { position: absolute; z-index: 2; bottom: 12px; left: 20px; display: flex; gap: 7px; }
+.recent-moments-controls button { width: 22px; height: 5px; padding: 0; border: 0; background: rgba(30, 36, 38, .2); cursor: pointer; }
+.recent-moments-controls button[aria-current='true'] { background: var(--orange); }
+.recent-moments-controls button:focus-visible, .recent-moments-image:focus-visible { outline: 2px solid var(--orange); outline-offset: 3px; }
+.recent-moments-error { margin: 0 0 34px; padding: 12px 14px; border-left: 2px solid #c0392b; background: rgba(192, 57, 43, .07); color: #c0392b; font: 11px var(--mono); }
 .toolbar { display: flex; justify-content: space-between; align-items: center; gap: 16px; border-top: 2px solid var(--ink); border-bottom: 1px solid var(--line); padding: 14px 0; }
 .match-actions { display: flex; justify-content: flex-end; padding: 14px 0; border-bottom: 1px solid var(--line); }
 .filter-button { display: inline-flex; flex: 0 0 auto; align-items: center; min-height: 24px; background: transparent; color: var(--ink); padding: 0; }
@@ -404,7 +417,7 @@ h1 { margin: 2px 0 0; font: 700 18px var(--display); letter-spacing: 0; color: v
 .matchup-matrix td.no-match { color: var(--muted); }
 .matchup-matrix tbody tr:hover { background: rgba(221, 93, 50, .04); }
 .matchup-matrix th.is-highlighted { background: rgba(221, 93, 50, .14); color: var(--orange); }
-@media (max-width: 800px) { .app-shell { padding: 0 22px 48px; } .intro { align-items: flex-start; flex-direction: column; padding: 48px 0 34px; } .stats { gap: 24px; } .match-row-summary { grid-template-columns: 96px 1fr auto auto; gap: 12px; padding: 18px 12px; } .teams { grid-column: 2 / 3; } .match-meta { grid-column: 3 / 4; grid-row: 1 / span 2; } .match-expand-indicator { grid-column: 4 / 5; grid-row: 1 / span 2; } .match-details { grid-template-columns: repeat(2, minmax(0, 1fr)); } .match-images { grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); } }
+@media (max-width: 800px) { .app-shell { padding: 0 22px 48px; } .intro { align-items: flex-start; flex-direction: column; padding: 48px 0 34px; } .intro-header { display: block; } .recent-moments { display: none; } .stats { gap: 24px; } .match-row-summary { grid-template-columns: 96px 1fr auto auto; gap: 12px; padding: 18px 12px; } .teams { grid-column: 2 / 3; } .match-meta { grid-column: 3 / 4; grid-row: 1 / span 2; } .match-expand-indicator { grid-column: 4 / 5; grid-row: 1 / span 2; } .match-details { grid-template-columns: repeat(2, minmax(0, 1fr)); } .match-images { grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); } }
 @media (max-width: 800px) { .applied-filters { grid-template-columns: repeat(2, max-content); } }
 @media (max-width: 680px) { .toolbar { flex-wrap: wrap; } .applied-filters { order: 3; width: 100%; justify-content: start; margin-left: 0; } .filter-panel, .community-filters { grid-template-columns: 1fr; gap: 12px; } .clear-filters { justify-self: start; } .profile-teams-heading, .profile-team-card header { align-items: flex-start; flex-direction: column; } .profile-add-team { width: 100%; } .profile-add-team select { min-width: 0; flex: 1; } .preference-grid { grid-template-columns: repeat(2, 1fr); } .vote-map { grid-template-columns: 1fr auto; } .vote-map-voters { grid-column: 1 / -1; } }
 @media (max-width: 680px) { .matchup-planner { grid-template-columns: 1fr; } .suggestions { grid-column: auto; } }

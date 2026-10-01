@@ -5,6 +5,7 @@ import { formatDate, formatMeetingElapsedTime, formatTimeUntil, getElapsedDays, 
 import { getConsecutiveGames } from '../utils/matches'
 import MapWheel from './MapWheel'
 import MapVoting from './MapVoting'
+import RecentMoments from './RecentMoments'
 
 const PLAYER_WINDOWS = [
   { value: '3', label: 'Active players (last 3 months)', days: 90 },
@@ -220,8 +221,11 @@ function NextMeeting({ isActive }: { isActive: boolean }) {
     <div hidden={!isActive}>
       <section className="intro" aria-labelledby="next-meeting-heading">
         <div className="intro-header">
-          <h2 id="next-meeting-heading">Next Meeting</h2>
-          <p className="intro-copy">Plan the upcoming Friday session: attendees and matchups.</p>
+          <div>
+            <h2 id="next-meeting-heading">Next Meeting</h2>
+            <p className="intro-copy">Plan the upcoming Friday session: attendees and matchups.</p>
+          </div>
+          <RecentMoments />
         </div>
         <div className="intro-stats">
           <div className="countdown" aria-label={meetingStatus.kind === 'started' ? 'Meeting in progress' : 'Time until next meeting'}>
