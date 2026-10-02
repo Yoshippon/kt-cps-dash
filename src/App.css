@@ -32,6 +32,8 @@ h1 { margin: 2px 0 0; font: 700 18px var(--display); letter-spacing: 0; color: v
 .admin-players-table input { margin-left: 8px; width: 320px; font: 400 12px var(--mono); border: 1px solid var(--line); padding: 6px; }
 .tab-summary { display: flex; align-items: center; justify-content: space-between; gap: 32px; padding: 28px 0; }
 .tab-summary-meeting { display: flex; justify-content: space-between; align-items: center; gap: 32px; flex: 1; flex-wrap: wrap; }
+.meeting-title { display: flex; flex-direction: column; gap: 5px; color: var(--orange); font: 700 10px var(--mono); text-transform: uppercase; letter-spacing: .8px; }
+.meeting-title strong { color: var(--ink); font: 700 24px var(--display); letter-spacing: 0; }
 .countdown { color: var(--orange); font: 700 14px var(--mono); text-transform: uppercase; letter-spacing: .8px; }
 .countdown strong { color: var(--ink); font-size: 20px; }
 .stats { display: flex; gap: 36px; padding-bottom: 4px; }
@@ -283,12 +285,14 @@ h1 { margin: 2px 0 0; font: 700 18px var(--display); letter-spacing: 0; color: v
 .available-map strong { color: var(--ink); font: 500 13px var(--display); }
 .available-map small { color: var(--muted); font: 9px var(--mono); text-transform: uppercase; }
 .no-maps { margin: 0; padding: 0 0 16px; color: var(--muted); font: 11px var(--mono); }
-.map-voting { margin-top: 34px; border-top: 2px solid var(--ink); padding-bottom: 18px; }
+.map-voting { margin-top: 8px; border-top: 2px solid var(--ink); padding-bottom: 18px; }
 .map-voting .section-heading { align-items: center; }
 .map-voting .section-heading p { margin: 5px 0 0; color: var(--muted); font-size: 13px; }
 .vote-filter { display: flex; align-items: center; gap: 7px; color: var(--muted); font: 700 10px var(--mono); text-transform: uppercase; letter-spacing: .5px; }
-.vote-summary { display: flex; flex-wrap: wrap; gap: 10px 20px; margin-bottom: 12px; color: var(--muted); font: 10px var(--mono); text-transform: uppercase; letter-spacing: .5px; }
-.vote-summary strong { color: var(--orange); font-size: 14px; }
+.meeting-dashboard { display: grid; grid-template-columns: minmax(260px, .8fr) minmax(0, 1.2fr); border: 1px solid var(--line); border-top: 0; }
+.meeting-attendance-panel, .meeting-map-vote-panel { min-width: 0; padding: 0 18px 18px; }
+.meeting-attendance-panel { border-right: 1px solid var(--line); }
+.meeting-dashboard .section-heading { border-bottom: 1px solid var(--line); margin: 0 -18px 16px; padding: 14px 18px 12px; }
 .attendance-statuses { display: grid; gap: 6px; margin: 0 0 12px; }
 .attendance-statuses p { display: flex; align-items: baseline; flex-wrap: wrap; gap: 7px; margin: 0; color: var(--muted); font: 10px var(--mono); text-transform: uppercase; letter-spacing: .5px; }
 .attendance-statuses strong { color: var(--green); font-size: 10px; }
@@ -305,6 +309,7 @@ h1 { margin: 2px 0 0; font: 700 18px var(--display); letter-spacing: 0; color: v
 .attendance-button.absent.selected { background: #c0392b; color: white; }
 .attendance-button:disabled, .vote-map:disabled { cursor: not-allowed; opacity: .5; }
 .vote-hint, .vote-status { margin: 12px 0; color: var(--muted); font: 11px var(--mono); }
+.meeting-map-vote-panel .vote-hint { margin-top: 0; }
 .vote-error { margin: 12px 0; color: #c0392b; font: 11px var(--mono); }
 .vote-map-list { display: flex; flex-direction: column; gap: 8px; margin-bottom: 12px; }
 .vote-map { display: grid; grid-template-columns: minmax(150px, 1fr) 70px minmax(180px, 2fr); align-items: center; gap: 12px; border: 1px solid var(--line); background: linear-gradient(90deg, rgba(221, 93, 50, .22) 0 var(--vote-share), var(--paper) var(--vote-share) 100%); color: var(--ink); cursor: pointer; padding: 10px; text-align: left; font: 600 13px var(--display); }
@@ -401,7 +406,7 @@ h1 { margin: 2px 0 0; font: 700 18px var(--display); letter-spacing: 0; color: v
 .matchup-matrix td.no-match { color: var(--muted); }
 .matchup-matrix tbody tr:hover { background: rgba(221, 93, 50, .04); }
 .matchup-matrix th.is-highlighted { background: rgba(221, 93, 50, .14); color: var(--orange); }
-@media (max-width: 800px) { .app-shell { padding: 0 22px 48px; } .tab-summary { align-items: flex-start; flex-direction: column; gap: 24px; padding: 24px 0; } .tab-summary-meeting { width: 100%; } .stats { gap: 24px; } .match-row-summary { grid-template-columns: 96px 1fr auto auto; gap: 12px; padding: 18px 12px; } .teams { grid-column: 2 / 3; } .match-meta { grid-column: 3 / 4; grid-row: 1 / span 2; } .match-expand-indicator { grid-column: 4 / 5; grid-row: 1 / span 2; } .match-details { grid-template-columns: repeat(2, minmax(0, 1fr)); } .match-images { grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); } }
+@media (max-width: 800px) { .app-shell { padding: 0 22px 48px; } .tab-summary { align-items: flex-start; flex-direction: column; gap: 24px; padding: 24px 0; } .tab-summary-meeting { width: 100%; } .meeting-dashboard { grid-template-columns: 1fr; } .meeting-attendance-panel { border-right: 0; border-bottom: 1px solid var(--line); } .stats { gap: 24px; } .match-row-summary { grid-template-columns: 96px 1fr auto auto; gap: 12px; padding: 18px 12px; } .teams { grid-column: 2 / 3; } .match-meta { grid-column: 3 / 4; grid-row: 1 / span 2; } .match-expand-indicator { grid-column: 4 / 5; grid-row: 1 / span 2; } .match-details { grid-template-columns: repeat(2, minmax(0, 1fr)); } .match-images { grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); } }
 @media (max-width: 800px) { .applied-filters { grid-template-columns: repeat(2, max-content); } }
 @media (max-width: 680px) { .toolbar { flex-wrap: wrap; } .applied-filters { order: 3; width: 100%; justify-content: start; margin-left: 0; } .filter-panel, .community-filters { grid-template-columns: 1fr; gap: 12px; } .clear-filters { justify-self: start; } .profile-teams-heading, .profile-team-card header { align-items: flex-start; flex-direction: column; } .profile-add-team { width: 100%; } .profile-add-team select { min-width: 0; flex: 1; } .preference-grid { grid-template-columns: repeat(2, 1fr); } .vote-map { grid-template-columns: 1fr auto; } .vote-map-voters { grid-column: 1 / -1; } }
 @media (max-width: 680px) { .matchup-planner { grid-template-columns: 1fr; } .suggestions { grid-column: auto; } }

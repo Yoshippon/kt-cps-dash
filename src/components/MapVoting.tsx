@@ -161,8 +161,8 @@ function MapVoting({ onAttendanceChange, onWinningMapsChange, refreshKey }: MapV
     <section className="map-voting" aria-labelledby="map-voting-heading">
       <header className="section-heading">
         <div>
-          <h3 id="map-voting-heading">Map Vote</h3>
-          <p>Vote for maps for Friday.</p>
+          <h3 id="map-voting-heading">Friday Session</h3>
+          <p>Confirm attendance and vote for maps.</p>
         </div>
         {isAdmin && (
           <label className="vote-filter">
@@ -174,76 +174,84 @@ function MapVoting({ onAttendanceChange, onWinningMapsChange, refreshKey }: MapV
       {loading && !meeting && <p className="vote-status">Loading map vote…</p>}
       {error && <p className="vote-error">{error}</p>}
       {meeting && (
-        <>
-          <div className="vote-summary">
-            <span><strong>{meeting.attendanceCount}</strong> playing Friday</span>
-            <span><strong>{meeting.voteLimit}</strong> map choices each</span>
-          </div>
-          {(meeting.attendeePlayerNames.length > 0 || meeting.unavailablePlayerNames.length > 0) && (
-            <div className="attendance-statuses" aria-label="Player attendance responses">
-              {meeting.attendeePlayerNames.length > 0 && (
-                <p><strong>Playing</strong><span>{meeting.attendeePlayerNames.join(', ')}</span></p>
-              )}
-              {meeting.unavailablePlayerNames.length > 0 && (
-                <p><strong>Not playing</strong><span>{meeting.unavailablePlayerNames.join(', ')}</span></p>
-              )}
-            </div>
-          )}
-          <div className="vote-remaining" aria-label={`${votesRemaining} votes remaining`}>
-            <span><strong>{votesRemaining}</strong> votes remaining</span>
-            <div className="vote-progress" role="progressbar" aria-valuemin={0} aria-valuemax={meeting.voteLimit} aria-valuenow={selectedMapIds.length}>
-              <span style={{ width: `${(selectedMapIds.length / meeting.voteLimit) * 100}%` }} />
-            </div>
-          </div>
-          {isLoggedIn && (
-            <div className="attendance-actions" aria-label="Your Friday attendance">
-              <button
-                type="button"
-                className={meeting.attendanceResponse && meeting.attendee ? 'attendance-button selected' : 'attendance-button'}
-                onClick={() => void setAttendance(true)}
-                disabled={saving}
-                aria-pressed={meeting.attendanceResponse && meeting.attendee}
-              >
-                I am playing Friday
-              </button>
-              <button
-                type="button"
-                className={meeting.attendanceResponse && !meeting.attendee ? 'attendance-button absent selected' : 'attendance-button absent'}
-                onClick={() => void setAttendance(false)}
-                disabled={saving}
-                aria-pressed={meeting.attendanceResponse && !meeting.attendee}
-              >
-                I am not playing Friday
-              </button>
-            </div>
-          )}
-          <p className="vote-hint">
-            {meeting.attendee
-              ? `Choose up to ${meeting.voteLimit} maps. Choices save instantly.`
-              : 'Choose a map to confirm you are playing Friday.'}
-          </p>
-          <div className="vote-map-list">
-            {rankedMaps.map((map) => {
-              const rank = selectedMapIds.indexOf(map.map_id)
-              const voteShare = highestVoteCount === 0 ? 0 : (map.displayedVotes / highestVoteCount) * 100
-              return (
+        <div className="meeting-dashboard">
+          <section className="meeting-attendance-panel" aria-labelledby="meeting-attendance-heading">
+            <header className="section-heading">
+              <h3 id="meeting-attendance-heading">Players</h3>
+              <span>{meeting.attendanceCount} playing</span>
+            </header>
+            {(meeting.attendeePlayerNames.length > 0 || meeting.unavailablePlayerNames.length > 0) && (
+              <div className="attendance-statuses" aria-label="Player attendance responses">
+                {meeting.attendeePlayerNames.length > 0 && (
+                  <p><strong>Playing</strong><span>{meeting.attendeePlayerNames.join(', ')}</span></p>
+                )}
+                {meeting.unavailablePlayerNames.length > 0 && (
+                  <p><strong>Not playing</strong><span>{meeting.unavailablePlayerNames.join(', ')}</span></p>
+                )}
+              </div>
+            )}
+            {isLoggedIn && (
+              <div className="attendance-actions" aria-label="Your Friday attendance">
                 <button
                   type="button"
-                  key={map.map_id}
-                  className={rank >= 0 ? 'vote-map selected' : 'vote-map'}
-                  onClick={() => void toggleMap(map.map_id)}
+                  className={meeting.attendanceResponse && meeting.attendee ? 'attendance-button selected' : 'attendance-button'}
+                  onClick={() => void setAttendance(true)}
                   disabled={saving}
-                  aria-pressed={rank >= 0}
-                  style={{ '--vote-share': `${voteShare}%` } as VoteMapStyle}
+                  aria-pressed={meeting.attendanceResponse && meeting.attendee}
                 >
-                  <span>{rank >= 0 ? `${rank + 1}. ` : ''}{map.map_name}</span>
-                  <small>{map.displayedVotes} vote{map.displayedVotes === 1 ? '' : 's'}</small>
-                  <span className="vote-map-voters">{map.voter_names.length > 0 ? map.voter_names.join(', ') : 'No votes yet'}</span>
+                  I am playing Friday
                 </button>
-              )
-            })}
-          </div>
-        </>
+                <button
+                  type="button"
+                  className={meeting.attendanceResponse && !meeting.attendee ? 'attendance-button absent selected' : 'attendance-button absent'}
+                  onClick={() => void setAttendance(false)}
+                  disabled={saving}
+                  aria-pressed={meeting.attendanceResponse && !meeting.attendee}
+                >
+                  I am not playing Friday
+                </button>
+              </div>
+            )}
+          </section>
+          <section className="meeting-map-vote-panel" aria-labelledby="meeting-map-vote-heading">
+            <header className="section-heading">
+              <h3 id="meeting-map-vote-heading">Map Vote</h3>
+              <span>{meeting.voteLimit} choices each</span>
+            </header>
+            <div className="vote-remaining" aria-label={`${votesRemaining} votes remaining`}>
+              <span><strong>{votesRemaining}</strong> votes remaining</span>
+              <div className="vote-progress" role="progressbar" aria-valuemin={0} aria-valuemax={meeting.voteLimit} aria-valuenow={selectedMapIds.length}>
+                <span style={{ width: `${(selectedMapIds.length / meeting.voteLimit) * 100}%` }} />
+              </div>
+            </div>
+            <p className="vote-hint">
+              {meeting.attendee
+                ? `Choose up to ${meeting.voteLimit} maps. Choices save instantly.`
+                : 'Choose a map to confirm you are playing Friday.'}
+            </p>
+            <div className="vote-map-list">
+              {rankedMaps.map((map) => {
+                const rank = selectedMapIds.indexOf(map.map_id)
+                const voteShare = highestVoteCount === 0 ? 0 : (map.displayedVotes / highestVoteCount) * 100
+                return (
+                  <button
+                    type="button"
+                    key={map.map_id}
+                    className={rank >= 0 ? 'vote-map selected' : 'vote-map'}
+                    onClick={() => void toggleMap(map.map_id)}
+                    disabled={saving}
+                    aria-pressed={rank >= 0}
+                    style={{ '--vote-share': `${voteShare}%` } as VoteMapStyle}
+                  >
+                    <span>{rank >= 0 ? `${rank + 1}. ` : ''}{map.map_name}</span>
+                    <small>{map.displayedVotes} vote{map.displayedVotes === 1 ? '' : 's'}</small>
+                    <span className="vote-map-voters">{map.voter_names.length > 0 ? map.voter_names.join(', ') : 'No votes yet'}</span>
+                  </button>
+                )
+              })}
+            </div>
+          </section>
+        </div>
       )}
     </section>
   )
