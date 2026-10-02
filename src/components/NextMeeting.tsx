@@ -218,17 +218,17 @@ function NextMeeting({ isActive }: { isActive: boolean }) {
 
   return (
     <div hidden={!isActive}>
-      <section className="tab-summary" aria-label="Meeting overview">
+      <section className="tab-summary" aria-label="Game night overview">
         <div className="tab-summary-meeting">
           <div className="meeting-title">
-            <span>Next Meeting</span>
+            <span>Next Game Night</span>
             <strong>{formatDate(meetingStatus.meetingDate)}</strong>
           </div>
-          <div className={meetingStatus.kind === 'started' ? 'countdown live' : 'countdown'} aria-label={meetingStatus.kind === 'started' ? 'Meeting in progress' : 'Time until next meeting'}>
+          <div className={meetingStatus.kind === 'started' ? 'countdown live' : 'countdown'} aria-label={meetingStatus.kind === 'started' ? 'Game night in progress' : 'Time until next game night'}>
             {meetingStatus.kind === 'started' ? (
-              <>Meeting Started <strong>{formatMeetingElapsedTime(meetingStatus.elapsedMs)} ago</strong></>
+              <>Game Night Started <strong>{formatMeetingElapsedTime(meetingStatus.elapsedMs)} ago</strong></>
             ) : (
-              <>Next meeting in <strong>{formatTimeUntil(meetingStatus.timeUntil)}</strong></>
+              <>Next Game Night in <strong>{formatTimeUntil(meetingStatus.timeUntil)}</strong></>
             )}
           </div>
         </div>

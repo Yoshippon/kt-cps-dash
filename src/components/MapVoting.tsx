@@ -161,7 +161,7 @@ function MapVoting({ onAttendanceChange, onWinningMapsChange, refreshKey }: MapV
     <section className="map-voting" aria-labelledby="map-voting-heading">
       <header className="section-heading">
         <div>
-          <h3 id="map-voting-heading">Friday Session</h3>
+          <h3 id="map-voting-heading">Friday Game Night</h3>
           <p>Confirm attendance and vote for maps.</p>
         </div>
         {isAdmin && (

@@ -30,7 +30,7 @@ export async function fetchMapVoteMeeting(voterId: string): Promise<MapVoteMeeti
   const { data: meetingData, error: meetingError } = await supabase.rpc('ensure_next_meeting')
   if (meetingError) throw meetingError
   const meeting = meetingData as MeetingRow | null
-  if (!meeting) throw new Error('Supabase did not return an active meeting.')
+  if (!meeting) throw new Error('Supabase did not return an active game night.')
 
   const [
     { data: summaryData, error: summaryError },

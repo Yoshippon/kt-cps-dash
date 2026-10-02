@@ -25,7 +25,7 @@ function AppShell() {
       <ClaimBanner />
       <nav className="tabs" aria-label="Dashboard views">
         <div className="tab-group" role="group" aria-label="Play">
-          <NavLink className={tabClassName} to="/next-meeting">Next Meeting</NavLink>
+          <NavLink className={tabClassName} to="/next-meeting">Next Game Night</NavLink>
           <NavLink className={tabClassName} to="/matches">Matches</NavLink>
           <NavLink className={tabClassName} to="/matchups">Matchups</NavLink>
         </div>
