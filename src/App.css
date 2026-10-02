@@ -37,6 +37,8 @@ h1 { margin: 2px 0 0; font: 700 18px var(--display); letter-spacing: 0; color: v
 .meeting-title { display: flex; flex-direction: column; gap: 5px; color: var(--orange); font: 700 10px var(--mono); text-transform: uppercase; letter-spacing: .8px; }
 .meeting-title strong { color: var(--ink); font: 700 24px var(--display); letter-spacing: 0; }
 .countdown { color: var(--orange); font: 700 14px var(--mono); text-transform: uppercase; letter-spacing: .8px; }
+.countdown.live { color: var(--green); }
+.countdown.live::before { display: inline-block; width: 7px; height: 7px; margin: 0 7px 1px 0; border-radius: 50%; background: currentColor; content: ''; }
 .countdown strong { color: var(--ink); font-size: 20px; }
 .stats { display: grid; grid-template-columns: repeat(5, minmax(104px, 1fr)); width: 100%; border: 1px solid var(--line); border-left: 2px solid var(--orange); }
 .stats div { display: flex; flex-direction: column; gap: 5px; padding: 14px 16px; border-left: 1px solid var(--line); }

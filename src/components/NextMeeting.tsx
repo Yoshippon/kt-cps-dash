@@ -224,7 +224,7 @@ function NextMeeting({ isActive }: { isActive: boolean }) {
             <span>Next Meeting</span>
             <strong>{formatDate(meetingStatus.meetingDate)}</strong>
           </div>
-          <div className="countdown" aria-label={meetingStatus.kind === 'started' ? 'Meeting in progress' : 'Time until next meeting'}>
+          <div className={meetingStatus.kind === 'started' ? 'countdown live' : 'countdown'} aria-label={meetingStatus.kind === 'started' ? 'Meeting in progress' : 'Time until next meeting'}>
             {meetingStatus.kind === 'started' ? (
               <>Meeting Started <strong>{formatMeetingElapsedTime(meetingStatus.elapsedMs)} ago</strong></>
             ) : (
