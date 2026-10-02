@@ -227,9 +227,6 @@ function NextMeeting({ isActive }: { isActive: boolean }) {
               <>Next meeting in <strong>{formatTimeUntil(meetingStatus.timeUntil)}</strong></>
             )}
           </div>
-          <div className="stats" aria-label="Meeting statistics">
-            <div><strong>{selectedPlayers.length}</strong><span>attending</span></div>
-          </div>
         </div>
       </section>
       <MapVoting
