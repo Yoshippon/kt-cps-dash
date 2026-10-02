@@ -54,8 +54,7 @@ function Matchups({ isActive }: { isActive: boolean }) {
 
   return (
     <div hidden={!isActive}>
-      <section className="intro" aria-labelledby="matchups-heading">
-        <div><h2 id="matchups-heading">Matchups</h2><p className="intro-copy">How long it has been since each pair of players last faced each other.</p></div>
+      <section className="tab-summary" aria-label="Match statistics">
         <div className="stats" aria-label="Match statistics"><div><strong>{MATCHES.length}</strong><span>games logged</span></div><div><strong>{MATCHES.filter((match) => match.isTied).length}</strong><span>draws</span></div><div><strong>{matrixPlayers.length}</strong><span>players</span></div></div>
       </section>
       <div className="matrix-toolbar"><span>{matrixPlayers.length} {matrixPlayers.length === 1 ? 'player' : 'players'} shown</span><label>Show players<select value={playerWindow} onChange={(event) => { const value = event.target.value; setPlayerWindow(value); }}>{PLAYER_WINDOWS.map((window) => <option value={window.value} key={window.value}>{window.label}</option>)}</select></label></div>

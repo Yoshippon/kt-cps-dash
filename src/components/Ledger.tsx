@@ -274,8 +274,7 @@ function Ledger({ isActive }: { isActive: boolean }) {
 
   return (
     <div hidden={!isActive}>
-      <section className="intro" aria-labelledby="matches-heading">
-        <div><h2 id="matches-heading">Matches</h2></div>
+      <section className="tab-summary" aria-label="Match statistics">
         <div className="stats" aria-label="Match statistics"><div><strong>{filteredMatches.length}</strong><span>games logged</span></div><div><strong>{filteredMatches.filter((match) => match.isTied).length}</strong><span>draws</span></div><div><strong>{playerCount}</strong><span>players</span></div></div>
       </section>
       <div className="toolbar"><span>{sortedMatches.length} {sortedMatches.length === 1 ? 'match' : 'matches'}{hasFilters ? ' found' : ''}</span>{hasFilters && <span className="applied-filters" aria-label={`Applied filters: ${appliedFilters.join(', ')}`}>{appliedFilters.map((filter) => <span key={filter}>{filter}</span>)}</span>}<button type="button" className="filter-button" aria-expanded={isFilterOpen} aria-controls="match-filters" onClick={() => setIsFilterOpen((isOpen) => !isOpen)}>{hasFilters ? 'Filters applied' : 'Apply filters'} <span aria-hidden="true">{isFilterOpen ? '⌃' : '⌄'}</span></button></div>

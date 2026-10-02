@@ -210,11 +210,7 @@ function TierLists({ isActive }: { isActive: boolean }) {
 
   return (
     <div hidden={!isActive}>
-      <section className="intro" aria-labelledby="tier-lists-heading">
-        <div>
-          <h2 id="tier-lists-heading">Tier Lists</h2>
-          <p className="intro-copy">Community rankings for every kill team.</p>
-        </div>
+      <section className="tab-summary" aria-label="Tier list statistics">
         <div className="stats" aria-label="Tier list statistics">
           <div><strong>{tierLists.length}</strong><span>saved lists</span></div>
           <div><strong>{visibleTeams.length}</strong><span>teams shown</span></div>

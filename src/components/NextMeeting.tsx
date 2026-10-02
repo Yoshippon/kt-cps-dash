@@ -218,12 +218,8 @@ function NextMeeting({ isActive }: { isActive: boolean }) {
 
   return (
     <div hidden={!isActive}>
-      <section className="intro" aria-labelledby="next-meeting-heading">
-        <div className="intro-header">
-          <h2 id="next-meeting-heading">Next Meeting</h2>
-          <p className="intro-copy">Plan the upcoming Friday session: attendees and matchups.</p>
-        </div>
-        <div className="intro-stats">
+      <section className="tab-summary" aria-label="Meeting overview">
+        <div className="tab-summary-meeting">
           <div className="countdown" aria-label={meetingStatus.kind === 'started' ? 'Meeting in progress' : 'Time until next meeting'}>
             {meetingStatus.kind === 'started' ? (
               <>Meeting Started <strong>{formatMeetingElapsedTime(meetingStatus.elapsedMs)} ago</strong></>

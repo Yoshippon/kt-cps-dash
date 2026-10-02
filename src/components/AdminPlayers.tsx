@@ -34,12 +34,6 @@ function AdminPlayers({ isActive }: { isActive: boolean }) {
 
   return (
     <div hidden={!isActive}>
-      <section className="intro" aria-labelledby="admin-players-heading">
-        <div>
-          <h2 id="admin-players-heading">Players</h2>
-          <p className="intro-copy">Generate a claim link for a player and send it to them (WhatsApp, email, etc). Opening it lets them sign in and take ownership of that player's match history.</p>
-        </div>
-      </section>
       {error && <p className="account-error">{error}</p>}
       <section className="admin-players-table-wrap">
         <table className="admin-players-table">

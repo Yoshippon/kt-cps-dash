@@ -153,13 +153,6 @@ function Profile({ isActive }: { isActive: boolean }) {
 
   return (
     <div hidden={!isActive}>
-      <section className="intro" aria-labelledby="profile-heading">
-        <div>
-          <h2 id="profile-heading">Profile</h2>
-          <p className="intro-copy">{isOwnProfile ? 'Your collection, your photos, your profile.' : 'Collection and photos from community player.'}</p>
-        </div>
-      </section>
-
       {!isLoading && !profilePlayer && <div className="empty-state"><strong>Player not found</strong><span>This profile is unavailable.</span></div>}
       {profilePlayer && (
         <>

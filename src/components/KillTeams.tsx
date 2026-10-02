@@ -142,11 +142,7 @@ function KillTeams({ isActive }: { isActive: boolean }) {
 
   return (
     <div hidden={!isActive}>
-      <section className="intro" aria-labelledby="kill-teams-heading">
-        <div>
-          <h2 id="kill-teams-heading">Kill Teams</h2>
-          <p className="intro-copy">Complete roster of kill teams in the current catalog, with faction, box, and stat ranges.</p>
-        </div>
+      <section className="tab-summary" aria-label="Kill team statistics">
         <div className="stats" aria-label="Kill team statistics">
           <div><strong>{rows.length}</strong><span>teams</span></div>
           <div><strong>{new Set(rows.map((team) => team.fortyKFaction)).size}</strong><span>factions</span></div>

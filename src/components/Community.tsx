@@ -95,8 +95,7 @@ function Community({ isActive }: { isActive: boolean }) {
 
   return (
     <div hidden={!isActive}>
-      <section className="intro" aria-labelledby="community-heading">
-        <div><h2 id="community-heading">Community</h2><p className="intro-copy">Win rates and playing habits across non-mirror matches. Draws count as half a win.</p></div>
+      <section className="tab-summary" aria-label="Community statistics">
         <div className="stats" aria-label="Community statistics"><div><strong>{eligibleMatches.length}</strong><span>games analyzed</span></div><div><strong>{teamStats.length}</strong><span>teams</span></div>{playerFilter && <div><strong>{playerWinRate.toFixed(0)}%</strong><span>win rate</span></div>}</div>
       </section>
       <div className="community-filters">
