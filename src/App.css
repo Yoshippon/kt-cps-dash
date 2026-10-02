@@ -363,6 +363,10 @@ h1 { margin: 2px 0 0; font: 700 18px var(--display); letter-spacing: 0; color: v
 .planner-players label { display: flex; align-items: center; gap: 7px; border: 1px solid var(--line); padding: 8px 10px; color: var(--ink); font: 11px var(--mono); cursor: pointer; }
 .planner-players label small { margin-left: auto; color: var(--ink); background: rgba(30, 36, 38, .08); padding: 3px 6px; font-size: 9px; font-weight: 700; }
 .planner-players label small.streak-highlight { color: #8a4b00; background: rgba(245, 158, 11, .2); }
+.newbie-player { display: flex; align-items: center; gap: 7px; border: 1px solid var(--orange); background: rgba(221, 93, 50, .08); padding: 8px 10px; color: var(--ink); font: 11px var(--mono); }
+.newbie-player small { color: var(--orange); font-size: 9px; font-weight: 700; text-transform: uppercase; }
+.newbie-player button { border: 0; background: transparent; color: var(--muted); cursor: pointer; font: inherit; padding: 0; }
+.newbie-add-button { border: 1px dashed var(--orange); background: var(--paper); color: var(--orange); cursor: pointer; font: 11px var(--mono); padding: 8px 10px; }
 .streak-fire { font-size: 14px; line-height: 1; }
 .planner-players label:has(input:checked) { border-color: var(--orange); background: rgba(221, 93, 50, .08); }
 .planner-players input { accent-color: var(--orange); }

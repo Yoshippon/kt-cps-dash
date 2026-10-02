@@ -111,12 +111,27 @@ function NextMeeting({ isActive }: { isActive: boolean }) {
       ? savedPlayers.split('\n').filter((player) => recentPlayers.includes(player))
       : recentPlayers
   })
+  const [newbiePlayers, setNewbiePlayers] = useState<string[]>(() => {
+    const savedNewbies = window.sessionStorage.getItem('kt-cps-newbie-attendees')
+    const savedNewbieMeetingDate = window.sessionStorage.getItem('kt-cps-newbie-attendees-meeting-date')
+    if (savedNewbies === null || savedNewbieMeetingDate !== meetingStatus.meetingDate) return []
+
+    try {
+      const players = JSON.parse(savedNewbies)
+      return Array.isArray(players) && players.every((player): player is string => typeof player === 'string')
+        ? players
+        : []
+    } catch {
+      return []
+    }
+  })
 
   useEffect(() => {
     if (meetingDateRef.current === meetingStatus.meetingDate) return
     meetingDateRef.current = meetingStatus.meetingDate
     hasSavedSelectedPlayers.current = false
     setSelectedPlayers(recentPlayers)
+    setNewbiePlayers([])
   }, [meetingStatus.meetingDate, recentPlayers])
 
   useEffect(() => {
@@ -124,7 +139,16 @@ function NextMeeting({ isActive }: { isActive: boolean }) {
     window.sessionStorage.setItem('kt-cps-selected-attendees-meeting-date', meetingStatus.meetingDate)
   }, [meetingStatus.meetingDate, selectedPlayers])
 
-  const selectedMatrixPlayers = selectedPlayers.filter((player) => matrixPlayers.includes(player))
+  useEffect(() => {
+    window.sessionStorage.setItem('kt-cps-newbie-attendees', JSON.stringify(newbiePlayers))
+    window.sessionStorage.setItem('kt-cps-newbie-attendees-meeting-date', meetingStatus.meetingDate)
+  }, [meetingStatus.meetingDate, newbiePlayers])
+
+  const selectedMatrixPlayers = useMemo(() => [
+    ...selectedPlayers.filter((player) => matrixPlayers.includes(player)),
+    ...newbiePlayers,
+  ], [matrixPlayers, newbiePlayers, selectedPlayers])
+  const selectedAttendees = useMemo(() => [...selectedPlayers, ...newbiePlayers], [newbiePlayers, selectedPlayers])
   const maxStreak = Math.max(0, ...matrixPlayers.map((player) => consecutiveGames.get(player) ?? 0))
   const attendingPlayers = [...matrixPlayers].sort((firstPlayer, secondPlayer) =>
     (consecutiveGames.get(secondPlayer) ?? 0) - (consecutiveGames.get(firstPlayer) ?? 0)
@@ -133,9 +157,9 @@ function NextMeeting({ isActive }: { isActive: boolean }) {
     if (winningMapNames !== null) {
       return MAPS.filter((map) => winningMapNames.includes(map.name))
     }
-    if (selectedPlayers.length === 0) return []
-    return MAPS.filter((map) => map.owners.some((owner) => selectedPlayers.includes(owner)))
-  }, [selectedPlayers, winningMapNames])
+    if (selectedAttendees.length === 0) return []
+    return MAPS.filter((map) => map.owners.some((owner) => selectedAttendees.includes(owner)))
+  }, [selectedAttendees, winningMapNames])
   const handleAttendanceChange = useCallback((playerNames: string[], changedByUser: boolean) => {
     if (changedByUser || !hasSavedSelectedPlayers.current) {
       setSelectedPlayers(playerNames)
@@ -145,9 +169,23 @@ function NextMeeting({ isActive }: { isActive: boolean }) {
   const handleWinningMapsChange = useCallback((mapNames: string[]) => {
     setWinningMapNames(mapNames)
   }, [])
+  const addNewbiePlayer = () => {
+    let index = 1
+    let player = `Newbie ${index}`
+    while (selectedMatrixPlayers.includes(player)) {
+      index += 1
+      player = `Newbie ${index}`
+    }
+    setNewbiePlayers((current) => [...current, player])
+  }
   const suggestedMatchups = useMemo(() => {
     const remaining = new Set(selectedMatrixPlayers)
     const suggestions: SuggestedMatchup[] = []
+    const eligibleByePlayers = selectedPlayers.filter((player) => remaining.has(player))
+    const byePlayer = remaining.size % 2 === 1
+      ? [...eligibleByePlayers].sort((first, second) => (consecutiveGames.get(second) ?? 0) - (consecutiveGames.get(first) ?? 0) || first.localeCompare(second))[0]
+      : undefined
+    if (byePlayer) remaining.delete(byePlayer)
 
     lockedMatchups.forEach((pair) => {
       const [firstPlayer, secondPlayer] = pair.split('::')
@@ -158,15 +196,10 @@ function NextMeeting({ isActive }: { isActive: boolean }) {
       }
     })
 
-    const byePlayer = remaining.size % 2 === 1
-      ? [...remaining].sort((first, second) => (consecutiveGames.get(second) ?? 0) - (consecutiveGames.get(first) ?? 0) || first.localeCompare(second))[0]
-      : undefined
-    if (byePlayer) remaining.delete(byePlayer)
-
     suggestions.push(...selectBestMatchups([...remaining].sort(), latestMatchups, new Set(bannedMatchups), randomSeed))
 
-    return { suggestions, byePlayer }
-  }, [bannedMatchups, consecutiveGames, latestMatchups, lockedMatchups, selectedMatrixPlayers, randomSeed])
+    return { suggestions, byePlayer, needsReturningPlayer: remaining.size % 2 === 1 }
+  }, [bannedMatchups, consecutiveGames, latestMatchups, lockedMatchups, selectedMatrixPlayers, selectedPlayers, randomSeed])
 
   const matchupsWithMaps = useMemo(() => suggestedMatchups.suggestions.map((matchup) => ({
     ...matchup,
@@ -269,14 +302,22 @@ function NextMeeting({ isActive }: { isActive: boolean }) {
               <small className={isLongestStreak ? 'streak-highlight' : ''}>{streak} streak</small>
             </label>
           )})}
+          {newbiePlayers.map((player) => (
+            <div className="newbie-player" key={player}>
+              <span>{player}</span>
+              <small>newbie</small>
+              <button type="button" aria-label={`Remove ${player}`} onClick={() => setNewbiePlayers((current) => current.filter((newbie) => newbie !== player))}>Remove</button>
+            </div>
+          ))}
+          <button type="button" className="newbie-add-button" onClick={addNewbiePlayer}>+ Add newbie player</button>
         </div>
-        <p className="attendee-count">{selectedPlayers.length} players attending</p>
+        <p className="attendee-count">{selectedAttendees.length} players attending</p>
       </section>
 
-      {selectedPlayers.length > 0 && (
+      {selectedAttendees.length > 0 && (
         <section className="maps-section" aria-labelledby="maps-heading">
           <header className="section-heading"><h3 id="maps-heading">{winningMapNames !== null ? 'Winning Maps' : 'Available Maps'}</h3><span>{availableMaps.length} available</span></header>
-          <div className="available-map-list">{availableMaps.map((map) => <span className="available-map" key={map.name}><strong>{map.name}</strong><small>{map.owners.filter((owner) => selectedPlayers.includes(owner)).join(', ')}</small></span>)}</div>
+          <div className="available-map-list">{availableMaps.map((map) => <span className="available-map" key={map.name}><strong>{map.name}</strong><small>{map.owners.filter((owner) => selectedAttendees.includes(owner)).join(', ')}</small></span>)}</div>
           {availableMaps.length === 0 && <p className="no-maps">No maps available for selected players.</p>}
         </section>
       )}
@@ -325,7 +366,7 @@ function NextMeeting({ isActive }: { isActive: boolean }) {
           })}
         </div>
 
-        {suggestedMatchups.suggestions.length > 0 || suggestedMatchups.byePlayer ? (
+        {suggestedMatchups.suggestions.length > 0 || suggestedMatchups.byePlayer || suggestedMatchups.needsReturningPlayer ? (
           <div className="suggestions">
             <strong>Suggested Matchups</strong>
             {matchupsWithMaps.map(({ firstPlayer, secondPlayer, lastPlayed, map }) => {
@@ -354,6 +395,7 @@ function NextMeeting({ isActive }: { isActive: boolean }) {
               )
             })}
             {suggestedMatchups.byePlayer && <small>{suggestedMatchups.byePlayer} gets a bye after {consecutiveGames.get(suggestedMatchups.byePlayer)} game streak.</small>}
+            {suggestedMatchups.needsReturningPlayer && <small>Add a returning player before generating an odd-player matchup. Newbie players never get a bye.</small>}
           </div>
         ) : (
           <p className="no-suggestions">Select at least two players to generate matchups.</p>
