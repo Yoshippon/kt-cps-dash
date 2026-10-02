@@ -34,10 +34,11 @@ function Profile({ isActive }: { isActive: boolean }) {
   const [selectedImage, setSelectedImage] = useState<ProfileImage | null>(null)
 
   const availableTeams = useMemo(() => teamOptions.filter((team) => !teams.some((ownedTeam) => ownedTeam.id === team.id)), [teamOptions, teams])
+  const carouselImages = useMemo(() => teams.flatMap((team) => team.images), [teams])
   const selectedImages = useMemo(() => {
     if (!selectedImage) return []
-    return teams.find((team) => team.images.some((image) => image.id === selectedImage.id))?.images ?? [selectedImage]
-  }, [selectedImage, teams])
+    return carouselImages.some((image) => image.id === selectedImage.id) ? carouselImages : [selectedImage]
+  }, [carouselImages, selectedImage])
   const selectedImageIndex = selectedImages.findIndex((image) => image.id === selectedImage?.id)
 
   useEffect(() => {
