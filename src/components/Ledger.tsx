@@ -244,6 +244,8 @@ function Ledger({ isActive }: { isActive: boolean }) {
     return groups
   }, [])
   const playerCount = new Set(filteredMatches.flatMap((match) => [match.player1, match.player2])).size
+  const teamCount = new Set(filteredMatches.flatMap((match) => [match.teamOne, match.teamTwo])).size
+  const mapCount = new Set(filteredMatches.map((match) => match.map)).size
   const hasFilters = Boolean(playerFilter || teamFilter || mapFilter || dateFromFilter || dateToFilter)
   const allPlayers = [...new Set(MATCHES.flatMap((match) => [match.player1, match.player2]))].sort()
   const teams = [...new Set(MATCHES.flatMap((match) => [match.teamOne, match.teamTwo]))].sort()
@@ -275,7 +277,7 @@ function Ledger({ isActive }: { isActive: boolean }) {
   return (
     <div hidden={!isActive}>
       <section className="tab-summary" aria-label="Match statistics">
-        <div className="stats" aria-label="Match statistics"><div><strong>{filteredMatches.length}</strong><span>games logged</span></div><div><strong>{filteredMatches.filter((match) => match.isTied).length}</strong><span>draws</span></div><div><strong>{playerCount}</strong><span>players</span></div></div>
+        <div className="stats" aria-label="Match statistics"><div><strong>{filteredMatches.length}</strong><span>games logged</span></div><div><strong>{filteredMatches.filter((match) => match.isTied).length}</strong><span>draws</span></div><div><strong>{playerCount}</strong><span>players</span></div><div><strong>{teamCount}</strong><span>teams</span></div><div><strong>{mapCount}</strong><span>maps</span></div></div>
       </section>
       <div className="toolbar"><span>{sortedMatches.length} {sortedMatches.length === 1 ? 'match' : 'matches'}{hasFilters ? ' found' : ''}</span>{hasFilters && <span className="applied-filters" aria-label={`Applied filters: ${appliedFilters.join(', ')}`}>{appliedFilters.map((filter) => <span key={filter}>{filter}</span>)}</span>}<button type="button" className="filter-button" aria-expanded={isFilterOpen} aria-controls="match-filters" onClick={() => setIsFilterOpen((isOpen) => !isOpen)}>{hasFilters ? 'Filters applied' : 'Apply filters'} <span aria-hidden="true">{isFilterOpen ? '⌃' : '⌄'}</span></button></div>
       {isFilterOpen && <div className="filter-panel" id="match-filters">
