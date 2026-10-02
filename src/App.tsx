@@ -24,14 +24,22 @@ function AppShell() {
       </header>
       <ClaimBanner />
       <nav className="tabs" aria-label="Dashboard views">
-        <NavLink className={tabClassName} to="/next-meeting">Next Meeting</NavLink>
-        <NavLink className={tabClassName} to="/matches">Matches</NavLink>
-        <NavLink className={tabClassName} to="/matchups">Matchups</NavLink>
-        <NavLink className={tabClassName} to="/community">Community</NavLink>
-        <NavLink className={tabClassName} to="/kill-teams">Kill Teams</NavLink>
-        <NavLink className={tabClassName} to="/tier-lists">Tier Lists</NavLink>
-        {isLoggedIn && <NavLink className={tabClassName} to="/profile">Profile</NavLink>}
-        {isAdmin && <NavLink className={tabClassName} to="/admin">Admin</NavLink>}
+        <div className="tab-group" role="group" aria-label="Play">
+          <NavLink className={tabClassName} to="/next-meeting">Next Meeting</NavLink>
+          <NavLink className={tabClassName} to="/matches">Matches</NavLink>
+          <NavLink className={tabClassName} to="/matchups">Matchups</NavLink>
+        </div>
+        <div className="tab-group" role="group" aria-label="Data">
+          <NavLink className={tabClassName} to="/community">Community</NavLink>
+          <NavLink className={tabClassName} to="/kill-teams">Kill Teams</NavLink>
+          <NavLink className={tabClassName} to="/tier-lists">Tier Lists</NavLink>
+        </div>
+        {(isLoggedIn || isAdmin) && (
+          <div className="tab-group" role="group" aria-label="Account">
+            {isLoggedIn && <NavLink className={tabClassName} to="/profile">Profile</NavLink>}
+            {isAdmin && <NavLink className={tabClassName} to="/admin">Admin</NavLink>}
+          </div>
+        )}
       </nav>
       <Routes>
         <Route path="/" element={<Navigate replace to="/next-meeting" />} />
