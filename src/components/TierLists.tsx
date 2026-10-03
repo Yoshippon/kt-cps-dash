@@ -271,7 +271,7 @@ function TierLists({ isActive }: { isActive: boolean }) {
           </select>
         </label>
         {isAutomaticList && <button type="button" onClick={() => void loadAutomaticTierList()} disabled={isLoading}>Refresh</button>}
-        {isAutomaticList && <button type="button" onClick={() => setIsCompact((current) => !current)}>{isCompact ? 'Full view' : 'Compact view'}</button>}
+        <button type="button" onClick={() => setIsCompact((current) => !current)}>{isCompact ? 'Full view' : 'Compact view'}</button>
         {isAutomaticList && (
           <label className="tier-list-checkbox">
             <input type="checkbox" checked={hideUnclassifiedTeams} onChange={(event) => setHideUnclassifiedTeams(event.target.checked)} />
@@ -317,7 +317,7 @@ function TierLists({ isActive }: { isActive: boolean }) {
             </p>
           )}
 
-          <section className={`tier-board${isAutomaticList ? ' tier-board-automatic' : ''}${isAutomaticList && isCompact ? ' tier-board-compact' : ''}`} aria-label="Kill team tier board">
+          <section className={`tier-board${isAutomaticList ? ' tier-board-automatic' : ''}${isCompact ? ' tier-board-compact' : ''}`} aria-label="Kill team tier board">
             {TIERS.map((tier) => (
               <div className={`tier-row tier-row-${tier.toLowerCase()}`} key={tier}>
                 <div className="tier-row-heading">
@@ -337,7 +337,7 @@ function TierLists({ isActive }: { isActive: boolean }) {
                     />
                   ) : (
                     <strong className={isAutomaticList ? 'automatic-tier-label' : undefined}>
-                      {isAutomaticList ? <><span>{tier}</span>{!isCompact && <span>{tierLabels[tier].replace(/^[SABCD]\s*/, '')}</span>}</> : tierLabels[tier]}
+                      {isCompact ? tier : isAutomaticList ? <><span>{tier}</span><span>{tierLabels[tier].replace(/^[SABCD]\s*/, '')}</span></> : tierLabels[tier]}
                     </strong>
                   )}
                   {canEdit && (
