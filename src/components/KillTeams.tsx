@@ -2,6 +2,7 @@ import { useMemo, useState } from 'react'
 import { TEAMS } from '../data'
 import { useAuth } from '../lib/auth'
 import { importTeamLogos } from '../services/profile'
+import { TEAM_EMOJIS } from '../teamEmojis'
 
 type SortKey = 'killTeam' | 'fortyKFaction' | 'category' | 'boxName' | 'season' | 'isClassified' | 'operatives' | 'wounds' | 'apl' | 'killOp' | 'releaseDate'
 type SortDirection = 'asc' | 'desc'
@@ -185,7 +186,7 @@ function KillTeams({ isActive }: { isActive: boolean }) {
           <tbody>
             {rows.map((team) => (
               <tr key={team.killTeam}>
-                <th scope="row">{team.killTeam}</th>
+                <th scope="row">{TEAM_EMOJIS[team.killTeam]} {team.killTeam}</th>
                 <td>{team.fortyKFaction}</td>
                 <td>{team.category}</td>
                 <td>{team.boxName}</td>

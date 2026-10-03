@@ -5,6 +5,7 @@ import { createMatch, createPlayer, fetchMatches, fetchMatchFormOptions, updateM
 import { deleteMatchImage, reorderMatchImages, uploadMatchImages, type MatchImage } from '../services/matchImages'
 import MatchEditModal from './MatchEditModal'
 import { useAuth } from '../lib/auth'
+import { TEAM_EMOJIS } from '../teamEmojis'
 
 function getTeamFactionClass(faction: string | null | undefined) {
   switch (faction?.trim().toLowerCase()) {
@@ -371,10 +372,12 @@ function PlayerProfileLink({ id, name, avatarUrl }: { id?: string; name: string;
 }
 
 function TeamName({ name, faction, logoUrl }: { name: string; faction?: string | null; logoUrl?: string }) {
+  const emoji = TEAM_EMOJIS[name]
+
   return (
     <div className="team-name">
       {logoUrl && <span className="match-team-avatar"><img src={logoUrl} alt="" /></span>}
-      <span className={getTeamFactionClass(faction)}>{name}</span>
+      <span className={getTeamFactionClass(faction)}>{name}{emoji && <span aria-hidden="true"> {emoji}</span>}</span>
     </div>
   )
 }
