@@ -2,12 +2,14 @@ import { useEffect, useMemo, useState, type DragEvent } from 'react'
 import { useAuth } from '../lib/auth'
 import {
   TIERS,
+  DEFAULT_TIER_LABELS,
   createTierList,
   fetchTierListPlacements,
   fetchTierListTeams,
   fetchTierLists,
-  saveTierListPlacements,
+  saveTierList,
   type Tier,
+  type TierLabels,
   type TierListPlacement,
   type TierListSummary,
   type TierListTeam,
@@ -25,6 +27,7 @@ function TierLists({ isActive }: { isActive: boolean }) {
   const [teams, setTeams] = useState<TierListTeam[]>([])
   const [placements, setPlacements] = useState<TierListPlacement[]>(emptyPlacements)
   const [name, setName] = useState('')
+  const [tierLabels, setTierLabels] = useState<TierLabels>(DEFAULT_TIER_LABELS)
   const [includesNonClassified, setIncludesNonClassified] = useState(false)
   const [isLoading, setIsLoading] = useState(true)
   const [isSaving, setIsSaving] = useState(false)
@@ -49,6 +52,7 @@ function TierLists({ isActive }: { isActive: boolean }) {
         if (lists.length > 0) {
           setSelectedList(lists[0])
           setName(lists[0].name)
+          setTierLabels(lists[0].tier_labels)
           setIncludesNonClassified(lists[0].includes_non_classified)
         } else {
           setTeams(initialTeams)
@@ -124,6 +128,7 @@ function TierLists({ isActive }: { isActive: boolean }) {
     setError(null)
     setSelectedList(null)
     setName('')
+    setTierLabels(DEFAULT_TIER_LABELS)
     setIncludesNonClassified(false)
     setPlacements(emptyPlacements())
     void loadNewListTeams(false)
@@ -136,6 +141,7 @@ function TierLists({ isActive }: { isActive: boolean }) {
     setError(null)
     setSelectedList(list)
     setName(list.name)
+    setTierLabels(list.tier_labels)
     setIncludesNonClassified(list.includes_non_classified)
   }
 
@@ -173,7 +179,7 @@ function TierLists({ isActive }: { isActive: boolean }) {
         setName(created.name)
       }
 
-      await saveTierListPlacements(list.id, placements)
+      await saveTierList(list.id, placements, tierLabels)
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to save tier list.')
     } finally {
@@ -265,7 +271,17 @@ function TierLists({ isActive }: { isActive: boolean }) {
           <section className="tier-board" aria-label="Kill team tier board">
             {TIERS.map((tier) => (
               <div className={`tier-row tier-row-${tier.toLowerCase()}`} key={tier}>
-                <strong>{tier}</strong>
+                {canEdit ? (
+                  <label className="tier-label">
+                    <span>{tier}</span>
+                    <input
+                      aria-label={`${tier} tier name`}
+                      value={tierLabels[tier]}
+                      maxLength={40}
+                      onChange={(event) => setTierLabels((current) => ({ ...current, [tier]: event.target.value }))}
+                    />
+                  </label>
+                ) : <strong>{tierLabels[tier]}</strong>}
                 <div className="tier-row-teams" onDragOver={(event) => { if (canEdit) event.preventDefault() }} onDrop={(event) => handleDrop(event, tier)}>
                   {placementByTier[tier].map((teamId, index) => {
                     const team = teamById.get(teamId)

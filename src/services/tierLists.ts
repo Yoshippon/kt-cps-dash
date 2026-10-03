@@ -4,6 +4,8 @@ import type { TierListEntryRow, TierListRow } from '../types/database'
 
 export const TIERS = ['S', 'A', 'B', 'C', 'D'] as const
 export type Tier = typeof TIERS[number]
+export type TierLabels = Record<Tier, string>
+export const DEFAULT_TIER_LABELS: TierLabels = { S: 'S', A: 'A', B: 'B', C: 'C', D: 'D' }
 
 export type TierListSummary = TierListRow & {
   ownerName: string
@@ -36,7 +38,7 @@ export async function fetchTierLists(): Promise<TierListSummary[]> {
   if (!hasSupabaseConfig) return []
 
   const [{ data: listRows, error: listError }, { data: playerRows, error: playerError }] = await Promise.all([
-    supabase.from('tier_lists').select('id, owner_id, name, includes_non_classified, created_at, updated_at').order('created_at', { ascending: false }),
+    supabase.from('tier_lists').select('id, owner_id, name, includes_non_classified, tier_labels, created_at, updated_at').order('created_at', { ascending: false }),
     supabase.from('players').select('id, name'),
   ])
   if (listError || playerError) throw listError ?? playerError
@@ -100,15 +102,16 @@ export async function createTierList(name: string, includesNonClassified: boolea
   return data as TierListRow
 }
 
-export async function saveTierListPlacements(tierListId: string, placements: TierListPlacement[]) {
+export async function saveTierList(tierListId: string, placements: TierListPlacement[], tierLabels: TierLabels) {
   requireSupabase()
-  const { error } = await supabase.rpc('replace_tier_list_entries', {
+  const { error } = await supabase.rpc('save_tier_list', {
     p_tier_list_id: tierListId,
     p_entries: placements.map((placement) => ({
       team_id: placement.teamId,
       tier: placement.tier,
       position: placement.position,
     })),
+    p_tier_labels: tierLabels,
   })
   if (error) throw error
 }

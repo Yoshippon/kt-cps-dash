@@ -116,6 +116,7 @@ export type TierListRow = {
   owner_id: string
   name: string
   includes_non_classified: boolean
+  tier_labels: Record<'S' | 'A' | 'B' | 'C' | 'D', string>
   created_at: string
   updated_at: string
 }
@@ -313,6 +314,10 @@ export type Database = {
       create_tier_list: {
         Args: { p_name: string | null; p_includes_non_classified: boolean }
         Returns: TierListRow
+      }
+      save_tier_list: {
+        Args: { p_tier_list_id: string; p_entries: Json; p_tier_labels: Json }
+        Returns: undefined
       }
       replace_tier_list_entries: {
         Args: { p_tier_list_id: string; p_entries: Json }
