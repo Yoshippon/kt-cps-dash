@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import type { MatchFormOptions, MatchRecord, TacOpOption, TeamOption } from '../services/matches'
+import { formatCritOp, type MatchFormOptions, type MatchRecord, type TacOpOption, type TeamOption } from '../services/matches'
 import type { MatchImage } from '../services/matchImages'
 
 const tacOpArchetypeClasses: Record<string, string> = {
@@ -179,8 +179,8 @@ function MatchEditModal({ match, mode, options, isSaving, error, isUpdatingImage
           <label>Crit op
             <select value={draft.critOp ?? ''} onChange={(event) => setField('critOp', event.target.value || null)}>
               <option value="">None</option>
-              {draft.critOp && !options.critOps.includes(draft.critOp) && <option value={draft.critOp}>{draft.critOp}</option>}
-              {options.critOps.map((name) => <option key={name} value={name}>{name}</option>)}
+              {draft.critOp && !options.critOps.some((critOp) => critOp.name === draft.critOp) && <option value={draft.critOp}>{draft.critOp}</option>}
+              {options.critOps.map((critOp) => <option key={critOp.name} value={critOp.name}>{formatCritOp(critOp.name, critOp.number)}</option>)}
             </select>
           </label>
 

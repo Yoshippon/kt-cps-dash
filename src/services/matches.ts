@@ -30,6 +30,7 @@ export type MatchRecord = {
   player1Tac?: string | null
   player2Tac?: string | null
   critOp?: string | null
+  critOpNumber?: number | null
   images: MatchImage[]
 }
 
@@ -37,7 +38,7 @@ export type MatchFormOptions = {
   maps: string[]
   teams: TeamOption[]
   players: string[]
-  critOps: string[]
+  critOps: CritOpOption[]
   tacOps: TacOpOption[]
 }
 
@@ -50,6 +51,15 @@ export type TeamOption = {
 export type TacOpOption = {
   name: string
   archetype: string
+}
+
+export type CritOpOption = {
+  name: string
+  number: number
+}
+
+export function formatCritOp(name: string, number: number | null | undefined): string {
+  return number == null ? name : `${number}. ${name}`
 }
 
 export async function createPlayer(name: string): Promise<string> {
@@ -90,7 +100,7 @@ export async function fetchMatches(): Promise<MatchRecord[]> {
     supabase.from('players').select('id, name'),
     supabase.from('player_profiles').select('player_id, avatar_path'),
     supabase.from('kill_teams').select('id, name, generic_faction, logo_path'),
-    supabase.from('crit_ops').select('id, name'),
+    supabase.from('crit_ops').select('id, number, name'),
     fetchMatchImages(),
   ])
 
@@ -113,7 +123,7 @@ export async function fetchMatches(): Promise<MatchRecord[]> {
     faction: row.generic_faction as string | null,
     logoUrl: row.logo_path ? supabase.storage.from(MEDIA_BUCKET).getPublicUrl(row.logo_path).data.publicUrl : undefined,
   }]))
-  const critOpIdByName = new Map(critOpRowsAny.map((row) => [row.id, row.name]))
+  const critOpById = new Map(critOpRowsAny.map((row) => [row.id, { name: row.name, number: row.number }]))
   const imagesByMatchId = new Map<string, MatchImage[]>()
   images.forEach((image) => {
     const matchImages = imagesByMatchId.get(image.matchId) ?? []
@@ -148,7 +158,8 @@ export async function fetchMatches(): Promise<MatchRecord[]> {
     player2Primary: row.player_two_primary,
     player1Tac: row.player_one_tac,
     player2Tac: row.player_two_tac,
-    critOp: row.crit_op_id ? critOpIdByName.get(row.crit_op_id) ?? null : null,
+    critOp: row.crit_op_id ? critOpById.get(row.crit_op_id)?.name ?? null : null,
+    critOpNumber: row.crit_op_id ? critOpById.get(row.crit_op_id)?.number ?? null : null,
     images: imagesByMatchId.get(row.id) ?? [],
   }))
 }
@@ -200,7 +211,7 @@ export async function fetchMatchFormOptions(): Promise<MatchFormOptions> {
   ] = await Promise.all([
     supabase
       .from('crit_ops')
-      .select('name')
+      .select('number, name')
       .or(`approved_ops_pack_id.is.null,approved_ops_pack_id.eq.${latestOpsPackRow.id}`)
       .order('number', { ascending: true }),
     supabase
@@ -214,7 +225,7 @@ export async function fetchMatchFormOptions(): Promise<MatchFormOptions> {
 
   return {
     ...formOptions,
-    critOps: (critOpRows as any[] ?? []).map((row) => row.name),
+    critOps: (critOpRows as any[] ?? []).map((row) => ({ name: row.name, number: row.number })),
     tacOps: (tacOpRows as any[] ?? []).map((row) => ({
       name: row.name,
       archetype: row.archetype?.name ?? 'Other',

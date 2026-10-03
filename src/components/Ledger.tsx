@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState, type CSSProperties } from 'react'
 import { Link, useSearchParams } from 'react-router'
 import { formatDate } from '../utils/date'
-import { createMatch, createPlayer, fetchMatches, fetchMatchFormOptions, updateMatch, type MatchFormOptions, type MatchRecord } from '../services/matches'
+import { createMatch, createPlayer, fetchMatches, fetchMatchFormOptions, formatCritOp, updateMatch, type MatchFormOptions, type MatchRecord } from '../services/matches'
 import { deleteMatchImage, reorderMatchImages, uploadMatchImages, type MatchImage } from '../services/matchImages'
 import MatchEditModal from './MatchEditModal'
 import { useAuth } from '../lib/auth'
@@ -318,7 +318,7 @@ function Ledger({ isActive }: { isActive: boolean }) {
               <span className="match-expand-indicator" aria-hidden="true">{isExpanded ? '−' : '+'}</span>
             </div>
             {isExpanded && <div className="match-row-expanded" id={detailsId}>
-              <dl className="match-details" aria-label="Match details"><div><dt>Crit op</dt><dd>{match.critOp ?? 'None'}</dd></div><div><dt>Score</dt><dd>{match.player1Score ?? '—'} – {match.player2Score ?? '—'}</dd></div><div><dt>{match.player1} tac op</dt><dd>{match.player1Tac ?? 'None'}</dd></div><div><dt>{match.player2} tac op</dt><dd>{match.player2Tac ?? 'None'}</dd></div></dl>
+              <dl className="match-details" aria-label="Match details"><div><dt>Crit op</dt><dd>{match.critOp ? formatCritOp(match.critOp, match.critOpNumber) : 'None'}</dd></div><div><dt>Score</dt><dd>{match.player1Score ?? '—'} – {match.player2Score ?? '—'}</dd></div><div><dt>{match.player1} tac op</dt><dd>{match.player1Tac ?? 'None'}</dd></div><div><dt>{match.player2} tac op</dt><dd>{match.player2Tac ?? 'None'}</dd></div></dl>
               {match.images.length > 0 && <div className="match-images" aria-label="Match images">{match.images.map((image, imageIndex) => (
                 <figure className="match-image-card" key={image.id}>
                   <button type="button" className="match-image-thumbnail" onClick={() => setSelectedImage(image)}><img src={image.url} alt={image.caption ?? `Match photo ${imageIndex + 1}`} /></button>
