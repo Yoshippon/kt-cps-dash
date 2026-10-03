@@ -137,6 +137,11 @@ export type PlayerMapOwnershipRow = {
   map_id: string
 }
 
+export type KillTeamTacOpArchetypeRow = {
+  team_id: string
+  tac_op_archetype_id: string
+}
+
 export type PlayerTeamImageRow = {
   id: string
   player_id: string
@@ -226,6 +231,12 @@ export type Database = {
         Row: KillTeamRow
         Insert: Omit<KillTeamRow, 'id' | 'created_at' | 'updated_at'>
         Update: Partial<Omit<KillTeamRow, 'id' | 'created_at' | 'updated_at'>>
+        Relationships: []
+      }
+      kill_team_tac_op_archetypes: {
+        Row: KillTeamTacOpArchetypeRow
+        Insert: KillTeamTacOpArchetypeRow
+        Update: never
         Relationships: []
       }
       tier_lists: {

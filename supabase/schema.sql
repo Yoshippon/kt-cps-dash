@@ -115,6 +115,12 @@ create table if not exists public.kill_teams (
   updated_at timestamptz not null default now()
 );
 
+create table if not exists public.kill_team_tac_op_archetypes (
+  team_id uuid not null references public.kill_teams(id) on delete cascade,
+  tac_op_archetype_id uuid not null references public.tac_op_archetypes(id) on delete cascade,
+  primary key (team_id, tac_op_archetype_id)
+);
+
 create table if not exists public.tier_lists (
   id uuid primary key default gen_random_uuid(),
   owner_id uuid not null references public.players(id) on delete cascade,
@@ -202,6 +208,8 @@ create index if not exists tac_ops_number_idx on public.tac_ops (number);
 create index if not exists tac_ops_archetype_idx on public.tac_ops (archetype_id);
 create index if not exists tac_ops_pack_idx on public.tac_ops (approved_ops_pack_id);
 create index if not exists kill_teams_name_idx on public.kill_teams (name);
+create index if not exists kill_team_tac_op_archetypes_archetype_idx
+  on public.kill_team_tac_op_archetypes (tac_op_archetype_id);
 create index if not exists matches_date_idx on public.matches (date desc);
 create index if not exists matches_team_one_idx on public.matches (team_one_id);
 create index if not exists matches_team_two_idx on public.matches (team_two_id);
@@ -217,6 +225,7 @@ alter table public.approved_ops_packs enable row level security;
 alter table public.tac_op_archetypes enable row level security;
 alter table public.tac_ops enable row level security;
 alter table public.kill_teams enable row level security;
+alter table public.kill_team_tac_op_archetypes enable row level security;
 alter table public.tier_lists enable row level security;
 alter table public.tier_list_entries enable row level security;
 alter table public.player_team_ownership enable row level security;
@@ -379,6 +388,10 @@ set search_path = public
 as $$
   select id from public.players where user_id = auth.uid();
 $$;
+
+create policy "Read all kill team tac op archetypes" on public.kill_team_tac_op_archetypes for select using (true);
+create policy "Admins manage kill team tac op archetypes" on public.kill_team_tac_op_archetypes
+  for all using (public.is_admin()) with check (public.is_admin());
 
 -- admins only: list/manage tokens directly
 create policy "Admins manage claim tokens" on public.player_claim_tokens
