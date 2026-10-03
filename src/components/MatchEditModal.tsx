@@ -122,6 +122,27 @@ function MatchEditModal({ match, mode, options, isSaving, error, isUpdatingImage
     setDraft((current) => ({ ...current, [key]: value }))
   }
 
+  const getTeamTacOps = (teamName: string) => {
+    const archetypes = options.teams.find((team) => team.name === teamName)?.tacOpArchetypes ?? []
+    return archetypes.length > 0
+      ? options.tacOps.filter((tacOp) => archetypes.includes(tacOp.archetype))
+      : options.tacOps
+  }
+
+  const setTeam = (teamKey: 'teamOne' | 'teamTwo', tacOpKey: 'player1Tac' | 'player2Tac', teamName: string) => {
+    setDraft((current) => {
+      const availableTacOps = getTeamTacOps(teamName)
+      const currentTacOp = current[tacOpKey]
+      const tacOpIsAvailable = availableTacOps.some((tacOp) => tacOp.name === currentTacOp)
+
+      return {
+        ...current,
+        [teamKey]: teamName,
+        [tacOpKey]: tacOpIsAvailable ? currentTacOp : null,
+      }
+    })
+  }
+
   const toScore = (value: string) => (value === '' ? null : Number(value))
 
   const handleCreatePlayer = async () => {
@@ -167,10 +188,10 @@ function MatchEditModal({ match, mode, options, isSaving, error, isUpdatingImage
           <PlayerField label="Player 2" placeholder="Select opponent" value={draft.player2} players={options.players} onChange={(value) => setField('player2', value)} />
 
           <label>Team 1
-            <TeamSelect value={draft.teamOne} teams={options.teams} onChange={(value) => setField('teamOne', value)} />
+            <TeamSelect value={draft.teamOne} teams={options.teams} onChange={(value) => setTeam('teamOne', 'player1Tac', value)} />
           </label>
           <label>Team 2
-            <TeamSelect value={draft.teamTwo} teams={options.teams} onChange={(value) => setField('teamTwo', value)} />
+            <TeamSelect value={draft.teamTwo} teams={options.teams} onChange={(value) => setTeam('teamTwo', 'player2Tac', value)} />
           </label>
 
           <label>Player 1 score
@@ -181,10 +202,10 @@ function MatchEditModal({ match, mode, options, isSaving, error, isUpdatingImage
           </label>
 
           <label>Player 1 tac op
-            <TacOpSelect value={draft.player1Tac} tacOps={options.tacOps} onChange={(value) => setField('player1Tac', value)} />
+            <TacOpSelect value={draft.player1Tac} tacOps={getTeamTacOps(draft.teamOne)} onChange={(value) => setField('player1Tac', value)} />
           </label>
           <label>Player 2 tac op
-            <TacOpSelect value={draft.player2Tac} tacOps={options.tacOps} onChange={(value) => setField('player2Tac', value)} />
+            <TacOpSelect value={draft.player2Tac} tacOps={getTeamTacOps(draft.teamTwo)} onChange={(value) => setField('player2Tac', value)} />
           </label>
           </div>
 

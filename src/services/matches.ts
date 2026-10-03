@@ -44,6 +44,7 @@ export type MatchFormOptions = {
 export type TeamOption = {
   name: string
   faction: string | null
+  tacOpArchetypes: string[]
 }
 
 export type TacOpOption = {
@@ -160,20 +161,32 @@ export async function fetchMatchFormOptions(): Promise<MatchFormOptions> {
     { data: teamRows, error: teamError },
     { data: playerRows, error: playerError },
     { data: latestOpsPack, error: opsPackError },
+    { data: teamArchetypeRows, error: teamArchetypeError },
   ] = await Promise.all([
     supabase.from('maps').select('name').order('name', { ascending: true }),
-    supabase.from('kill_teams').select('name, generic_faction').order('name', { ascending: true }),
+    supabase.from('kill_teams').select('id, name, generic_faction').order('name', { ascending: true }),
     supabase.from('players').select('name').order('name', { ascending: true }),
     supabase.from('approved_ops_packs').select('id').order('year', { ascending: false }).limit(1).maybeSingle(),
+    supabase.from('kill_team_tac_op_archetypes').select('team_id, archetype:tac_op_archetypes(name)'),
   ])
 
-  if (mapError || teamError || playerError || opsPackError) throw mapError ?? teamError ?? playerError ?? opsPackError
+  if (mapError || teamError || playerError || opsPackError || teamArchetypeError) {
+    throw mapError ?? teamError ?? playerError ?? opsPackError ?? teamArchetypeError
+  }
+
+  const archetypesByTeamId = new Map<string, string[]>()
+  ;(teamArchetypeRows as any[] ?? []).forEach((row) => {
+    const archetypes = archetypesByTeamId.get(row.team_id) ?? []
+    if (row.archetype?.name) archetypes.push(row.archetype.name)
+    archetypesByTeamId.set(row.team_id, archetypes)
+  })
 
   const formOptions = {
     maps: (mapRows as any[] ?? []).map((row) => row.name),
     teams: (teamRows as any[] ?? []).map((row) => ({
       name: row.name,
       faction: row.generic_faction,
+      tacOpArchetypes: archetypesByTeamId.get(row.id) ?? [],
     })),
     players: (playerRows as any[] ?? []).map((row) => row.name),
   }
