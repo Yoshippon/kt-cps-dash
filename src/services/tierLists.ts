@@ -1,4 +1,5 @@
 import { hasSupabaseConfig, supabase } from '../lib/supabase'
+import { wilsonScore } from '../lib/wilsonScore'
 import { MEDIA_BUCKET } from './matchImages'
 import type { TierListEntryRow, TierListRow } from '../types/database'
 
@@ -7,6 +8,8 @@ export type Tier = typeof TIERS[number]
 export type TierLabels = Record<Tier, string>
 export const DEFAULT_TIER_LABELS: TierLabels = { S: 'S', A: 'A', B: 'B', C: 'C', D: 'D' }
 export const AUTOMATIC_TIER_LIST_ID = 'community-win-rate'
+export const WILSON_TIER_LIST_ID = 'community-wilson-score'
+export type AutomaticTierListKind = 'win-rate' | 'wilson-score'
 export const AUTOMATIC_TIER_LABELS: TierLabels = {
   S: 'S (80-100%)',
   A: 'A (60-80%)',
@@ -28,7 +31,7 @@ export type TierListTeam = {
   wins?: number
   draws?: number
   losses?: number
-  winRate?: number
+  score?: number
 }
 
 export type TierListPlacement = {
@@ -117,7 +120,7 @@ const tierForWinRate = (winRate: number): Tier => {
   return 'D'
 }
 
-export async function fetchAutomaticTierList(): Promise<AutomaticTierList> {
+export async function fetchAutomaticTierList(kind: AutomaticTierListKind = 'win-rate'): Promise<AutomaticTierList> {
   requireSupabase()
 
   const [{ data: teamRows, error: teamError }, { data: matchRows, error: matchError }] = await Promise.all([
@@ -156,19 +159,21 @@ export async function fetchAutomaticTierList(): Promise<AutomaticTierList> {
 
   const rankedTeams = [...statsByTeamId.entries()].map(([teamId, stats]) => {
     const team = teamsById.get(teamId)!
-    const winRate = (stats.wins + stats.draws * .5) / stats.games * 100
+    const score = kind === 'wilson-score'
+      ? wilsonScore(stats.wins, stats.draws, stats.losses) * 100
+      : (stats.wins + stats.draws * .5) / stats.games * 100
     return {
       id: team.id,
       name: team.name,
       logoUrl: logoUrl(team.logo_path),
       isClassified: team.is_classified,
       ...stats,
-      winRate,
-      tier: tierForWinRate(winRate),
+      score,
+      tier: tierForWinRate(score),
     }
   }).sort((first, second) => (
     TIERS.indexOf(first.tier) - TIERS.indexOf(second.tier)
-    || second.winRate - first.winRate
+    || second.score - first.score
     || second.games - first.games
     || first.name.localeCompare(second.name)
   ))

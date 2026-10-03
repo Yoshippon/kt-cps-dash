@@ -1,9 +1,10 @@
 import { useMemo, useState } from 'react'
 import { MATCHES } from '../data'
+import { wilsonScore } from '../lib/wilsonScore'
 
 type StatLine = { name: string; games: number; wins: number; draws: number; losses: number; points: number }
 type CommunityView = 'table' | 'chart'
-type SortColumn = 'name' | 'games' | 'wins' | 'draws' | 'losses' | 'winRate'
+type SortColumn = 'name' | 'games' | 'wins' | 'draws' | 'losses' | 'winRate' | 'wilsonScore'
 type SortDirection = 'ascending' | 'descending'
 
 const isMirrorMatch = (match: typeof MATCHES[number]) => match.teamOne === match.teamTwo
@@ -12,6 +13,7 @@ const playerPlayedWithTeam = (match: typeof MATCHES[number], player: string, tea
 )
 const winRate = (stat: StatLine) => stat.games === 0 ? 0 : stat.points / stat.games * 100
 const formatRate = (stat: StatLine) => `${winRate(stat).toFixed(0)}%`
+const formatWilsonScore = (stat: StatLine) => `${(wilsonScore(stat.wins, stat.draws, stat.losses) * 100).toFixed(0)}%`
 
 function Community({ isActive }: { isActive: boolean }) {
   const [playerFilter, setPlayerFilter] = useState('')
@@ -64,6 +66,8 @@ function Community({ isActive }: { isActive: boolean }) {
       ? first.name.localeCompare(second.name)
       : sortColumn === 'winRate'
         ? winRate(first) - winRate(second)
+        : sortColumn === 'wilsonScore'
+          ? wilsonScore(first.wins, first.draws, first.losses) - wilsonScore(second.wins, second.draws, second.losses)
         : first[sortColumn] - second[sortColumn]
     if (comparison !== 0) return sortDirection === 'ascending' ? comparison : -comparison
     return first.name.localeCompare(second.name)
@@ -124,7 +128,7 @@ function Community({ isActive }: { isActive: boolean }) {
 function StatsTable({ stats, noun, sortColumn, sortDirection, onSort }: { stats: StatLine[]; noun: string; sortColumn: SortColumn; sortDirection: SortDirection; onSort: (column: SortColumn) => void }) {
   const sortableHeader = (column: SortColumn, label: string) => <th scope="col" aria-sort={sortColumn === column ? sortDirection : 'none'}><button type="button" className="community-sort-button" onClick={() => onSort(column)}>{label}<span aria-hidden="true">{sortColumn === column ? sortDirection === 'ascending' ? ' ▲' : ' ▼' : ''}</span></button></th>
 
-  return stats.length > 0 ? <div className="community-table-wrap"><table className="community-table"><thead><tr>{sortableHeader('name', noun)}{sortableHeader('games', 'Games')}{sortableHeader('wins', 'W')}{sortableHeader('draws', 'D')}{sortableHeader('losses', 'L')}{sortableHeader('winRate', 'Win rate')}</tr></thead><tbody>{stats.map((stat) => <tr key={stat.name}><th scope="row">{stat.name}</th><td>{stat.games}</td><td>{stat.wins}</td><td>{stat.draws}</td><td>{stat.losses}</td><td className="rate">{formatRate(stat)}</td></tr>)}</tbody></table></div> : <div className="empty-state"><strong>No matches found</strong><span>Try changing or clearing your filters.</span></div>
+  return stats.length > 0 ? <div className="community-table-wrap"><table className="community-table"><thead><tr>{sortableHeader('name', noun)}{sortableHeader('games', 'Games')}{sortableHeader('wins', 'W')}{sortableHeader('draws', 'D')}{sortableHeader('losses', 'L')}{sortableHeader('winRate', 'Win rate')}{sortableHeader('wilsonScore', 'Wilson')}</tr></thead><tbody>{stats.map((stat) => <tr key={stat.name}><th scope="row">{stat.name}</th><td>{stat.games}</td><td>{stat.wins}</td><td>{stat.draws}</td><td>{stat.losses}</td><td className="rate">{formatRate(stat)}</td><td className="rate">{formatWilsonScore(stat)}</td></tr>)}</tbody></table></div> : <div className="empty-state"><strong>No matches found</strong><span>Try changing or clearing your filters.</span></div>
 }
 
 function WinRateChart({ stats }: { stats: StatLine[] }) {

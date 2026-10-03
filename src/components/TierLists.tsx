@@ -3,6 +3,7 @@ import { useAuth } from '../lib/auth'
 import {
   AUTOMATIC_TIER_LABELS,
   AUTOMATIC_TIER_LIST_ID,
+  WILSON_TIER_LIST_ID,
   TIERS,
   DEFAULT_TIER_LABELS,
   createTierList,
@@ -12,6 +13,7 @@ import {
   fetchTierLists,
   saveTierList,
   type Tier,
+  type AutomaticTierListKind,
   type TierLabels,
   type TierListPlacement,
   type TierListSummary,
@@ -28,6 +30,7 @@ function TierLists({ isActive }: { isActive: boolean }) {
   const [tierLists, setTierLists] = useState<TierListSummary[]>([])
   const [selectedList, setSelectedList] = useState<TierListSummary | null>(null)
   const [isAutomaticList, setIsAutomaticList] = useState(true)
+  const [automaticListKind, setAutomaticListKind] = useState<AutomaticTierListKind>('win-rate')
   const [hideUnclassifiedTeams, setHideUnclassifiedTeams] = useState(false)
   const [isCompact, setIsCompact] = useState(false)
   const [teams, setTeams] = useState<TierListTeam[]>([])
@@ -44,11 +47,11 @@ function TierLists({ isActive }: { isActive: boolean }) {
   const canEdit = !isAutomaticList && (isNewList ? Boolean(player) : Boolean(player && selectedList && (isAdmin || selectedList.owner_id === player.id)))
   const activeIncludesNonClassified = isAutomaticList ? false : selectedList?.includes_non_classified ?? includesNonClassified
 
-  const loadAutomaticTierList = useCallback(async () => {
+  const loadAutomaticTierList = useCallback(async (kind = automaticListKind) => {
     setIsLoading(true)
     setError(null)
     try {
-      const automaticList = await fetchAutomaticTierList()
+      const automaticList = await fetchAutomaticTierList(kind)
       setTeams(automaticList.teams)
       setPlacements(automaticList.placements)
       setTierLabels(AUTOMATIC_TIER_LABELS)
@@ -57,7 +60,7 @@ function TierLists({ isActive }: { isActive: boolean }) {
     } finally {
       setIsLoading(false)
     }
-  }, [])
+  }, [automaticListKind])
 
   useEffect(() => {
     if (!isActive) return
@@ -72,6 +75,7 @@ function TierLists({ isActive }: { isActive: boolean }) {
         if (!isCurrent) return
         setTierLists(lists)
         setIsAutomaticList(true)
+        setAutomaticListKind('win-rate')
         setSelectedList(null)
         setTierLabels(AUTOMATIC_TIER_LABELS)
         setTeams(automaticList.teams)
@@ -160,11 +164,13 @@ function TierLists({ isActive }: { isActive: boolean }) {
   }
 
   const selectList = (listId: string) => {
-    if (listId === AUTOMATIC_TIER_LIST_ID) {
+    if (listId === AUTOMATIC_TIER_LIST_ID || listId === WILSON_TIER_LIST_ID) {
+      const nextAutomaticListKind = listId === WILSON_TIER_LIST_ID ? 'wilson-score' : 'win-rate'
       setIsAutomaticList(true)
+      setAutomaticListKind(nextAutomaticListKind)
       setSelectedList(null)
       setEditingTier(null)
-      void loadAutomaticTierList()
+      void loadAutomaticTierList(nextAutomaticListKind)
       return
     }
     const list = tierLists.find((item) => item.id === listId)
@@ -245,9 +251,9 @@ function TierLists({ isActive }: { isActive: boolean }) {
           : <span className="tier-team-avatar-placeholder" aria-label={team.name}>{team.name.slice(0, 2)}</span>}
       </span>
       <small>{team.name}</small>
-      {team.winRate !== undefined && (
+      {team.score !== undefined && (
         <span className="tier-team-stats">
-          {team.winRate.toFixed(0)}% · {team.games}G · {team.wins}W {team.draws}D {team.losses}L
+          {team.score.toFixed(0)}% · {team.games}G · {team.wins}W {team.draws}D {team.losses}L
         </span>
       )}
     </div>
@@ -265,8 +271,9 @@ function TierLists({ isActive }: { isActive: boolean }) {
       <section className="tier-list-controls" aria-label="Tier list controls">
         <label>
           View tier list
-          <select value={isAutomaticList ? AUTOMATIC_TIER_LIST_ID : selectedList?.id ?? ''} onChange={(event) => selectList(event.target.value)}>
+          <select value={isAutomaticList ? automaticListKind === 'wilson-score' ? WILSON_TIER_LIST_ID : AUTOMATIC_TIER_LIST_ID : selectedList?.id ?? ''} onChange={(event) => selectList(event.target.value)}>
             <option value={AUTOMATIC_TIER_LIST_ID}>Community Win Rate (Auto)</option>
+            <option value={WILSON_TIER_LIST_ID}>Community Wilson Score (Auto)</option>
             {tierLists.map((list) => <option key={list.id} value={list.id}>{list.name} - {list.ownerName}</option>)}
           </select>
         </label>
@@ -310,7 +317,9 @@ function TierLists({ isActive }: { isActive: boolean }) {
           )}
 
           {isAutomaticList && !isCompact ? (
-            <p className="tier-list-note">Community match results. Draws count as 0.5 wins. Teams need at least 1 game.</p>
+            <p className="tier-list-note">
+              {automaticListKind === 'wilson-score' ? 'Wilson score, 95% confidence.' : 'Community match results.'} Draws count as 0.5 wins. Teams need at least 1 game.
+            </p>
           ) : selectedList && (
             <p className="tier-list-note">
               Created by {selectedList.ownerName}. {selectedList.includes_non_classified ? 'All teams included.' : 'Classified teams only.'}
