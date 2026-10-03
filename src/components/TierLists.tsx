@@ -28,6 +28,7 @@ function TierLists({ isActive }: { isActive: boolean }) {
   const [placements, setPlacements] = useState<TierListPlacement[]>(emptyPlacements)
   const [name, setName] = useState('')
   const [tierLabels, setTierLabels] = useState<TierLabels>(DEFAULT_TIER_LABELS)
+  const [editingTier, setEditingTier] = useState<Tier | null>(null)
   const [includesNonClassified, setIncludesNonClassified] = useState(false)
   const [isLoading, setIsLoading] = useState(true)
   const [isSaving, setIsSaving] = useState(false)
@@ -129,6 +130,7 @@ function TierLists({ isActive }: { isActive: boolean }) {
     setSelectedList(null)
     setName('')
     setTierLabels(DEFAULT_TIER_LABELS)
+    setEditingTier(null)
     setIncludesNonClassified(false)
     setPlacements(emptyPlacements())
     void loadNewListTeams(false)
@@ -142,6 +144,7 @@ function TierLists({ isActive }: { isActive: boolean }) {
     setSelectedList(list)
     setName(list.name)
     setTierLabels(list.tier_labels)
+    setEditingTier(null)
     setIncludesNonClassified(list.includes_non_classified)
   }
 
@@ -271,17 +274,34 @@ function TierLists({ isActive }: { isActive: boolean }) {
           <section className="tier-board" aria-label="Kill team tier board">
             {TIERS.map((tier) => (
               <div className={`tier-row tier-row-${tier.toLowerCase()}`} key={tier}>
-                {canEdit ? (
-                  <label className="tier-label">
-                    <span>{tier}</span>
+                <div className="tier-row-heading">
+                  {editingTier === tier ? (
                     <input
                       aria-label={`${tier} tier name`}
+                      autoFocus
                       value={tierLabels[tier]}
                       maxLength={40}
                       onChange={(event) => setTierLabels((current) => ({ ...current, [tier]: event.target.value }))}
+                      onKeyDown={(event) => {
+                        if (event.key !== 'Enter') return
+                        event.preventDefault()
+                        setEditingTier(null)
+                        void handleSave()
+                      }}
                     />
-                  </label>
-                ) : <strong>{tierLabels[tier]}</strong>}
+                  ) : <strong>{tierLabels[tier]}</strong>}
+                  {canEdit && (
+                    <button
+                      type="button"
+                      className="tier-label-edit"
+                      aria-label={`Edit ${tier} tier name`}
+                      title={`Edit ${tier} tier name`}
+                      onClick={() => setEditingTier((current) => current === tier ? null : tier)}
+                    >
+                      <span aria-hidden="true">&#9998;</span>
+                    </button>
+                  )}
+                </div>
                 <div className="tier-row-teams" onDragOver={(event) => { if (canEdit) event.preventDefault() }} onDrop={(event) => handleDrop(event, tier)}>
                   {placementByTier[tier].map((teamId, index) => {
                     const team = teamById.get(teamId)
