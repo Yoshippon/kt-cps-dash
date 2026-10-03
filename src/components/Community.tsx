@@ -95,8 +95,8 @@ function Community({ isActive }: { isActive: boolean }) {
 
   return (
     <div hidden={!isActive}>
-      <section className="tab-summary" aria-label="Community statistics">
-        <div className="stats" aria-label="Community statistics"><div><strong>{eligibleMatches.length}</strong><span>games analyzed</span></div><div><strong>{teamStats.length}</strong><span>teams</span></div>{playerFilter && <div><strong>{playerWinRate.toFixed(0)}%</strong><span>win rate</span></div>}</div>
+      <section className="tab-summary" aria-label="Match statistics">
+        <div className="stats" aria-label="Match statistics"><div><strong>{eligibleMatches.length}</strong><span>games analyzed</span></div><div><strong>{teamStats.length}</strong><span>teams</span></div>{playerFilter && <div><strong>{playerWinRate.toFixed(0)}%</strong><span>win rate</span></div>}</div>
       </section>
       <div className="community-filters">
         <label>Player<select value={playerFilter} onChange={(event) => { const player = event.target.value; setPlayerFilter(player); if (teamFilter && !MATCHES.some((match) => !isMirrorMatch(match) && playerPlayedWithTeam(match, player, teamFilter))) setTeamFilter('') }}><option value="">All players</option>{players.map((player) => <option key={player} value={player}>{player}</option>)}</select></label>

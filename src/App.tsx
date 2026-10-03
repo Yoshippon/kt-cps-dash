@@ -30,7 +30,7 @@ function AppShell() {
           <NavLink className={tabClassName} to="/matchups">Matchups</NavLink>
         </div>
         <div className="tab-group" role="group" aria-label="Data">
-          <NavLink className={tabClassName} to="/community">Community</NavLink>
+          <NavLink className={tabClassName} to="/stats">Stats</NavLink>
           <NavLink className={tabClassName} to="/kill-teams">Kill Teams</NavLink>
           <NavLink className={tabClassName} to="/tier-lists">Tier Lists</NavLink>
         </div>
@@ -46,7 +46,8 @@ function AppShell() {
         <Route path="/next-meeting" element={<NextMeeting isActive />} />
         <Route path="/matches" element={<Ledger isActive />} />
         <Route path="/matchups" element={<Matchups isActive />} />
-        <Route path="/community" element={<Community isActive />} />
+        <Route path="/stats" element={<Community isActive />} />
+        <Route path="/community" element={<Navigate replace to="/stats" />} />
         <Route path="/kill-teams" element={<KillTeams isActive />} />
         <Route path="/tier-lists" element={<TierLists isActive />} />
         <Route path="/profile" element={isLoggedIn ? <Profile isActive /> : <Navigate replace to="/next-meeting" />} />
