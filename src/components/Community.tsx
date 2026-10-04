@@ -118,7 +118,7 @@ function Community({ isActive }: { isActive: boolean }) {
             <button type="button" className={view === 'chart' ? 'active' : ''} aria-pressed={view === 'chart'} onClick={() => setView('chart')}>Chart</button>
           </div>
         </header>
-        <p className="community-section-note">Draws count as 0.5 wins</p>
+        <p className="community-section-note">Mirror matches excluded. Draws count as 0.5 wins</p>
         {view === 'table' ? <StatsTable stats={sortedTeamStats} noun="team" sortColumn={sortColumn} sortDirection={sortDirection} onSort={changeSort} /> : <WinRateChart stats={sortedTeamStats} />}
       </section>
     </div>

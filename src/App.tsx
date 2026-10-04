@@ -2,6 +2,7 @@ import { Navigate, NavLink, Route, Routes } from 'react-router'
 import Ledger from './components/Ledger'
 import Matchups from './components/Matchups'
 import Community from './components/Community'
+import PlayerStats from './components/PlayerStats'
 import NextMeeting from './components/NextMeeting'
 import KillTeams from './components/KillTeams'
 import TierLists from './components/TierLists'
@@ -31,6 +32,7 @@ function AppShell() {
         </div>
         <div className="tab-group" role="group" aria-label="Data">
           <NavLink className={tabClassName} to="/stats">Stats</NavLink>
+          <NavLink className={tabClassName} to="/player-stats">Player Stats</NavLink>
           <NavLink className={tabClassName} to="/kill-teams">Kill Teams</NavLink>
           <NavLink className={tabClassName} to="/tier-lists">Tier Lists</NavLink>
         </div>
@@ -47,6 +49,7 @@ function AppShell() {
         <Route path="/matches" element={<Ledger isActive />} />
         <Route path="/matchups" element={<Matchups isActive />} />
         <Route path="/stats" element={<Community isActive />} />
+        <Route path="/player-stats" element={<PlayerStats isActive />} />
         <Route path="/community" element={<Navigate replace to="/stats" />} />
         <Route path="/kill-teams" element={<KillTeams isActive />} />
         <Route path="/tier-lists" element={<TierLists isActive />} />
