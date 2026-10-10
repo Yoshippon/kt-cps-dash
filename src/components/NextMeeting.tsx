@@ -21,15 +21,11 @@ const getPlayersForWindow = (days: number) => [...new Set(MATCHES.flatMap((match
 
 const getPairKey = (firstPlayer: string, secondPlayer: string) => [firstPlayer, secondPlayer].sort().join('::')
 type SuggestedMatchup = { firstPlayer: string; secondPlayer: string; lastPlayed: string | undefined; map?: MapData }
-type MatchupPlan = { pairs: SuggestedMatchup[]; recencyScores: number[] }
+type MatchupPlan = { pairs: SuggestedMatchup[]; neverPlayedCount: number; lastPlayedTotal: number }
 
 const compareMatchupPlans = (first: MatchupPlan, second: MatchupPlan) => {
-  for (let index = 0; index < first.recencyScores.length; index += 1) {
-    if (first.recencyScores[index] !== second.recencyScores[index]) {
-      return first.recencyScores[index] - second.recencyScores[index]
-    }
-  }
-  return 0
+  return second.neverPlayedCount - first.neverPlayedCount
+    || first.lastPlayedTotal - second.lastPlayedTotal
 }
 
 const seededOrder = (value: string, seed: number) => {
@@ -45,7 +41,7 @@ const selectBestMatchups = (
   randomSeed: number,
 ): SuggestedMatchup[] => {
   const solve = (remainingPlayers: string[]): MatchupPlan | null => {
-    if (remainingPlayers.length === 0) return { pairs: [], recencyScores: [] }
+    if (remainingPlayers.length === 0) return { pairs: [], neverPlayedCount: 0, lastPlayedTotal: 0 }
 
     const [firstPlayer, ...otherPlayers] = remainingPlayers
     let bestPlan: MatchupPlan | null = null
@@ -62,8 +58,8 @@ const selectBestMatchups = (
       const lastPlayed = latestMatchups.get(pair)
       const plan = {
         pairs: [{ firstPlayer, secondPlayer, lastPlayed }, ...nextPlan.pairs],
-        recencyScores: [lastPlayed ? Date.parse(`${lastPlayed}T00:00:00Z`) : Number.NEGATIVE_INFINITY, ...nextPlan.recencyScores]
-          .sort((first, second) => second - first),
+        neverPlayedCount: nextPlan.neverPlayedCount + (lastPlayed ? 0 : 1),
+        lastPlayedTotal: nextPlan.lastPlayedTotal + (lastPlayed ? Date.parse(`${lastPlayed}T00:00:00Z`) : 0),
       }
       if (!bestPlan || (randomSeed === 0 && compareMatchupPlans(plan, bestPlan) < 0)) bestPlan = plan
     }
@@ -73,6 +69,24 @@ const selectBestMatchups = (
 
   return solve(players)?.pairs ?? []
 }
+
+const compareByeCandidates = (
+  first: SuggestedMatchup[],
+  second: SuggestedMatchup[],
+) => compareMatchupPlans(
+  {
+    pairs: first,
+    neverPlayedCount: first.filter((matchup) => !matchup.lastPlayed).length,
+    lastPlayedTotal: first.reduce((total, matchup) =>
+      total + (matchup.lastPlayed ? Date.parse(`${matchup.lastPlayed}T00:00:00Z`) : 0), 0),
+  },
+  {
+    pairs: second,
+    neverPlayedCount: second.filter((matchup) => !matchup.lastPlayed).length,
+    lastPlayedTotal: second.reduce((total, matchup) =>
+      total + (matchup.lastPlayed ? Date.parse(`${matchup.lastPlayed}T00:00:00Z`) : 0), 0),
+  },
+)
 
 function NextMeeting({ isActive }: { isActive: boolean }) {
   const [playerWindow, setPlayerWindow] = useState('3')
@@ -182,8 +196,39 @@ function NextMeeting({ isActive }: { isActive: boolean }) {
     const remaining = new Set(selectedMatrixPlayers)
     const suggestions: SuggestedMatchup[] = []
     const eligibleByePlayers = selectedPlayers.filter((player) => remaining.has(player))
-    const byePlayer = remaining.size % 2 === 1
-      ? [...eligibleByePlayers].sort((first, second) => (consecutiveGames.get(second) ?? 0) - (consecutiveGames.get(first) ?? 0) || first.localeCompare(second))[0]
+    const byeCandidates = remaining.size % 2 === 1
+      ? eligibleByePlayers.filter((player) => (consecutiveGames.get(player) ?? 0) === Math.max(
+        ...eligibleByePlayers.map((eligiblePlayer) => consecutiveGames.get(eligiblePlayer) ?? 0),
+      ))
+      : []
+    const byePlayer = byeCandidates.length > 0
+      ? [...byeCandidates].sort((first, second) => {
+        const getCandidateMatchups = (byeCandidate: string) => {
+          const candidateRemaining = new Set(remaining)
+          candidateRemaining.delete(byeCandidate)
+          const candidateSuggestions: SuggestedMatchup[] = []
+
+          lockedMatchups.forEach((pair) => {
+            const [firstPlayer, secondPlayer] = pair.split('::')
+            if (candidateRemaining.has(firstPlayer) && candidateRemaining.has(secondPlayer)) {
+              candidateSuggestions.push({ firstPlayer, secondPlayer, lastPlayed: latestMatchups.get(pair) })
+              candidateRemaining.delete(firstPlayer)
+              candidateRemaining.delete(secondPlayer)
+            }
+          })
+
+          candidateSuggestions.push(...selectBestMatchups(
+            [...candidateRemaining].sort(),
+            latestMatchups,
+            new Set(bannedMatchups),
+            0,
+          ))
+          return candidateSuggestions
+        }
+
+        return compareByeCandidates(getCandidateMatchups(first), getCandidateMatchups(second))
+          || first.localeCompare(second)
+      })[0]
       : undefined
     if (byePlayer) remaining.delete(byePlayer)
 
