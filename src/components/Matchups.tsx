@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react'
 import { MATCHES } from '../data'
 import { formatDate, getElapsedDays, getElapsedTime, getMatchupStatus } from '../utils/date'
-import { getConsecutiveGames } from '../utils/matches'
+import { sortPlayersByStreakAndRecency } from '../utils/matches'
 
 const PLAYER_WINDOWS = [
   { value: '3', label: 'Active players (last 3 months)', days: 90 },
@@ -12,7 +12,6 @@ const PLAYER_WINDOWS = [
 
 const getPlayersForWindow = (days: number) => {
   const latestGameByPlayer = new Map<string, string>()
-  const consecutiveGames = getConsecutiveGames(MATCHES)
 
   MATCHES.forEach((match) => {
     const players = [match.player1, match.player2]
@@ -23,17 +22,10 @@ const getPlayersForWindow = (days: number) => {
     })
   })
 
-  return [...latestGameByPlayer.keys()]
-    .filter((player) => days === Infinity || getElapsedDays(latestGameByPlayer.get(player)!) <= days)
-    .sort((firstPlayer, secondPlayer) => {
-      const firstStreak = consecutiveGames.get(firstPlayer) ?? 0
-      const secondStreak = consecutiveGames.get(secondPlayer) ?? 0
-      const latestFirstGame = latestGameByPlayer.get(firstPlayer)!
-      const latestSecondGame = latestGameByPlayer.get(secondPlayer)!
-      return secondStreak - firstStreak
-        || latestSecondGame.localeCompare(latestFirstGame)
-        || firstPlayer.localeCompare(secondPlayer)
-    })
+  return sortPlayersByStreakAndRecency(
+    [...latestGameByPlayer.keys()].filter((player) => days === Infinity || getElapsedDays(latestGameByPlayer.get(player)!) <= days),
+    MATCHES,
+  )
 }
 
 const getPairKey = (firstPlayer: string, secondPlayer: string) => [firstPlayer, secondPlayer].sort().join('::')

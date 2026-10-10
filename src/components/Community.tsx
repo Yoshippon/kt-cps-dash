@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react'
 import { MATCHES } from '../data'
 import { wilsonScore } from '../lib/wilsonScore'
+import { sortPlayersByStreakAndRecency } from '../utils/matches'
 
 type StatLine = { name: string; games: number; wins: number; draws: number; losses: number; points: number }
 type CommunityView = 'table' | 'chart'
@@ -72,9 +73,9 @@ function Community({ isActive }: { isActive: boolean }) {
     if (comparison !== 0) return sortDirection === 'ascending' ? comparison : -comparison
     return first.name.localeCompare(second.name)
   }), [sortColumn, sortDirection, teamStats])
-  const players = useMemo(() => [...new Set(MATCHES
+  const players = useMemo(() => sortPlayersByStreakAndRecency([...new Set(MATCHES
     .filter((match) => !isMirrorMatch(match) && (!teamFilter || match.teamOne === teamFilter || match.teamTwo === teamFilter))
-    .flatMap((match) => teamFilter && match.teamOne === teamFilter ? [match.player1] : teamFilter ? [match.player2] : [match.player1, match.player2]))].sort(), [teamFilter])
+    .flatMap((match) => teamFilter && match.teamOne === teamFilter ? [match.player1] : teamFilter ? [match.player2] : [match.player1, match.player2]))], MATCHES), [teamFilter])
   const teams = useMemo(() => [...new Set(MATCHES
     .filter((match) => !isMirrorMatch(match) && (!playerFilter || match.player1 === playerFilter || match.player2 === playerFilter))
     .flatMap((match) => playerFilter && match.player1 === playerFilter ? [match.teamOne] : playerFilter ? [match.teamTwo] : [match.teamOne, match.teamTwo]))].sort(), [playerFilter])

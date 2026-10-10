@@ -6,6 +6,8 @@ import { deleteMatchImage, reorderMatchImages, uploadMatchImages, type MatchImag
 import MatchEditModal from './MatchEditModal'
 import { useAuth } from '../lib/auth'
 import { TEAM_EMOJIS } from '../teamEmojis'
+import { compareMapsByOrder } from '../utils/maps'
+import { sortPlayersByStreakAndRecency } from '../utils/matches'
 
 function getTeamFactionClass(faction: string | null | undefined) {
   switch (faction?.trim().toLowerCase()) {
@@ -248,9 +250,9 @@ function Ledger({ isActive }: { isActive: boolean }) {
   const teamCount = new Set(filteredMatches.flatMap((match) => [match.teamOne, match.teamTwo])).size
   const mapCount = new Set(filteredMatches.map((match) => match.map)).size
   const hasFilters = Boolean(playerFilter || teamFilter || mapFilter || dateFromFilter || dateToFilter)
-  const allPlayers = [...new Set(MATCHES.flatMap((match) => [match.player1, match.player2]))].sort()
+  const allPlayers = sortPlayersByStreakAndRecency([...new Set(MATCHES.flatMap((match) => [match.player1, match.player2]))], MATCHES)
   const teams = [...new Set(MATCHES.flatMap((match) => [match.teamOne, match.teamTwo]))].sort()
-  const maps = [...new Set(MATCHES.map((match) => match.map))].sort()
+  const maps = [...new Set(MATCHES.map((match) => match.map))].sort(compareMapsByOrder)
   const appliedFilters = [
     playerFilter && `Player: ${playerFilter}`,
     teamFilter && `Team: ${teamFilter}`,
