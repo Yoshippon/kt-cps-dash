@@ -1,13 +1,6 @@
 import { useEffect, useState } from 'react'
-import { formatCritOp, type MatchFormOptions, type MatchRecord, type TacOpOption, type TeamOption } from '../services/matches'
+import { formatCritOp, getTacOpArchetypeClass, type MatchFormOptions, type MatchRecord, type TacOpOption, type TeamOption } from '../services/matches'
 import type { MatchImage } from '../services/matchImages'
-
-const tacOpArchetypeClasses: Record<string, string> = {
-  Recon: 'recon',
-  'Seek And Destroy': 'seek-and-destroy',
-  Security: 'security',
-  Infiltration: 'infiltration',
-}
 
 const teamFactionClasses: Record<string, string> = {
   Imperium: 'imperium',
@@ -63,7 +56,7 @@ function TacOpSelect({ value, tacOps, onChange }: { value: string | null | undef
     return groups
   }, {})
   const selectedTacOp = tacOps.find((tacOp) => tacOp.name === value)
-  const selectedClass = selectedTacOp ? `tac-op-${tacOpArchetypeClasses[selectedTacOp.archetype] ?? 'other'}` : ''
+  const selectedClass = selectedTacOp ? getTacOpArchetypeClass(selectedTacOp.archetype) : ''
   const isSavedTacOp = Boolean(value && !selectedTacOp)
 
   return (
@@ -71,7 +64,7 @@ function TacOpSelect({ value, tacOps, onChange }: { value: string | null | undef
       <option value="">None</option>
       {isSavedTacOp && <option value={value ?? ''}>{value}</option>}
       {Object.entries(groupedTacOps).map(([archetype, options]) => {
-        const archetypeClass = `tac-op-${tacOpArchetypeClasses[archetype] ?? 'other'}`
+        const archetypeClass = getTacOpArchetypeClass(archetype)
         return <optgroup key={archetype} className={archetypeClass} label={archetype}>{options.map((tacOp) => <option className={archetypeClass} key={tacOp.name} value={tacOp.name}>{tacOp.name}</option>)}</optgroup>
       })}
     </select>

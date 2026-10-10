@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState, type CSSProperties } from 'react'
 import { Link, useSearchParams } from 'react-router'
 import { formatDate } from '../utils/date'
-import { createMatch, createPlayer, fetchMatches, fetchMatchFormOptions, formatCritOp, updateMatch, type MatchFormOptions, type MatchRecord } from '../services/matches'
+import { createMatch, createPlayer, fetchMatches, fetchMatchFormOptions, formatCritOp, getTacOpArchetypeClass, updateMatch, type MatchFormOptions, type MatchRecord } from '../services/matches'
 import { deleteMatchImage, reorderMatchImages, uploadMatchImages, type MatchImage } from '../services/matchImages'
 import MatchEditModal from './MatchEditModal'
 import { useAuth } from '../lib/auth'
@@ -21,6 +21,11 @@ function getTeamFactionClass(faction: string | null | undefined) {
 }
 
 type MatchRowStyle = CSSProperties & { '--match-image': string }
+
+function getMatchResult(match: MatchRecord): 'player1' | 'player2' | 'draw' {
+  if (match.isTied || match.player1Score == null || match.player2Score == null || match.player1Score === match.player2Score) return 'draw'
+  return match.player1Score > match.player2Score ? 'player1' : 'player2'
+}
 
 function Ledger({ isActive }: { isActive: boolean }) {
   const { isAdmin, player } = useAuth()
@@ -297,6 +302,9 @@ function Ledger({ isActive }: { isActive: boolean }) {
           const isExpanded = expandedMatchId === match.id
           const detailsId = `match-details-${match.id}`
           const matchImageUrl = match.images[0]?.url
+          const result = getMatchResult(match)
+          const player1TacOp = formOptions.tacOps.find((tacOp) => tacOp.name === match.player1Tac)
+          const player2TacOp = formOptions.tacOps.find((tacOp) => tacOp.name === match.player2Tac)
           return <article
             className={matchImageUrl ? 'match-row match-row-has-image' : 'match-row'}
             key={`${match.date}-${match.player1}-${match.player2}-${index}`}
@@ -305,9 +313,9 @@ function Ledger({ isActive }: { isActive: boolean }) {
             <div className="match-row-summary">
               <button type="button" className="match-row-expand-button" aria-expanded={isExpanded} aria-controls={detailsId} aria-label={`${isExpanded ? 'Collapse' : 'Expand'} match between ${match.player1} and ${match.player2}`} onClick={() => match.id && toggleMatch(match.id)} />
               <div className="players">
-                <PlayerProfileLink id={match.player1Id} name={match.player1} avatarUrl={match.player1AvatarUrl} />
+                <PlayerProfileLink id={match.player1Id} name={match.player1} avatarUrl={match.player1AvatarUrl} isWinner={result === 'player1'} />
                 <span>vs</span>
-                <PlayerProfileLink id={match.player2Id} name={match.player2} avatarUrl={match.player2AvatarUrl} />
+                <PlayerProfileLink id={match.player2Id} name={match.player2} avatarUrl={match.player2AvatarUrl} isWinner={result === 'player2'} />
               </div>
               <div className="teams">
                 <TeamName name={match.teamOne} faction={match.teamOneFaction} logoUrl={match.teamOneLogoUrl} />
@@ -318,7 +326,12 @@ function Ledger({ isActive }: { isActive: boolean }) {
               <span className="match-expand-indicator" aria-hidden="true">{isExpanded ? '−' : '+'}</span>
             </div>
             {isExpanded && <div className="match-row-expanded" id={detailsId}>
-              <dl className="match-details" aria-label="Match details"><div><dt>Crit op</dt><dd>{match.critOp ? formatCritOp(match.critOp, match.critOpNumber) : 'None'}</dd></div><div><dt>Score</dt><dd>{match.player1Score ?? '—'} – {match.player2Score ?? '—'}</dd></div><div><dt>{match.player1} tac op</dt><dd>{match.player1Tac ?? 'None'}</dd></div><div><dt>{match.player2} tac op</dt><dd>{match.player2Tac ?? 'None'}</dd></div></dl>
+              <dl className="match-details" aria-label="Match details">
+                <div><dt>Crit op</dt><dd>{match.critOp ? formatCritOp(match.critOp, match.critOpNumber) : 'None'}</dd></div>
+                <div className="match-detail-score"><dt>Score</dt><dd><span className={`match-score match-score-${result === 'player1' ? 'winner' : result === 'player2' ? 'loser' : 'draw'}`}>{match.player1Score ?? '—'}</span><span className="match-score-separator">–</span><span className={`match-score match-score-${result === 'player2' ? 'winner' : result === 'player1' ? 'loser' : 'draw'}`}>{match.player2Score ?? '—'}</span></dd></div>
+                <div><dt className={`match-player-result-${result === 'player1' ? 'winner' : result === 'player2' ? 'loser' : 'draw'}`}>{match.player1} · tac op</dt><dd className={player1TacOp ? getTacOpArchetypeClass(player1TacOp.archetype) : undefined}>{match.player1Tac ?? 'None'}</dd></div>
+                <div><dt className={`match-player-result-${result === 'player2' ? 'winner' : result === 'player1' ? 'loser' : 'draw'}`}>{match.player2} · tac op</dt><dd className={player2TacOp ? getTacOpArchetypeClass(player2TacOp.archetype) : undefined}>{match.player2Tac ?? 'None'}</dd></div>
+              </dl>
               {match.images.length > 0 && <div className="match-images" aria-label="Match images">{match.images.map((image, imageIndex) => (
                 <figure className="match-image-card" key={image.id}>
                   <button type="button" className="match-image-thumbnail" onClick={() => setSelectedImage(image)}><img src={image.url} alt={image.caption ?? `Match photo ${imageIndex + 1}`} /></button>
@@ -362,13 +375,14 @@ function Ledger({ isActive }: { isActive: boolean }) {
   )
 }
 
-function PlayerProfileLink({ id, name, avatarUrl }: { id?: string; name: string; avatarUrl?: string }) {
+function PlayerProfileLink({ id, name, avatarUrl, isWinner = false }: { id?: string; name: string; avatarUrl?: string; isWinner?: boolean }) {
   const avatar = avatarUrl
     ? <img className="match-player-avatar" src={avatarUrl} alt="" />
     : <span className="match-player-avatar match-player-avatar-placeholder" aria-hidden="true">{name.trim().slice(0, 1).toUpperCase()}</span>
   const content = <>{avatar}<strong>{name}</strong></>
 
-  return id ? <Link className="player-profile-link" to={`/players/${id}`} aria-label={`View ${name}'s profile`}>{content}</Link> : <span className="player-profile-link">{content}</span>
+  const className = isWinner ? 'player-profile-link match-winner' : 'player-profile-link'
+  return id ? <Link className={className} to={`/players/${id}`} aria-label={`View ${name}'s profile`}>{content}</Link> : <span className={className}>{content}</span>
 }
 
 function TeamName({ name, faction, logoUrl }: { name: string; faction?: string | null; logoUrl?: string }) {

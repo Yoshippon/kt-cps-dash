@@ -53,6 +53,17 @@ export type TacOpOption = {
   archetype: string
 }
 
+export const TAC_OP_ARCHETYPE_CLASSES: Record<string, string> = {
+  Recon: 'recon',
+  'Seek And Destroy': 'seek-and-destroy',
+  Security: 'security',
+  Infiltration: 'infiltration',
+}
+
+export function getTacOpArchetypeClass(archetype: string | undefined): string {
+  return `tac-op-${TAC_OP_ARCHETYPE_CLASSES[archetype ?? ''] ?? 'other'}`
+}
+
 export type CritOpOption = {
   name: string
   number: number

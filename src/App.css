@@ -28,6 +28,13 @@ h1 { margin: 2px 0 0; font: 700 18px var(--display); letter-spacing: 0; color: v
 .claim-banner input { border: 1px solid var(--line); padding: 8px; font: 400 13px var(--mono); width: 260px; }
 .claim-banner button { border: 0; background: var(--orange); color: white; padding: 9px 14px; cursor: pointer; font: 700 11px var(--mono); }
 .match-row-readonly { cursor: default; }
+.admin-discord-results { display: flex; align-items: end; gap: 14px; margin-top: 28px; padding: 18px 0; border-top: 2px solid var(--ink); border-bottom: 1px solid var(--line); }
+.admin-discord-results h2 { margin: 3px 0 0; color: var(--ink); font: 700 22px var(--display); }
+.admin-discord-results label { display: flex; flex-direction: column; gap: 7px; margin-left: auto; color: var(--muted); font: 10px var(--mono); text-transform: uppercase; letter-spacing: .6px; }
+.admin-discord-results select { border: 1px solid var(--line); border-radius: 0; background: var(--paper); color: var(--ink); padding: 9px 10px; font: 13px var(--display); }
+.admin-discord-results button { border: 0; background: var(--orange); color: white; cursor: pointer; padding: 11px 14px; font: 700 10px var(--mono); text-transform: uppercase; letter-spacing: .6px; }
+.admin-discord-results button:disabled, .admin-discord-results select:disabled { cursor: not-allowed; opacity: .5; }
+.admin-discord-results > p { margin: 0; color: var(--muted); font: 11px var(--mono); }
 .admin-players-table-wrap { margin-top: 28px; overflow-x: auto; }
 .admin-players-table { width: 100%; border-collapse: collapse; }
 .admin-players-table th, .admin-players-table td { padding: 10px 12px; border-bottom: 1px solid var(--line); text-align: left; font-size: 13px; }
@@ -216,6 +223,17 @@ h1 { margin: 2px 0 0; font: 700 18px var(--display); letter-spacing: 0; color: v
 .match-details div { min-width: 0; }
 .match-details dt { color: var(--muted); font: 700 9px var(--mono); text-transform: uppercase; letter-spacing: .6px; }
 .match-details dd { overflow: hidden; margin: 4px 0 0; color: var(--ink); font: 13px var(--display); text-overflow: ellipsis; white-space: nowrap; }
+.match-detail-score dd { display: flex; align-items: baseline; gap: 7px; font-size: 18px; font-weight: 700; }
+.match-score-winner { color: #39865b; }
+.match-score-loser { color: #c4514a; }
+.match-score-draw, .match-score-separator { color: var(--muted); }
+.match-details dt.match-player-result-winner { color: #39865b; }
+.match-details dt.match-player-result-loser { color: #c4514a; }
+.match-details dt.match-player-result-draw { color: var(--muted); }
+.match-details dd.tac-op-recon { color: var(--orange); }
+.match-details dd.tac-op-seek-and-destroy { color: #b43a3a; }
+.match-details dd.tac-op-security { color: var(--blue); }
+.match-details dd.tac-op-infiltration { color: var(--muted); }
 .match-images { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 220px)); gap: 12px; margin: 0 0 18px; }
 .match-image-card { position: relative; margin: 0; }
 .match-images img { width: 100%; aspect-ratio: 4 / 3; object-fit: cover; border: 1px solid var(--line); box-shadow: 0 4px 10px rgba(30, 36, 38, .12); }
@@ -281,6 +299,8 @@ h1 { margin: 2px 0 0; font: 700 18px var(--display); letter-spacing: 0; color: v
 .players { display: flex; align-items: center; gap: 9px; color: var(--ink); font-size: 17px; }
 .players span { color: var(--orange); font: 10px var(--mono); text-transform: uppercase; }
 .player-profile-link { position: relative; z-index: 2; display: inline-flex; align-items: center; gap: 6px; color: inherit; text-decoration: none; pointer-events: auto; }
+.player-profile-link strong { font-weight: 500; }
+.player-profile-link.match-winner strong { font-weight: 700; }
 .player-profile-link:hover strong, .player-profile-link:focus-visible strong { text-decoration: underline; text-underline-offset: 3px; }
 .player-profile-link:focus-visible { outline: 2px solid var(--orange); outline-offset: 3px; }
 .match-player-avatar { width: 28px; height: 28px; border: 1px solid var(--line); border-radius: 50%; object-fit: cover; transition: transform .16s ease, box-shadow .16s ease; }
@@ -439,7 +459,7 @@ h1 { margin: 2px 0 0; font: 700 18px var(--display); letter-spacing: 0; color: v
 .matchup-matrix th.is-highlighted { background: rgba(221, 93, 50, .14); color: var(--orange); }
 @media (max-width: 800px) { .app-shell { padding: 0 22px 48px; } .tab-summary { align-items: flex-start; flex-direction: column; gap: 24px; padding: 24px 0; } .tab-summary-meeting { width: 100%; } .meeting-dashboard { grid-template-columns: 1fr; } .meeting-attendance-panel { border-right: 0; border-bottom: 1px solid var(--line); } .stats { grid-template-columns: repeat(3, minmax(104px, 1fr)); } .stats div:nth-child(4) { border-left: 0; } .match-row-summary { grid-template-columns: 96px 1fr auto auto; gap: 12px; padding: 18px 12px; } .teams { grid-column: 2 / 3; } .match-meta { grid-column: 3 / 4; grid-row: 1 / span 2; } .match-expand-indicator { grid-column: 4 / 5; grid-row: 1 / span 2; } .match-details { grid-template-columns: repeat(2, minmax(0, 1fr)); } .match-images { grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); } }
 @media (max-width: 800px) { .applied-filters { grid-template-columns: repeat(2, max-content); } }
-@media (max-width: 680px) { .toolbar { flex-wrap: wrap; } .applied-filters { order: 3; width: 100%; justify-content: start; margin-left: 0; } .filter-panel, .community-filters { grid-template-columns: 1fr; gap: 12px; } .clear-filters { justify-self: start; } .profile-teams-heading, .profile-team-card header { align-items: flex-start; flex-direction: column; } .profile-add-team { width: 100%; } .profile-add-team select { min-width: 0; flex: 1; } .preference-grid { grid-template-columns: repeat(2, 1fr); } .vote-map { grid-template-columns: 1fr auto; } .vote-map-voters { grid-column: 1 / -1; } }
+@media (max-width: 680px) { .toolbar { flex-wrap: wrap; } .applied-filters { order: 3; width: 100%; justify-content: start; margin-left: 0; } .filter-panel, .community-filters { grid-template-columns: 1fr; gap: 12px; } .clear-filters { justify-self: start; } .admin-discord-results { align-items: stretch; flex-direction: column; } .admin-discord-results label { margin-left: 0; } .profile-teams-heading, .profile-team-card header { align-items: flex-start; flex-direction: column; } .profile-add-team { width: 100%; } .profile-add-team select { min-width: 0; flex: 1; } .preference-grid { grid-template-columns: repeat(2, 1fr); } .vote-map { grid-template-columns: 1fr auto; } .vote-map-voters { grid-column: 1 / -1; } }
 @media (max-width: 680px) { .matchup-planner { grid-template-columns: 1fr; } .suggestions { grid-column: auto; } }
 @media (max-width: 680px) { .tier-list-controls, .tier-list-setup { align-items: stretch; flex-direction: column; } .tier-list-controls select, .tier-list-setup input { min-width: 0; width: 100%; box-sizing: border-box; } .new-tier-list-button { margin-left: 0; } .tier-board { grid-template-columns: fit-content(132px) minmax(0, 1fr); } .tier-board-automatic { grid-template-columns: fit-content(156px) minmax(0, 1fr); } .tier-row-heading { min-width: 52px; } .tier-board-automatic .tier-row-heading { min-width: 132px; padding: 10px; } .tier-row-heading strong { font-size: 28px; } .tier-label-edit { opacity: .7; } .tier-row-teams { min-height: 124px; } }
 @media (max-width: 520px) { .topbar { align-items: flex-start; gap: 14px; } .account-menu { align-items: flex-start; flex-direction: column; } .account-signin-hint { max-width: 150px; } .add-match { font-size: 0; padding: 10px 13px; } .add-match span { font-size: 22px; margin: 0; } .players { font-size: 14px; flex-wrap: wrap; } .players span { width: 100%; order: 2; } .match-row-summary { grid-template-columns: 72px 1fr auto auto; } .stats { grid-template-columns: repeat(2, minmax(104px, 1fr)); } .stats div:nth-child(4) { border-left: 1px solid var(--line); } .stats div:nth-child(odd) { border-left: 0; } .stats div:last-child { grid-column: 1 / -1; border-left: 0; border-top: 1px solid var(--line); } .stats strong { font-size: 23px; } .stats span { font-size: 9px; } .matrix-toolbar { align-items: flex-start; flex-direction: column; gap: 10px; } .matrix-toolbar label { justify-content: space-between; width: 100%; } .community-section-heading { align-items: flex-start; flex-direction: column; } .win-rate-chart-row { grid-template-columns: minmax(0, 1fr) 42px; gap: 7px 10px; } .win-rate-chart-bar { grid-column: 1 / -1; grid-row: 2; } .win-rate-chart-row small { grid-column: 1 / -1; grid-row: 3; } .preference-grid { grid-template-columns: 1fr; } }
