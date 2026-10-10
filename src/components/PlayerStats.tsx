@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react'
-import { MATCHES } from '../data'
+import { MATCHES, TEAM_FACTIONS_BY_NAME } from '../data'
 import { wilsonScore } from '../lib/wilsonScore'
+import TeamSelect from './TeamSelect'
 
 type StatLine = { name: string; games: number; wins: number; draws: number; losses: number; points: number }
 type SortColumn = 'name' | 'games' | 'wins' | 'draws' | 'losses' | 'winRate' | 'wilsonScore'
@@ -77,6 +78,7 @@ function PlayerStats({ isActive }: { isActive: boolean }) {
   const teams = useMemo(() => [...new Set(MATCHES
     .filter((match) => !playerFilter || match.player1 === playerFilter || match.player2 === playerFilter)
     .flatMap((match) => playerFilter && match.player1 === playerFilter ? [match.teamOne] : playerFilter ? [match.teamTwo] : [match.teamOne, match.teamTwo]))].sort(), [playerFilter])
+  const teamOptions = useMemo(() => teams.map((name) => ({ name, faction: TEAM_FACTIONS_BY_NAME.get(name) })), [teams])
   const selectedPlayerStat = playerStats.find((stat) => stat.name === playerFilter)
 
   const clearFilters = () => {
@@ -106,7 +108,7 @@ function PlayerStats({ isActive }: { isActive: boolean }) {
       </section>
       <div className="community-filters">
         <label>Player<select value={playerFilter} onChange={(event) => { const player = event.target.value; setPlayerFilter(player); if (teamFilter && !MATCHES.some((match) => playerPlayedWithTeam(match, player, teamFilter))) setTeamFilter('') }}><option value="">All players</option>{players.map((player) => <option key={player} value={player}>{player}</option>)}</select></label>
-        <label>Team<select value={teamFilter} onChange={(event) => { const team = event.target.value; setTeamFilter(team); if (playerFilter && !MATCHES.some((match) => playerPlayedWithTeam(match, playerFilter, team))) setPlayerFilter('') }}><option value="">All teams</option>{teams.map((team) => <option key={team} value={team}>{team}</option>)}</select></label>
+        <label>Team<TeamSelect value={teamFilter} teams={teamOptions} emptyLabel="All teams" onChange={(team) => { setTeamFilter(team); if (playerFilter && !MATCHES.some((match) => playerPlayedWithTeam(match, playerFilter, team))) setPlayerFilter('') }} /></label>
         <label>From<input type="date" value={dateFromFilter} onChange={(event) => setDateFromFilter(event.target.value)} max={dateToFilter || undefined} /></label>
         <label>To<input type="date" value={dateToFilter} onChange={(event) => setDateToFilter(event.target.value)} min={dateFromFilter || undefined} /></label>
         <label className="community-checkbox"><input type="checkbox" checked={ignoreHomebrew} onChange={(event) => setIgnoreHomebrew(event.target.checked)} />Ignore homebrew games</label>

@@ -6,6 +6,7 @@ import { deleteMatchImage, reorderMatchImages, uploadMatchImages, type MatchImag
 import MatchEditModal from './MatchEditModal'
 import { useAuth } from '../lib/auth'
 import { TEAM_EMOJIS } from '../teamEmojis'
+import TeamSelect from './TeamSelect'
 
 function getTeamFactionClass(faction: string | null | undefined) {
   switch (faction?.trim().toLowerCase()) {
@@ -255,6 +256,11 @@ function Ledger({ isActive }: { isActive: boolean }) {
   const hasFilters = Boolean(playerFilter || teamFilter || mapFilter || dateFromFilter || dateToFilter)
   const allPlayers = [...new Set(MATCHES.flatMap((match) => [match.player1, match.player2]))].sort()
   const teams = [...new Set(MATCHES.flatMap((match) => [match.teamOne, match.teamTwo]))].sort()
+  const teamFactions = new Map(MATCHES.flatMap((match) => [
+    [match.teamOne, match.teamOneFaction],
+    [match.teamTwo, match.teamTwoFaction],
+  ]))
+  const teamOptions = teams.map((name) => ({ name, faction: teamFactions.get(name) }))
   const maps = [...new Set(MATCHES.map((match) => match.map))].sort()
   const appliedFilters = [
     playerFilter && `Player: ${playerFilter}`,
@@ -288,7 +294,7 @@ function Ledger({ isActive }: { isActive: boolean }) {
       <div className="toolbar"><span>{sortedMatches.length} {sortedMatches.length === 1 ? 'match' : 'matches'}{hasFilters ? ' found' : ''}</span>{hasFilters && <span className="applied-filters" aria-label={`Applied filters: ${appliedFilters.join(', ')}`}>{appliedFilters.map((filter) => <span key={filter}>{filter}</span>)}</span>}<button type="button" className="filter-button" aria-expanded={isFilterOpen} aria-controls="match-filters" onClick={() => setIsFilterOpen((isOpen) => !isOpen)}>{hasFilters ? 'Filters applied' : 'Apply filters'} <span aria-hidden="true">{isFilterOpen ? '⌃' : '⌄'}</span></button></div>
       {isFilterOpen && <div className="filter-panel" id="match-filters">
         <label>Player<select value={playerFilter} onChange={(event) => setPlayerFilter(event.target.value)}><option value="">All players</option>{allPlayers.map((player) => <option key={player} value={player}>{player}</option>)}</select></label>
-        <label>Team<select value={teamFilter} onChange={(event) => setTeamFilter(event.target.value)}><option value="">All teams</option>{teams.map((team) => <option key={team} value={team}>{team}</option>)}</select></label>
+        <label>Team<TeamSelect value={teamFilter} teams={teamOptions} emptyLabel="All teams" onChange={setTeamFilter} /></label>
         <label>Map<select value={mapFilter} onChange={(event) => setMapFilter(event.target.value)}><option value="">All maps</option>{maps.map((map) => <option key={map} value={map}>{map}</option>)}</select></label>
         <label>From<input type="date" value={dateFromFilter} onChange={(event) => setDateFromFilter(event.target.value)} max={dateToFilter || undefined} /></label>
         <label>To<input type="date" value={dateToFilter} onChange={(event) => setDateToFilter(event.target.value)} min={dateFromFilter || undefined} /></label>

@@ -1,17 +1,7 @@
 import { useEffect, useState } from 'react'
-import { formatCritOp, getTacOpArchetypeClass, type MatchFormOptions, type MatchRecord, type TacOpOption, type TeamOption } from '../services/matches'
+import { formatCritOp, getTacOpArchetypeClass, type MatchFormOptions, type MatchRecord, type TacOpOption } from '../services/matches'
 import type { MatchImage } from '../services/matchImages'
-
-const teamFactionClasses: Record<string, string> = {
-  Imperium: 'imperium',
-  Chaos: 'chaos',
-  Xenos: 'xenos',
-  Homebrew: 'homebrew',
-}
-
-const teamFactionOrder = ['Imperium', 'Chaos', 'Xenos', 'Homebrew']
-
-const getTeamFactionGroup = (faction: string | null) => teamFactionOrder.includes(faction ?? '') ? faction! : 'Homebrew'
+import TeamSelect from './TeamSelect'
 
 interface MatchEditModalProps {
   match: MatchRecord
@@ -27,27 +17,6 @@ interface MatchEditModalProps {
   onUploadImages: (files: File[]) => void
   onDeleteImage: (image: MatchImage) => void
   onReorderImages: (images: MatchImage[]) => void
-}
-
-function TeamSelect({ value, teams, onChange }: { value: string; teams: TeamOption[]; onChange: (value: string) => void }) {
-  const groupedTeams = teams.reduce<Record<string, TeamOption[]>>((groups, team) => {
-    const faction = getTeamFactionGroup(team.faction)
-    ;(groups[faction] ??= []).push(team)
-    return groups
-  }, {})
-  const selectedTeam = teams.find((team) => team.name === value)
-  const selectedClass = selectedTeam ? `team-select-${teamFactionClasses[getTeamFactionGroup(selectedTeam.faction)]}` : ''
-
-  return (
-    <select className={`team-select ${selectedClass}`} value={value} onChange={(event) => onChange(event.target.value)}>
-      {value && !selectedTeam && <option value={value}>{value}</option>}
-      {teamFactionOrder.map((faction) => {
-        const options = groupedTeams[faction] ?? []
-        const factionClass = `team-select-${teamFactionClasses[faction]}`
-        return options.length > 0 && <optgroup key={faction} className={factionClass} label={faction}>{options.map((team) => <option className={factionClass} key={team.name} value={team.name}>{team.name}</option>)}</optgroup>
-      })}
-    </select>
-  )
 }
 
 function TacOpSelect({ value, tacOps, onChange }: { value: string | null | undefined; tacOps: TacOpOption[]; onChange: (value: string | null) => void }) {
