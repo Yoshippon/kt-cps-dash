@@ -10,6 +10,7 @@ import AdminPlayers from './components/AdminPlayers'
 import AccountMenu from './components/AccountMenu'
 import ClaimBanner from './components/ClaimBanner'
 import Profile from './components/Profile'
+import WeeklyStreak from './components/WeeklyStreak'
 import { AuthProvider, useAuth } from './lib/auth'
 import './App.css'
 
@@ -20,7 +21,13 @@ function AppShell() {
   return (
     <main className="app-shell">
       <header className="topbar">
-        <div className="brand-lockup"><span className="brand-mark">KT</span><h1>Kill Team Campinas</h1></div>
+        <div className="brand-lockup">
+          <span className="brand-mark">KT</span>
+          <div className="brand-copy">
+            <h1>Kill Team Campinas</h1>
+            <WeeklyStreak />
+          </div>
+        </div>
         <AccountMenu />
       </header>
       <ClaimBanner />

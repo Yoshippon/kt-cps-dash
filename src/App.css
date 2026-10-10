@@ -2,6 +2,9 @@
 .topbar { display: flex; align-items: center; justify-content: space-between; padding: 30px 0; border-bottom: 1px solid var(--line); }
 .brand-lockup { display: flex; align-items: center; gap: 14px; }
 .brand-mark { display: grid; place-items: center; width: 42px; height: 42px; background: var(--ink); color: var(--paper); font: 700 14px var(--display); letter-spacing: 1px; }
+.brand-copy { display: flex; flex-direction: column; gap: 3px; }
+.weekly-streak { color: var(--orange); font: 700 10px var(--mono); letter-spacing: .6px; text-transform: uppercase; }
+.weekly-streak-error { color: #c0392b; }
 .section-kicker { margin: 0; color: var(--orange); text-transform: uppercase; letter-spacing: 1.6px; font: 700 10px var(--mono); }
 h1 { margin: 2px 0 0; font: 700 18px var(--display); letter-spacing: 0; color: var(--ink); }
 .add-match, .filter-button { border: 0; cursor: pointer; font: 700 12px var(--mono); }
