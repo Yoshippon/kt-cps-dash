@@ -1515,5 +1515,9 @@ export const TEAMS = [
   }
 ]] 
 
+export const TEAM_FACTIONS_BY_NAME = new Map(
+  TEAMS.flat().map((team) => [team.killTeam, team.genericFaction]),
+)
+
 export const MAPS = await loadMaps()
 export const MATCHES = await loadMatches()

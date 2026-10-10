@@ -1,24 +1,7 @@
 import { useEffect, useState } from 'react'
-import { formatCritOp, type MatchFormOptions, type MatchRecord, type TacOpOption, type TeamOption } from '../services/matches'
+import { formatCritOp, getTacOpArchetypeClass, type MatchFormOptions, type MatchRecord, type TacOpOption } from '../services/matches'
 import type { MatchImage } from '../services/matchImages'
-
-const tacOpArchetypeClasses: Record<string, string> = {
-  Recon: 'recon',
-  'Seek And Destroy': 'seek-and-destroy',
-  Security: 'security',
-  Infiltration: 'infiltration',
-}
-
-const teamFactionClasses: Record<string, string> = {
-  Imperium: 'imperium',
-  Chaos: 'chaos',
-  Xenos: 'xenos',
-  Homebrew: 'homebrew',
-}
-
-const teamFactionOrder = ['Imperium', 'Chaos', 'Xenos', 'Homebrew']
-
-const getTeamFactionGroup = (faction: string | null) => teamFactionOrder.includes(faction ?? '') ? faction! : 'Homebrew'
+import TeamSelect from './TeamSelect'
 
 interface MatchEditModalProps {
   match: MatchRecord
@@ -36,34 +19,13 @@ interface MatchEditModalProps {
   onReorderImages: (images: MatchImage[]) => void
 }
 
-function TeamSelect({ value, teams, onChange }: { value: string; teams: TeamOption[]; onChange: (value: string) => void }) {
-  const groupedTeams = teams.reduce<Record<string, TeamOption[]>>((groups, team) => {
-    const faction = getTeamFactionGroup(team.faction)
-    ;(groups[faction] ??= []).push(team)
-    return groups
-  }, {})
-  const selectedTeam = teams.find((team) => team.name === value)
-  const selectedClass = selectedTeam ? `team-select-${teamFactionClasses[getTeamFactionGroup(selectedTeam.faction)]}` : ''
-
-  return (
-    <select className={`team-select ${selectedClass}`} value={value} onChange={(event) => onChange(event.target.value)}>
-      {value && !selectedTeam && <option value={value}>{value}</option>}
-      {teamFactionOrder.map((faction) => {
-        const options = groupedTeams[faction] ?? []
-        const factionClass = `team-select-${teamFactionClasses[faction]}`
-        return options.length > 0 && <optgroup key={faction} className={factionClass} label={faction}>{options.map((team) => <option className={factionClass} key={team.name} value={team.name}>{team.name}</option>)}</optgroup>
-      })}
-    </select>
-  )
-}
-
 function TacOpSelect({ value, tacOps, onChange }: { value: string | null | undefined; tacOps: TacOpOption[]; onChange: (value: string | null) => void }) {
   const groupedTacOps = tacOps.reduce<Record<string, TacOpOption[]>>((groups, tacOp) => {
     ;(groups[tacOp.archetype] ??= []).push(tacOp)
     return groups
   }, {})
   const selectedTacOp = tacOps.find((tacOp) => tacOp.name === value)
-  const selectedClass = selectedTacOp ? `tac-op-${tacOpArchetypeClasses[selectedTacOp.archetype] ?? 'other'}` : ''
+  const selectedClass = selectedTacOp ? getTacOpArchetypeClass(selectedTacOp.archetype) : ''
   const isSavedTacOp = Boolean(value && !selectedTacOp)
 
   return (
@@ -71,7 +33,7 @@ function TacOpSelect({ value, tacOps, onChange }: { value: string | null | undef
       <option value="">None</option>
       {isSavedTacOp && <option value={value ?? ''}>{value}</option>}
       {Object.entries(groupedTacOps).map(([archetype, options]) => {
-        const archetypeClass = `tac-op-${tacOpArchetypeClasses[archetype] ?? 'other'}`
+        const archetypeClass = getTacOpArchetypeClass(archetype)
         return <optgroup key={archetype} className={archetypeClass} label={archetype}>{options.map((tacOp) => <option className={archetypeClass} key={tacOp.name} value={tacOp.name}>{tacOp.name}</option>)}</optgroup>
       })}
     </select>
