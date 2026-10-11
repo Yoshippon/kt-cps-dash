@@ -51,7 +51,7 @@ function WeeklyStreak() {
   return (
     <span
       className="weekly-streak"
-      title={`last Friday without a match: ${formatDate(streak.lastFridayWithoutMatch)}`}
+      title={`Last Friday without a match: ${formatDate(streak.lastFridayWithoutMatch)}`}
     >
       {streak.weeks} {weekLabel} streak <span className="streak-fire" aria-hidden="true">🔥</span>
     </span>
