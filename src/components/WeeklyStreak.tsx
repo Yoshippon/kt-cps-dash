@@ -23,7 +23,8 @@ function getWeeklyStreak(matches: Pick<MatchRecord, 'date'>[], now = new Date())
     .map((match) => match.date))
   const friday = new Date(now)
   friday.setHours(12, 0, 0, 0)
-  friday.setDate(friday.getDate() - ((friday.getDay() - 5 + 7) % 7))
+  const daysSinceMonday = (friday.getDay() + 6) % 7
+  friday.setDate(friday.getDate() - daysSinceMonday - 3)
 
   let weeks = 0
   while (fridaysWithMatches.has(toDateKey(friday))) {
