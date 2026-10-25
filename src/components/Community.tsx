@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react'
+import { useSearchParams } from 'react-router'
 import { MATCHES, TEAM_FACTIONS_BY_NAME } from '../data'
 import { wilsonScore } from '../lib/wilsonScore'
 import { sortPlayersByStreakAndRecency } from '../utils/matches'
@@ -18,14 +19,15 @@ const formatRate = (stat: StatLine) => `${winRate(stat).toFixed(0)}%`
 const formatWilsonScore = (stat: StatLine) => `${(wilsonScore(stat.wins, stat.draws, stat.losses) * 100).toFixed(0)}%`
 
 function Community({ isActive }: { isActive: boolean }) {
-  const [playerFilter, setPlayerFilter] = useState('')
-  const [teamFilter, setTeamFilter] = useState('')
-  const [dateFromFilter, setDateFromFilter] = useState('')
-  const [dateToFilter, setDateToFilter] = useState('')
-  const [ignoreHomebrew, setIgnoreHomebrew] = useState(false)
+  const [searchParams, setSearchParams] = useSearchParams()
   const [view, setView] = useState<CommunityView>('table')
   const [sortColumn, setSortColumn] = useState<SortColumn>('games')
   const [sortDirection, setSortDirection] = useState<SortDirection>('descending')
+  const playerFilter = searchParams.get('player') ?? ''
+  const teamFilter = searchParams.get('team') ?? ''
+  const dateFromFilter = searchParams.get('from') ?? ''
+  const dateToFilter = searchParams.get('to') ?? ''
+  const ignoreHomebrew = searchParams.get('ignoreHomebrew') === 'true'
 
   const eligibleMatches = useMemo(() => MATCHES.filter((match) => {
     if (isMirrorMatch(match)) return false
@@ -84,12 +86,24 @@ function Community({ isActive }: { isActive: boolean }) {
   const playerGames = teamStats.reduce((total, stat) => total + stat.games, 0)
   const playerPoints = teamStats.reduce((total, stat) => total + stat.points, 0)
   const playerWinRate = playerGames === 0 ? 0 : playerPoints / playerGames * 100
+  const updateFilter = (name: string, value: string | null) => {
+    setSearchParams((currentParams) => {
+      const nextParams = new URLSearchParams(currentParams)
+      if (value) nextParams.set(name, value)
+      else nextParams.delete(name)
+      return nextParams
+    })
+  }
   const clearFilters = () => {
-    setPlayerFilter('')
-    setTeamFilter('')
-    setDateFromFilter('')
-    setDateToFilter('')
-    setIgnoreHomebrew(false)
+    setSearchParams((currentParams) => {
+      const nextParams = new URLSearchParams(currentParams)
+      nextParams.delete('player')
+      nextParams.delete('team')
+      nextParams.delete('from')
+      nextParams.delete('to')
+      nextParams.delete('ignoreHomebrew')
+      return nextParams
+    })
   }
   const changeSort = (column: SortColumn) => {
     if (sortColumn === column) {
@@ -106,11 +120,11 @@ function Community({ isActive }: { isActive: boolean }) {
         <div className="stats" aria-label="Match statistics"><div><strong>{eligibleMatches.length}</strong><span>games analyzed</span></div><div><strong>{teamStats.length}</strong><span>teams</span></div>{playerFilter && <div><strong>{playerWinRate.toFixed(0)}%</strong><span>win rate</span></div>}</div>
       </section>
       <div className="community-filters">
-        <label>Player<select value={playerFilter} onChange={(event) => { const player = event.target.value; setPlayerFilter(player); if (teamFilter && !MATCHES.some((match) => !isMirrorMatch(match) && playerPlayedWithTeam(match, player, teamFilter))) setTeamFilter('') }}><option value="">All players</option>{players.map((player) => <option key={player} value={player}>{player}</option>)}</select></label>
-        <label>Team<TeamSelect value={teamFilter} teams={teamOptions} emptyLabel="All teams" onChange={(team) => { setTeamFilter(team); if (playerFilter && !MATCHES.some((match) => !isMirrorMatch(match) && playerPlayedWithTeam(match, playerFilter, team))) setPlayerFilter('') }} /></label>
-        <label>From<input type="date" value={dateFromFilter} onChange={(event) => setDateFromFilter(event.target.value)} max={dateToFilter || undefined} /></label>
-        <label>To<input type="date" value={dateToFilter} onChange={(event) => setDateToFilter(event.target.value)} min={dateFromFilter || undefined} /></label>
-        <label className="community-checkbox"><input type="checkbox" checked={ignoreHomebrew} onChange={(event) => setIgnoreHomebrew(event.target.checked)} />Ignore homebrew games</label>
+        <label>Player<select value={playerFilter} onChange={(event) => { const player = event.target.value; setSearchParams((currentParams) => { const nextParams = new URLSearchParams(currentParams); if (player) nextParams.set('player', player); else nextParams.delete('player'); if (teamFilter && !MATCHES.some((match) => !isMirrorMatch(match) && playerPlayedWithTeam(match, player, teamFilter))) nextParams.delete('team'); return nextParams }) }}><option value="">All players</option>{players.map((player) => <option key={player} value={player}>{player}</option>)}</select></label>
+        <label>Team<TeamSelect value={teamFilter} teams={teamOptions} emptyLabel="All teams" onChange={(team) => { setSearchParams((currentParams) => { const nextParams = new URLSearchParams(currentParams); if (team) nextParams.set('team', team); else nextParams.delete('team'); if (playerFilter && !MATCHES.some((match) => !isMirrorMatch(match) && playerPlayedWithTeam(match, playerFilter, team))) nextParams.delete('player'); return nextParams }) }} /></label>
+        <label>From<input type="date" value={dateFromFilter} onChange={(event) => updateFilter('from', event.target.value)} max={dateToFilter || undefined} /></label>
+        <label>To<input type="date" value={dateToFilter} onChange={(event) => updateFilter('to', event.target.value)} min={dateFromFilter || undefined} /></label>
+        <label className="community-checkbox"><input type="checkbox" checked={ignoreHomebrew} onChange={(event) => updateFilter('ignoreHomebrew', event.target.checked ? 'true' : null)} />Ignore homebrew games</label>
         {(playerFilter || teamFilter || dateFromFilter || dateToFilter || ignoreHomebrew) && <button type="button" className="clear-filters" onClick={clearFilters}>Clear filters</button>}
       </div>
       <section className="community-section" aria-labelledby="team-rates-heading">

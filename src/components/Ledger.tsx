@@ -33,11 +33,6 @@ function getMatchResult(match: MatchRecord): 'player1' | 'player2' | 'draw' {
 function Ledger({ isActive }: { isActive: boolean }) {
   const { isAdmin, player } = useAuth()
   const [isFilterOpen, setIsFilterOpen] = useState(false)
-  const [playerFilter, setPlayerFilter] = useState('')
-  const [teamFilter, setTeamFilter] = useState('')
-  const [mapFilter, setMapFilter] = useState('')
-  const [dateFromFilter, setDateFromFilter] = useState('')
-  const [dateToFilter, setDateToFilter] = useState('')
   const [MATCHES, setMatches] = useState<MatchRecord[]>([])
   const [formOptions, setFormOptions] = useState<MatchFormOptions>({ maps: [], teams: [], players: [], critOps: [], tacOps: [] })
   const [editingMatch, setEditingMatch] = useState<MatchRecord | null>(null)
@@ -49,6 +44,11 @@ function Ledger({ isActive }: { isActive: boolean }) {
   const [selectedImage, setSelectedImage] = useState<MatchImage | null>(null)
   const [searchParams, setSearchParams] = useSearchParams()
   const sharedMatchId = searchParams.get('match')
+  const playerFilter = searchParams.get('player') ?? ''
+  const teamFilter = searchParams.get('team') ?? ''
+  const mapFilter = searchParams.get('map') ?? ''
+  const dateFromFilter = searchParams.get('from') ?? ''
+  const dateToFilter = searchParams.get('to') ?? ''
   const expandedMatchId = sharedMatchId && MATCHES.some((match) => match.id === sharedMatchId) ? sharedMatchId : null
   const selectedImages = useMemo(() => {
     if (!selectedImage) return []
@@ -271,12 +271,24 @@ function Ledger({ isActive }: { isActive: boolean }) {
     dateFromFilter && `From: ${formatDate(dateFromFilter)}`,
     dateToFilter && `To: ${formatDate(dateToFilter)}`,
   ].filter(Boolean)
+  const updateFilter = (name: string, value: string) => {
+    setSearchParams((currentParams) => {
+      const nextParams = new URLSearchParams(currentParams)
+      if (value) nextParams.set(name, value)
+      else nextParams.delete(name)
+      return nextParams
+    })
+  }
   const clearFilters = () => {
-    setPlayerFilter('')
-    setTeamFilter('')
-    setMapFilter('')
-    setDateFromFilter('')
-    setDateToFilter('')
+    setSearchParams((currentParams) => {
+      const nextParams = new URLSearchParams(currentParams)
+      nextParams.delete('player')
+      nextParams.delete('team')
+      nextParams.delete('map')
+      nextParams.delete('from')
+      nextParams.delete('to')
+      return nextParams
+    })
   }
 
   const toggleMatch = (matchId: string) => {
@@ -295,11 +307,11 @@ function Ledger({ isActive }: { isActive: boolean }) {
       </section>
       <div className="toolbar"><span>{sortedMatches.length} {sortedMatches.length === 1 ? 'match' : 'matches'}{hasFilters ? ' found' : ''}</span>{hasFilters && <span className="applied-filters" aria-label={`Applied filters: ${appliedFilters.join(', ')}`}>{appliedFilters.map((filter) => <span key={filter}>{filter}</span>)}</span>}<button type="button" className="filter-button" aria-expanded={isFilterOpen} aria-controls="match-filters" onClick={() => setIsFilterOpen((isOpen) => !isOpen)}>{hasFilters ? 'Filters applied' : 'Apply filters'} <span aria-hidden="true">{isFilterOpen ? '⌃' : '⌄'}</span></button></div>
       {isFilterOpen && <div className="filter-panel" id="match-filters">
-        <label>Player<select value={playerFilter} onChange={(event) => setPlayerFilter(event.target.value)}><option value="">All players</option>{allPlayers.map((player) => <option key={player} value={player}>{player}</option>)}</select></label>
-        <label>Team<TeamSelect value={teamFilter} teams={teamOptions} emptyLabel="All teams" onChange={setTeamFilter} /></label>
-        <label>Map<select value={mapFilter} onChange={(event) => setMapFilter(event.target.value)}><option value="">All maps</option>{maps.map((map) => <option key={map} value={map}>{map}</option>)}</select></label>
-        <label>From<input type="date" value={dateFromFilter} onChange={(event) => setDateFromFilter(event.target.value)} max={dateToFilter || undefined} /></label>
-        <label>To<input type="date" value={dateToFilter} onChange={(event) => setDateToFilter(event.target.value)} min={dateFromFilter || undefined} /></label>
+        <label>Player<select value={playerFilter} onChange={(event) => updateFilter('player', event.target.value)}><option value="">All players</option>{allPlayers.map((player) => <option key={player} value={player}>{player}</option>)}</select></label>
+        <label>Team<TeamSelect value={teamFilter} teams={teamOptions} emptyLabel="All teams" onChange={(team) => updateFilter('team', team)} /></label>
+        <label>Map<select value={mapFilter} onChange={(event) => updateFilter('map', event.target.value)}><option value="">All maps</option>{maps.map((map) => <option key={map} value={map}>{map}</option>)}</select></label>
+        <label>From<input type="date" value={dateFromFilter} onChange={(event) => updateFilter('from', event.target.value)} max={dateToFilter || undefined} /></label>
+        <label>To<input type="date" value={dateToFilter} onChange={(event) => updateFilter('to', event.target.value)} min={dateFromFilter || undefined} /></label>
         {hasFilters && <button type="button" className="clear-filters" onClick={clearFilters}>Clear filters</button>}
       </div>}
       {player && <div className="match-actions"><button type="button" className="add-match" onClick={handleCreate}><span aria-hidden="true">+</span>Add match</button></div>}

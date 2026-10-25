@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useState, type DragEvent } from 'react'
+import { useSearchParams } from 'react-router'
 import { useAuth } from '../lib/auth'
 import {
   AUTOMATIC_TIER_LABELS,
@@ -31,7 +32,6 @@ function TierLists({ isActive }: { isActive: boolean }) {
   const [selectedList, setSelectedList] = useState<TierListSummary | null>(null)
   const [isAutomaticList, setIsAutomaticList] = useState(true)
   const [automaticListKind, setAutomaticListKind] = useState<AutomaticTierListKind>('win-rate')
-  const [hideUnclassifiedTeams, setHideUnclassifiedTeams] = useState(false)
   const [isCompact, setIsCompact] = useState(false)
   const [teams, setTeams] = useState<TierListTeam[]>([])
   const [placements, setPlacements] = useState<TierListPlacement[]>(emptyPlacements)
@@ -42,6 +42,8 @@ function TierLists({ isActive }: { isActive: boolean }) {
   const [isLoading, setIsLoading] = useState(true)
   const [isSaving, setIsSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [searchParams, setSearchParams] = useSearchParams()
+  const hideUnclassifiedTeams = searchParams.get('hideUnclassified') === 'true'
 
   const isNewList = !isAutomaticList && selectedList === null
   const canEdit = !isAutomaticList && (isNewList ? Boolean(player) : Boolean(player && selectedList && (isAdmin || selectedList.owner_id === player.id)))
@@ -281,7 +283,7 @@ function TierLists({ isActive }: { isActive: boolean }) {
         <button type="button" onClick={() => setIsCompact((current) => !current)}>{isCompact ? 'Full view' : 'Compact view'}</button>
         {isAutomaticList && (
           <label className="tier-list-checkbox">
-            <input type="checkbox" checked={hideUnclassifiedTeams} onChange={(event) => setHideUnclassifiedTeams(event.target.checked)} />
+            <input type="checkbox" checked={hideUnclassifiedTeams} onChange={(event) => setSearchParams((currentParams) => { const nextParams = new URLSearchParams(currentParams); if (event.target.checked) nextParams.set('hideUnclassified', 'true'); else nextParams.delete('hideUnclassified'); return nextParams })} />
             Hide unclassified teams
           </label>
         )}

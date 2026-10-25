@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useState, type CSSProperties } from 'react'
+import { useSearchParams } from 'react-router'
 import { useAuth } from '../lib/auth'
 import { hasSupabaseConfig } from '../lib/supabase'
 import { fetchMapVoteMeeting, replaceMapVotes, setMapVoteAttendance, type MapVoteMeeting } from '../services/mapVotes'
@@ -24,10 +25,11 @@ function MapVoting({ onAttendanceChange, onWinningMapsChange, refreshKey }: MapV
   })
   const [meeting, setMeeting] = useState<MapVoteMeeting | null>(null)
   const [selectedMapIds, setSelectedMapIds] = useState<string[]>([])
-  const [includeAnonymous, setIncludeAnonymous] = useState(true)
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [searchParams, setSearchParams] = useSearchParams()
+  const includeAnonymous = searchParams.get('includeAnonymous') !== 'false'
 
   const loadMeeting = useCallback(async (attendanceChanged = false) => {
     setLoading(true)
@@ -147,7 +149,7 @@ function MapVoting({ onAttendanceChange, onWinningMapsChange, refreshKey }: MapV
         </div>
         {isAdmin && (
           <label className="vote-filter">
-            <input type="checkbox" checked={includeAnonymous} onChange={(event) => setIncludeAnonymous(event.target.checked)} />
+            <input type="checkbox" checked={includeAnonymous} onChange={(event) => setSearchParams((currentParams) => { const nextParams = new URLSearchParams(currentParams); if (event.target.checked) nextParams.delete('includeAnonymous'); else nextParams.set('includeAnonymous', 'false'); return nextParams })} />
             Include guest votes
           </label>
         )}

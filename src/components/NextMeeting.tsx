@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { useSearchParams } from 'react-router'
 import { MATCHES, MAPS } from '../data'
 import type { MapData } from '../data'
 import { formatDate, formatMeetingElapsedTime, formatTimeUntil, getElapsedDays, getElapsedTime, getMeetingStatus } from '../utils/date'
@@ -89,7 +90,7 @@ const compareByeCandidates = (
 )
 
 function NextMeeting({ isActive }: { isActive: boolean }) {
-  const [playerWindow, setPlayerWindow] = useState('3')
+  const [searchParams, setSearchParams] = useSearchParams()
   const [meetingStatus, setMeetingStatus] = useState(getMeetingStatus())
 
   useEffect(() => {
@@ -104,6 +105,7 @@ function NextMeeting({ isActive }: { isActive: boolean }) {
   const [spinningMatchup, setSpinningMatchup] = useState<string | null>(null)
   const [selectedMaps, setSelectedMaps] = useState<Record<string, MapData>>({})
   const [winningMapNames, setWinningMapNames] = useState<string[] | null>(null)
+  const playerWindow = searchParams.get('window') ?? '3'
   const selectedWindow = PLAYER_WINDOWS.find((window) => window.value === playerWindow) ?? PLAYER_WINDOWS[0]
   const matrixPlayers = getPlayersForWindow(selectedWindow.days)
   const consecutiveGames = useMemo(() => getConsecutiveGames(MATCHES), [])
@@ -320,7 +322,7 @@ function NextMeeting({ isActive }: { isActive: boolean }) {
       <div className="matrix-toolbar">
         <span>{matrixPlayers.length} {matrixPlayers.length === 1 ? 'player' : 'players'} shown</span>
         <label>Show players
-          <select value={playerWindow} onChange={(event) => { const value = event.target.value; setPlayerWindow(value); }}>
+          <select value={playerWindow} onChange={(event) => { const value = event.target.value; setSearchParams((currentParams) => { const nextParams = new URLSearchParams(currentParams); if (value === '3') nextParams.delete('window'); else nextParams.set('window', value); return nextParams }) }}>
             {PLAYER_WINDOWS.map((window) => <option value={window.value} key={window.value}>{window.label}</option>)}
           </select>
         </label>

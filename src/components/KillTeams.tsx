@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react'
+import { useSearchParams } from 'react-router'
 import { TEAMS } from '../data'
 import { useAuth } from '../lib/auth'
 import { importTeamLogos } from '../services/profile'
@@ -70,10 +71,11 @@ function KillTeams({ isActive }: { isActive: boolean }) {
   const { isAdmin } = useAuth()
   const [sortKey, setSortKey] = useState<SortKey>('season')
   const [sortDirection, setSortDirection] = useState<SortDirection>('asc')
-  const [releaseFrom, setReleaseFrom] = useState<string>('')
-  const [releaseTo, setReleaseTo] = useState<string>('')
   const [isImportingLogos, setIsImportingLogos] = useState(false)
   const [logoImportStatus, setLogoImportStatus] = useState<string | null>(null)
+  const [searchParams, setSearchParams] = useSearchParams()
+  const releaseFrom = searchParams.get('from') ?? ''
+  const releaseTo = searchParams.get('to') ?? ''
 
   const rows = useMemo(() => {
     const flatRows = (Array.isArray(TEAMS) ? TEAMS.flatMap((group) => Array.isArray(group) ? group : [group]) : []) as Omit<KillTeamRow, 'isClassified'>[]
@@ -122,8 +124,12 @@ function KillTeams({ isActive }: { isActive: boolean }) {
   }
 
   const clearDateFilters = () => {
-    setReleaseFrom('')
-    setReleaseTo('')
+    setSearchParams((currentParams) => {
+      const nextParams = new URLSearchParams(currentParams)
+      nextParams.delete('from')
+      nextParams.delete('to')
+      return nextParams
+    })
   }
 
   const handleLogoImport = async () => {
@@ -153,11 +159,11 @@ function KillTeams({ isActive }: { isActive: boolean }) {
       <section className="kill-team-controls" aria-label="Kill team filters">
         <label>
           Release after
-          <input type="month" value={releaseFrom} onChange={(event) => setReleaseFrom(event.target.value)} />
+          <input type="month" value={releaseFrom} onChange={(event) => setSearchParams((currentParams) => { const nextParams = new URLSearchParams(currentParams); if (event.target.value) nextParams.set('from', event.target.value); else nextParams.delete('from'); return nextParams })} />
         </label>
         <label>
           Release before
-          <input type="month" value={releaseTo} onChange={(event) => setReleaseTo(event.target.value)} />
+          <input type="month" value={releaseTo} onChange={(event) => setSearchParams((currentParams) => { const nextParams = new URLSearchParams(currentParams); if (event.target.value) nextParams.set('to', event.target.value); else nextParams.delete('to'); return nextParams })} />
         </label>
         {(releaseFrom || releaseTo) && (
           <button type="button" className="kill-team-clear-filter" onClick={clearDateFilters}>Clear filter</button>
