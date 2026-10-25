@@ -32,7 +32,7 @@ function TierLists({ isActive }: { isActive: boolean }) {
   const [selectedList, setSelectedList] = useState<TierListSummary | null>(null)
   const [isAutomaticList, setIsAutomaticList] = useState(true)
   const [automaticListKind, setAutomaticListKind] = useState<AutomaticTierListKind>('win-rate')
-  const [isCompact, setIsCompact] = useState(false)
+  const [isCompact, setIsCompact] = useState(true)
   const [teams, setTeams] = useState<TierListTeam[]>([])
   const [placements, setPlacements] = useState<TierListPlacement[]>(emptyPlacements)
   const [name, setName] = useState('')
