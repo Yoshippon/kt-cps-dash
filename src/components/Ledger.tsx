@@ -147,10 +147,11 @@ function Ledger({ isActive }: { isActive: boolean }) {
   const handleCreate = () => {
     if (!player) return
 
-    const previousFriday = new Date()
-    const daysSinceFriday = (previousFriday.getDay() + 2) % 7 || 7
-    previousFriday.setDate(previousFriday.getDate() - daysSinceFriday)
-    const date = `${previousFriday.getFullYear()}-${String(previousFriday.getMonth() + 1).padStart(2, '0')}-${String(previousFriday.getDate()).padStart(2, '0')}`
+    const closestFriday = new Date()
+    const daysUntilFriday = (5 - closestFriday.getDay() + 7) % 7
+    const daysSinceFriday = (closestFriday.getDay() + 2) % 7
+    closestFriday.setDate(closestFriday.getDate() + (daysUntilFriday <= daysSinceFriday ? daysUntilFriday : -daysSinceFriday))
+    const date = `${closestFriday.getFullYear()}-${String(closestFriday.getMonth() + 1).padStart(2, '0')}-${String(closestFriday.getDate()).padStart(2, '0')}`
     setEditingMatch({
       matchId: null,
       date,
