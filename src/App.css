@@ -543,6 +543,19 @@ h1 { margin: 2px 0 0; font: 700 18px var(--display); letter-spacing: 0; color: v
 .head-to-head-history-link:hover, .head-to-head-history-link:focus-visible { background: rgba(221, 93, 50, .08); outline: none; }
 .head-to-head-history-link time, .head-to-head-history-link span { color: inherit; font: inherit; text-transform: none; letter-spacing: 0; }
 .head-to-head-history-link strong { color: var(--ink); font: 700 16px var(--display); text-align: center; }
+.head-to-head-performance { overflow-x: auto; border-left: 2px solid var(--orange); background: rgba(221, 93, 50, .045); }
+.head-to-head-performance table { width: 100%; min-width: 480px; border-collapse: collapse; }
+.head-to-head-performance th, .head-to-head-performance td { padding: 12px 14px; border-bottom: 1px solid var(--line); color: var(--muted); font: 12px var(--mono); text-align: right; }
+.head-to-head-performance tr:last-child th, .head-to-head-performance tr:last-child td { border-bottom: 0; }
+.head-to-head-performance thead th { color: var(--muted); font-size: 9px; text-transform: uppercase; letter-spacing: .6px; }
+.head-to-head-performance th:first-child, .head-to-head-performance tbody th { color: var(--ink); font: 500 14px var(--display); text-align: left; }
+.rivalry-momentum-chart { border-left: 2px solid var(--orange); background: rgba(221, 93, 50, .045); padding: 14px; }
+.rivalry-momentum-axis, .rivalry-momentum-dates { display: flex; justify-content: space-between; color: var(--muted); font: 9px var(--mono); text-transform: uppercase; letter-spacing: .5px; }
+.rivalry-momentum-axis span:first-child { color: #356343; }
+.rivalry-momentum-axis span:last-child { color: #2e5bd9; }
+.rivalry-momentum-chart svg { display: block; width: 100%; height: 180px; margin: 8px 0; overflow: visible; }
+.rivalry-momentum-chart line { stroke: var(--line); stroke-dasharray: 1 1; vector-effect: non-scaling-stroke; }
+.rivalry-momentum-chart polyline { fill: none; stroke: var(--orange); stroke-linecap: round; stroke-linejoin: round; stroke-width: 1.5; vector-effect: non-scaling-stroke; }
 @media (max-width: 800px) { .app-shell { padding: 0 22px 48px; } .tab-summary { align-items: flex-start; flex-direction: column; gap: 24px; padding: 24px 0; } .tab-summary-meeting { width: 100%; } .meeting-dashboard { grid-template-columns: 1fr; } .meeting-attendance-panel { border-right: 0; border-bottom: 1px solid var(--line); } .stats { grid-template-columns: repeat(3, minmax(104px, 1fr)); } .stats div:nth-child(4) { border-left: 0; } .match-row-summary { grid-template-columns: 96px 1fr auto auto; gap: 12px; padding: 18px 12px; } .teams { grid-column: 2 / 3; } .match-meta { grid-column: 3 / 4; grid-row: 1 / span 2; } .match-expand-indicator { grid-column: 4 / 5; grid-row: 1 / span 2; } .match-details { grid-template-columns: repeat(2, minmax(0, 1fr)); } .match-images { grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); } }
 @media (max-width: 800px) { .applied-filters { grid-template-columns: repeat(2, max-content); } }
 @media (max-width: 680px) { .toolbar { flex-wrap: wrap; } .applied-filters { order: 3; width: 100%; justify-content: start; margin-left: 0; } .filter-panel, .community-filters { grid-template-columns: 1fr; gap: 12px; } .clear-filters { justify-self: start; } .admin-discord-results { align-items: stretch; flex-direction: column; } .admin-discord-results label { margin-left: 0; } .profile-teams-heading, .profile-team-card header { align-items: flex-start; flex-direction: column; } .profile-add-team { width: 100%; } .profile-add-team select { min-width: 0; flex: 1; } .preference-grid { grid-template-columns: repeat(2, 1fr); } .vote-map { grid-template-columns: 1fr auto; } .vote-map-voters { grid-column: 1 / -1; } }

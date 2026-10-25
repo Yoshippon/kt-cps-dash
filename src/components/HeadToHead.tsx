@@ -64,6 +64,32 @@ const getAverageScore = (matches: MatchRecord[], player: string) => {
   return scores.length === 0 ? null : scores.reduce((total, score) => total + score, 0) / scores.length
 }
 
+const getHighestScore = (matches: MatchRecord[], player: string) => {
+  const scores = matches.flatMap((match) => {
+    const score = match.player1 === player ? match.player1Score : match.player2Score
+    return score == null ? [] : [score]
+  })
+  return scores.length === 0 ? null : Math.max(...scores)
+}
+
+const getScoreDifference = (matches: MatchRecord[], player: string) => {
+  const differences = matches.flatMap((match) => {
+    const playerScore = match.player1 === player ? match.player1Score : match.player2Score
+    const opponentScore = match.player1 === player ? match.player2Score : match.player1Score
+    return playerScore == null || opponentScore == null ? [] : [playerScore - opponentScore]
+  })
+  return differences.length === 0 ? null : differences.reduce((total, difference) => total + difference, 0)
+}
+
+const getTacOpCounts = (matches: MatchRecord[], player: string) => {
+  const counts = new Map<string, number>()
+  matches.forEach((match) => {
+    const tacOp = match.player1 === player ? match.player1Tac : match.player2Tac
+    if (tacOp) counts.set(tacOp, (counts.get(tacOp) ?? 0) + 1)
+  })
+  return counts
+}
+
 const getTeamGamesAgainstOpponent = (matches: MatchRecord[], player: string, opponent: string, team: string) => matches.filter((match) => (
   match.player1 === player
   && match.player2 === opponent
@@ -188,6 +214,41 @@ function HeadToHead({ isActive }: { isActive: boolean }) {
   const playerTwoTeams = useMemo(() => getBreakdown(rivalryMatches, playerTwo, 'team'), [playerTwo, rivalryMatches])
   const playerOneMaps = useMemo(() => getBreakdown(rivalryMatches, playerOne, 'map'), [playerOne, rivalryMatches])
   const playerTwoMaps = useMemo(() => getBreakdown(rivalryMatches, playerTwo, 'map'), [playerTwo, rivalryMatches])
+  const scoreDifference = useMemo(() => getScoreDifference(rivalryMatches, playerOne), [playerOne, rivalryMatches])
+  const tacOpRows = useMemo(() => {
+    const playerOneTacOps = getTacOpCounts(rivalryMatches, playerOne)
+    const playerTwoTacOps = getTacOpCounts(rivalryMatches, playerTwo)
+    return [...new Set([...playerOneTacOps.keys(), ...playerTwoTacOps.keys()])]
+      .map((name) => ({ name, playerOne: playerOneTacOps.get(name) ?? 0, playerTwo: playerTwoTacOps.get(name) ?? 0 }))
+      .sort((first, second) => second.playerOne + second.playerTwo - first.playerOne - first.playerTwo || first.name.localeCompare(second.name))
+  }, [playerOne, playerTwo, rivalryMatches])
+  const momentumPoints = useMemo(() => {
+    let difference = 0
+    const points = [{ index: 0, difference }]
+    ;[...rivalryMatches].reverse().forEach((match, index) => {
+      const result = getResult(match, playerOne)
+      if (result === 'win') difference += 1
+      if (result === 'loss') difference -= 1
+      points.push({ index: index + 1, difference })
+    })
+    return points
+  }, [playerOne, rivalryMatches])
+  const momentumRange = useMemo(() => {
+    const differences = momentumPoints.map((point) => point.difference)
+    const min = Math.min(...differences, 0)
+    const max = Math.max(...differences, 0)
+    return min === max ? { min: min - 1, max: max + 1 } : { min, max }
+  }, [momentumPoints])
+  const momentumPath = useMemo(() => {
+    const range = Math.max(1, momentumRange.max - momentumRange.min)
+    const finalIndex = Math.max(1, momentumPoints.length - 1)
+    return momentumPoints.map((point) => {
+      const x = point.index / finalIndex * 100
+      const y = 4 + (momentumRange.max - point.difference) / range * 32
+      return `${x},${y}`
+    }).join(' ')
+  }, [momentumPoints, momentumRange])
+  const momentumBaseline = 4 + (momentumRange.max / Math.max(1, momentumRange.max - momentumRange.min)) * 32
   const freshTeamMatchups = useMemo(() => {
     if (!playerOne || !playerTwo || playerOne === playerTwo) return []
     const sortByGames = (teams: OwnedMatchupTeam[], player: string, opponent: string) => [...teams]
@@ -305,6 +366,22 @@ function HeadToHead({ isActive }: { isActive: boolean }) {
           <Breakdown title="Teams" onePlayer={playerOne} twoPlayer={playerTwo} oneRows={playerOneTeams} twoRows={playerTwoTeams} />
           <Breakdown title="Maps" onePlayer={playerOne} twoPlayer={playerTwo} oneRows={playerOneMaps} twoRows={playerTwoMaps} />
         </div>
+      </section>}
+      {rivalryMatches.length > 0 && <section className="head-to-head-section" aria-labelledby="performance-heading">
+        <header className="community-section-heading"><h3 id="performance-heading">Performance breakdown</h3><span>Missing scores excluded</span></header>
+        <div className="head-to-head-performance"><table><thead><tr><th>Metric</th><th>{playerOne}</th><th>{playerTwo}</th></tr></thead><tbody>
+          <tr><th scope="row">Average score</th><td>{getAverageScore(rivalryMatches, playerOne)?.toFixed(1) ?? 'N/A'}</td><td>{getAverageScore(rivalryMatches, playerTwo)?.toFixed(1) ?? 'N/A'}</td></tr>
+          <tr><th scope="row">Highest score</th><td>{getHighestScore(rivalryMatches, playerOne) ?? 'N/A'}</td><td>{getHighestScore(rivalryMatches, playerTwo) ?? 'N/A'}</td></tr>
+          <tr><th scope="row">Score differential</th><td>{scoreDifference == null ? 'N/A' : `${scoreDifference > 0 ? '+' : ''}${scoreDifference}`}</td><td>{scoreDifference == null ? 'N/A' : `${scoreDifference > 0 ? '−' : scoreDifference < 0 ? '+' : ''}${Math.abs(scoreDifference)}`}</td></tr>
+        </tbody></table></div>
+      </section>}
+      {rivalryMatches.length > 0 && <section className="head-to-head-section" aria-labelledby="tac-op-heading">
+        <header className="community-section-heading"><h3 id="tac-op-heading">Tac Op picks</h3><span>Pick frequency across rivalry games</span></header>
+        {tacOpRows.length > 0 ? <div className="head-to-head-performance"><table><thead><tr><th>Tac Op</th><th>{playerOne}</th><th>{playerTwo}</th></tr></thead><tbody>{tacOpRows.map((tacOp) => <tr key={tacOp.name}><th scope="row">{tacOp.name}</th><td>{tacOp.playerOne} · {(tacOp.playerOne / rivalryMatches.length * 100).toFixed(0)}%</td><td>{tacOp.playerTwo} · {(tacOp.playerTwo / rivalryMatches.length * 100).toFixed(0)}%</td></tr>)}</tbody></table></div> : <div className="empty-state"><strong>No Tac Ops logged</strong><span>Record Tac Ops on matches to show pick frequency.</span></div>}
+      </section>}
+      {rivalryMatches.length > 0 && <section className="head-to-head-section" aria-labelledby="momentum-heading">
+        <header className="community-section-heading"><h3 id="momentum-heading">Rivalry momentum</h3><span>Cumulative wins: {playerOne} minus {playerTwo}</span></header>
+        <div className="rivalry-momentum-chart"><div className="rivalry-momentum-axis"><span>{playerOne} leads</span><span>{playerTwo} leads</span></div><svg viewBox="0 0 100 40" preserveAspectRatio="none" role="img" aria-label={`Cumulative win difference between ${playerOne} and ${playerTwo}`}><line x1="0" x2="100" y1={momentumBaseline} y2={momentumBaseline} /><polyline points={momentumPath} /></svg><div className="rivalry-momentum-dates"><span>{formatDate(rivalryMatches.at(-1)!.date)}</span><span>{formatDate(rivalryMatches[0].date)}</span></div></div>
       </section>}
       <section className="fresh-team-matchups" aria-labelledby="fresh-team-matchups-heading">
         <header className="community-section-heading"><h3 id="fresh-team-matchups-heading">Fresh team matchups</h3><span>Owned non-mirror teams never used against each other</span></header>
