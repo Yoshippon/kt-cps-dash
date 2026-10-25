@@ -288,8 +288,12 @@ h1 { margin: 2px 0 0; font: 700 18px var(--display); letter-spacing: 0; color: v
 .match-image-editor { display: flex; flex-direction: column; gap: 10px; margin-top: 24px; padding-top: 18px; border-top: 1px solid var(--line); }
 .match-image-editor h4 { margin: 0; color: var(--ink); font: 700 15px var(--display); }
 .match-image-editor p { margin: 3px 0 0; color: var(--muted); font: 10px var(--mono); }
-.match-image-upload { align-self: flex-start; color: var(--orange); cursor: pointer; font: 700 10px var(--mono); text-transform: uppercase; letter-spacing: .6px; }
-.match-image-upload input { display: block; margin-top: 7px; color: var(--ink); font: 11px var(--mono); }
+.match-image-upload { position: relative; align-self: center; overflow: hidden; border: 1px solid var(--orange); background: var(--orange); color: white; cursor: pointer; padding: 12px 18px; font: 700 10px var(--mono); text-transform: uppercase; letter-spacing: .6px; }
+.match-image-upload:hover { background: #b84e22; border-color: #b84e22; }
+.match-image-upload:focus-within { outline: 2px solid var(--orange); outline-offset: 2px; }
+.match-image-upload input { position: absolute; inset: 0; width: 100%; height: 100%; cursor: pointer; opacity: 0; }
+.match-image-dropzone { display: grid; min-height: 72px; place-items: center; border: 1px dashed var(--line); color: var(--muted); font: 700 10px var(--mono); letter-spacing: .6px; text-transform: uppercase; }
+.match-image-dropzone.active { border-color: var(--orange); background: #f9e8df; color: var(--orange); }
 .match-image-editor-list { display: grid; grid-template-columns: repeat(auto-fill, minmax(116px, 1fr)); gap: 10px; }
 .match-image-editor-list figure { margin: 0; }
 .match-image-editor-item { cursor: grab; }

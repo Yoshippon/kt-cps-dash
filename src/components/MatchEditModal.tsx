@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useState, type DragEvent } from 'react'
 import { formatCritOp, getTacOpArchetypeClass, type MatchFormOptions, type MatchRecord, type TacOpOption } from '../services/matches'
 import type { MatchImage } from '../services/matchImages'
 import TeamSelect from './TeamSelect'
@@ -59,11 +59,13 @@ function MatchEditModal({ match, mode, options, isSaving, error, isUpdatingImage
   const [isCreatingPlayer, setIsCreatingPlayer] = useState(false)
   const [pendingImageFiles, setPendingImageFiles] = useState<File[]>([])
   const [draggedImageId, setDraggedImageId] = useState<string | null>(null)
+  const [isImageDropzoneActive, setIsImageDropzoneActive] = useState(false)
 
   useEffect(() => {
     setDraft(match)
     setPendingImageFiles([])
     setDraggedImageId(null)
+    setIsImageDropzoneActive(false)
   }, [match])
 
   useEffect(() => {
@@ -118,6 +120,21 @@ function MatchEditModal({ match, mode, options, isSaving, error, isUpdatingImage
     } finally {
       setIsCreatingPlayer(false)
     }
+  }
+
+  const handleImageFiles = (files: File[]) => {
+    if (files.length === 0) return
+    if (mode === 'create') {
+      setPendingImageFiles(files)
+    } else {
+      onUploadImages(files)
+    }
+  }
+
+  const handleImageDrop = (event: DragEvent<HTMLDivElement>) => {
+    event.preventDefault()
+    setIsImageDropzoneActive(false)
+    if (!isUpdatingImages) handleImageFiles(Array.from(event.dataTransfer.files))
   }
 
   return (
@@ -211,8 +228,21 @@ function MatchEditModal({ match, mode, options, isSaving, error, isUpdatingImage
           {mode === 'create' && <section className="match-image-editor" aria-labelledby="match-images-heading">
             <div><h4 id="match-images-heading">Match images</h4><p>JPEG, PNG, or WebP. Maximum 10 MB each.</p></div>
             <label className="match-image-upload">Add images
-              <input type="file" accept="image/jpeg,image/png,image/webp" multiple onChange={(event) => setPendingImageFiles(Array.from(event.target.files ?? []))} />
+              <input type="file" accept="image/jpeg,image/png,image/webp" multiple onChange={(event) => handleImageFiles(Array.from(event.target.files ?? []))} />
             </label>
+            <div
+              className={isImageDropzoneActive ? 'match-image-dropzone active' : 'match-image-dropzone'}
+              onDragEnter={(event) => {
+                event.preventDefault()
+                setIsImageDropzoneActive(true)
+              }}
+              onDragLeave={(event) => {
+                event.preventDefault()
+                if (event.currentTarget === event.target) setIsImageDropzoneActive(false)
+              }}
+              onDragOver={(event) => event.preventDefault()}
+              onDrop={handleImageDrop}
+            >Drop images here</div>
             {pendingImageFiles.length > 0 && <p className="match-image-status">{pendingImageFiles.length} image{pendingImageFiles.length === 1 ? '' : 's'} ready to upload.</p>}
           </section>}
 
@@ -220,11 +250,26 @@ function MatchEditModal({ match, mode, options, isSaving, error, isUpdatingImage
             <div><h4 id="match-images-heading">Match images</h4><p>Drag images to reorder. First image is match preview. JPEG, PNG, or WebP. Maximum 10 MB each.</p></div>
             <label className="match-image-upload">Add images
               <input type="file" accept="image/jpeg,image/png,image/webp" multiple disabled={isUpdatingImages} onChange={(event) => {
-                const files = Array.from(event.target.files ?? [])
-                if (files.length > 0) onUploadImages(files)
+                handleImageFiles(Array.from(event.target.files ?? []))
                 event.target.value = ''
               }} />
             </label>
+            <div
+              className={isImageDropzoneActive ? 'match-image-dropzone active' : 'match-image-dropzone'}
+              onDragEnter={(event) => {
+                if (isUpdatingImages) return
+                event.preventDefault()
+                setIsImageDropzoneActive(true)
+              }}
+              onDragLeave={(event) => {
+                event.preventDefault()
+                if (event.currentTarget === event.target) setIsImageDropzoneActive(false)
+              }}
+              onDragOver={(event) => {
+                if (!isUpdatingImages) event.preventDefault()
+              }}
+              onDrop={handleImageDrop}
+            >{isUpdatingImages ? 'Updating images…' : 'Drop images here'}</div>
             {draft.images.length > 0 && <div className="match-image-editor-list">{draft.images.map((image, index) => <figure
               className={draggedImageId === image.id ? 'match-image-editor-item dragging' : 'match-image-editor-item'}
               draggable={!isUpdatingImages}
