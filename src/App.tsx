@@ -11,6 +11,7 @@ import AccountMenu from './components/AccountMenu'
 import ClaimBanner from './components/ClaimBanner'
 import Profile from './components/Profile'
 import WeeklyStreak from './components/WeeklyStreak'
+import MapEditor from './components/MapEditor'
 import { AuthProvider, useAuth } from './lib/auth'
 import './App.css'
 
@@ -42,6 +43,7 @@ function AppShell() {
           <NavLink className={tabClassName} to="/stats">Stats</NavLink>
           <NavLink className={tabClassName} to="/kill-teams">Kill Teams</NavLink>
           <NavLink className={tabClassName} to="/tier-lists">Tier Lists</NavLink>
+          {isAdmin && <NavLink className={tabClassName} to="/map-editor">Map Editor</NavLink>}
         </div>
         {(isLoggedIn || isAdmin) && (
           <div className="tab-group" role="group" aria-label="Account">
@@ -60,6 +62,7 @@ function AppShell() {
         <Route path="/community" element={<Navigate replace to="/stats" />} />
         <Route path="/kill-teams" element={<KillTeams isActive />} />
         <Route path="/tier-lists" element={<TierLists isActive />} />
+        <Route path="/map-editor" element={isAdmin ? <MapEditor isActive /> : <Navigate replace to="/next-meeting" />} />
         <Route path="/profile" element={isLoggedIn ? <Profile isActive /> : <Navigate replace to="/next-meeting" />} />
         <Route path="/players/:playerId" element={<Profile isActive />} />
         <Route path="/admin" element={isAdmin ? <AdminPlayers isActive /> : <Navigate replace to="/next-meeting" />} />
