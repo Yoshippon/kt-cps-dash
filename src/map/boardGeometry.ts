@@ -1,4 +1,4 @@
-import type { BoardDimensions, BoardOrientation, BoardPoint, DeploymentZone, ObjectiveMarker, Viewport } from './mapTypes'
+import type { BoardDimensions, BoardOrientation, BoardPoint, DeploymentZone, ObjectiveMarker, TerrainDefinition, TerrainInstance, Viewport } from './mapTypes'
 
 export const BOARD_DIMENSIONS: Record<BoardOrientation, BoardDimensions> = {
   landscape: { width: 30, height: 22 },
@@ -173,3 +173,99 @@ export const getExampleObjectivePositions = (orientation: BoardOrientation): Boa
     ? [{ x: 5, y: 15 }, { x: 15, y: 11 }, { x: 25, y: 7 }]
     : [{ x: 5, y: 21 }, { x: 11, y: 15 }, { x: 17, y: 9 }]
 )
+
+export const normalizeRotation = (rotation: number) => ((rotation % 360) + 360) % 360
+
+export const getRotatedTerrainHalfExtents = (definition: TerrainDefinition, rotation: number): BoardPoint => {
+  const radians = normalizeRotation(rotation) * Math.PI / 180
+  const cosine = Math.abs(Math.cos(radians))
+  const sine = Math.abs(Math.sin(radians))
+  return {
+    x: (cosine * definition.widthIn + sine * definition.heightIn) / 2,
+    y: (sine * definition.widthIn + cosine * definition.heightIn) / 2,
+  }
+}
+
+export const clampTerrainPosition = (
+  point: BoardPoint,
+  board: BoardDimensions,
+  definition: TerrainDefinition,
+  rotation: number,
+): BoardPoint => {
+  const halfExtents = getRotatedTerrainHalfExtents(definition, rotation)
+  const minX = halfExtents.x
+  const maxX = board.width - halfExtents.x
+  const minY = halfExtents.y
+  const maxY = board.height - halfExtents.y
+  return {
+    x: minX > maxX ? board.width / 2 : Math.min(maxX, Math.max(minX, point.x)),
+    y: minY > maxY ? board.height / 2 : Math.min(maxY, Math.max(minY, point.y)),
+  }
+}
+
+export const normalizeTerrainPosition = (
+  point: BoardPoint,
+  board: BoardDimensions,
+  definition: TerrainDefinition,
+  rotation: number,
+  snapIncrement: number | null,
+) => {
+  const snapped = snapIncrement
+    ? { x: snapToIncrement(point.x, snapIncrement), y: snapToIncrement(point.y, snapIncrement) }
+    : point
+  return clampTerrainPosition(snapped, board, definition, rotation)
+}
+
+export const transformTerrainForOrientation = (
+  terrain: TerrainInstance[],
+  oldBoard: BoardDimensions & { orientation: BoardOrientation },
+  nextBoard: BoardDimensions & { orientation: BoardOrientation },
+): TerrainInstance[] => {
+  if (oldBoard.orientation === nextBoard.orientation) return terrain
+  const transform = oldBoard.orientation === 'landscape' ? rotatePointClockwise : rotatePointCounterClockwise
+  const rotationAdjustment = oldBoard.orientation === 'landscape' ? 90 : -90
+  return terrain.map((instance) => ({
+    ...instance,
+    ...transform(instance, oldBoard),
+    rotation: normalizeRotation(instance.rotation + rotationAdjustment),
+  }))
+}
+
+export const duplicateTerrainInstance = (
+  instance: TerrainInstance,
+  id: string,
+  board: BoardDimensions,
+  definition: TerrainDefinition,
+  snapIncrement: number | null,
+): TerrainInstance => {
+  const position = normalizeTerrainPosition(
+    { x: instance.x + 1, y: instance.y + 1 },
+    board,
+    definition,
+    instance.rotation,
+    snapIncrement,
+  )
+  return { ...instance, id, x: position.x, y: position.y, locked: false }
+}
+
+export const reorderTerrainInstances = (
+  terrain: TerrainInstance[],
+  terrainId: string,
+  operation: 'forward' | 'backward' | 'front' | 'back',
+): TerrainInstance[] => {
+  const index = terrain.findIndex((instance) => instance.id === terrainId)
+  if (index < 0) return terrain
+  const nextTerrain = [...terrain]
+  const [instance] = nextTerrain.splice(index, 1)
+  const targetIndex = operation === 'front'
+    ? nextTerrain.length
+    : operation === 'back'
+      ? 0
+      : operation === 'forward'
+        ? Math.min(nextTerrain.length, index + 1)
+        : Math.max(0, index - 1)
+  nextTerrain.splice(targetIndex, 0, instance)
+  return nextTerrain
+}
+
+export const canModifyTerrain = (instance: TerrainInstance) => !instance.locked

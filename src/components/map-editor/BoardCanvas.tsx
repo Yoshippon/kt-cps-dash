@@ -8,7 +8,8 @@ import {
 } from '../../map/boardGeometry'
 import { drawDeploymentZoneBoundaries, drawDeploymentZoneFills } from './DeploymentZoneLayer'
 import { drawObjectives, getObjectiveAtPoint } from './ObjectiveLayer'
-import type { BoardDimensions, BoardPoint, DeploymentZone, ObjectiveMarker, Viewport } from '../../map/mapTypes'
+import { drawTerrain, getTerrainAtPoint } from './TerrainLayer'
+import type { BoardDimensions, BoardPoint, DeploymentZone, ObjectiveMarker, TerrainInstance, Viewport } from '../../map/mapTypes'
 
 type BoardCanvasProps = {
   board: BoardDimensions
@@ -17,6 +18,8 @@ type BoardCanvasProps = {
   deploymentZones: DeploymentZone[]
   deploymentZonesVisible: boolean
   objectives: ObjectiveMarker[]
+  terrain: TerrainInstance[]
+  selectedTerrainId: string | null
   selectedObjectiveId: string | null
   interactionRangesVisible: boolean
   viewport: Viewport
@@ -27,6 +30,8 @@ type BoardCanvasProps = {
   onPointerBoardPosition: (position: BoardPoint | null) => void
   onObjectiveSelect: (objectiveId: string | null) => void
   onObjectiveMove: (objectiveId: string, position: BoardPoint) => void
+  onTerrainSelect: (terrainId: string | null) => void
+  onTerrainMove: (terrainId: string, position: BoardPoint) => void
 }
 
 const getCanvasPoint = (event: PointerEvent | WheelEvent, canvas: HTMLCanvasElement): BoardPoint => {
@@ -41,6 +46,8 @@ function BoardCanvas({
   deploymentZones,
   deploymentZonesVisible,
   objectives,
+  terrain,
+  selectedTerrainId,
   selectedObjectiveId,
   interactionRangesVisible,
   viewport,
@@ -51,6 +58,8 @@ function BoardCanvas({
   onPointerBoardPosition,
   onObjectiveSelect,
   onObjectiveMove,
+  onTerrainSelect,
+  onTerrainMove,
 }: BoardCanvasProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const viewportRef = useRef(viewport)
@@ -63,6 +72,9 @@ function BoardCanvas({
   const objectiveDragRef = useRef<{ pointerId: number; objectiveId: string } | null>(null)
   const onObjectiveMoveRef = useRef(onObjectiveMove)
   const pendingObjectiveMoveRef = useRef<{ objectiveId: string; position: BoardPoint } | null>(null)
+  const terrainDragRef = useRef<{ pointerId: number; terrainId: string } | null>(null)
+  const onTerrainMoveRef = useRef(onTerrainMove)
+  const pendingTerrainMoveRef = useRef<{ terrainId: string; position: BoardPoint } | null>(null)
 
   useEffect(() => {
     viewportRef.current = viewport
@@ -75,6 +87,10 @@ function BoardCanvas({
   useEffect(() => {
     onObjectiveMoveRef.current = onObjectiveMove
   }, [onObjectiveMove])
+
+  useEffect(() => {
+    onTerrainMoveRef.current = onTerrainMove
+  }, [onTerrainMove])
 
   const queueViewportChange = useCallback((nextViewport: Viewport) => {
     viewportRef.current = nextViewport
@@ -97,6 +113,18 @@ function BoardCanvas({
       const move = pendingObjectiveMoveRef.current
       if (move) onObjectiveMoveRef.current(move.objectiveId, move.position)
       pendingObjectiveMoveRef.current = null
+    })
+  }, [])
+
+  const queueTerrainMove = useCallback((terrainId: string, position: BoardPoint) => {
+    pendingTerrainMoveRef.current = { terrainId, position }
+    if (animationFrameRef.current !== null) return
+
+    animationFrameRef.current = requestAnimationFrame(() => {
+      animationFrameRef.current = null
+      const move = pendingTerrainMoveRef.current
+      if (move) onTerrainMoveRef.current(move.terrainId, move.position)
+      pendingTerrainMoveRef.current = null
     })
   }, [])
 
@@ -219,6 +247,7 @@ function BoardCanvas({
     }
 
     if (deploymentZonesVisible) drawDeploymentZoneBoundaries(context, deploymentZones, viewport)
+    drawTerrain(context, terrain, viewport, selectedTerrainId)
     drawObjectives(context, objectives, viewport, selectedObjectiveId, interactionRangesVisible)
 
     context.strokeStyle = '#1e2426'
@@ -251,6 +280,8 @@ function BoardCanvas({
     interactionRangesVisible,
     objectives,
     selectedObjectiveId,
+    selectedTerrainId,
+    terrain,
     viewport,
   ])
 
@@ -276,8 +307,21 @@ function BoardCanvas({
     }
 
     if (event.button !== 0) return
-    const objective = getObjectiveAtPoint(screenToBoard(point, viewportRef.current), objectives)
+    const boardPoint = screenToBoard(point, viewportRef.current)
+    const selectedTerrain = getTerrainAtPoint(boardPoint, terrain)
+    if (selectedTerrain) {
+      onTerrainSelect(selectedTerrain.id)
+      onObjectiveSelect(null)
+      if (!selectedTerrain.locked) {
+        terrainDragRef.current = { pointerId: event.pointerId, terrainId: selectedTerrain.id }
+        event.currentTarget.setPointerCapture(event.pointerId)
+      }
+      return
+    }
+
+    const objective = getObjectiveAtPoint(boardPoint, objectives)
     onObjectiveSelect(objective?.id ?? null)
+    onTerrainSelect(null)
     if (!objective) return
     objectiveDragRef.current = { pointerId: event.pointerId, objectiveId: objective.id }
     event.currentTarget.setPointerCapture(event.pointerId)
@@ -291,6 +335,11 @@ function BoardCanvas({
       queueObjectiveMove(objectiveDrag.objectiveId, screenToBoard(point, viewportRef.current))
       return
     }
+    const terrainDrag = terrainDragRef.current
+    if (terrainDrag?.pointerId === event.pointerId) {
+      queueTerrainMove(terrainDrag.terrainId, screenToBoard(point, viewportRef.current))
+      return
+    }
     const pan = panRef.current
     if (!pan || pan.pointerId !== event.pointerId) return
     queueViewportChange(panViewport(viewportRef.current, { x: point.x - pan.point.x, y: point.y - pan.point.y }))
@@ -300,9 +349,11 @@ function BoardCanvas({
   const stopInteraction = (event: React.PointerEvent<HTMLCanvasElement>) => {
     const isPanning = panRef.current?.pointerId === event.pointerId
     const isDraggingObjective = objectiveDragRef.current?.pointerId === event.pointerId
-    if (!isPanning && !isDraggingObjective) return
+    const isDraggingTerrain = terrainDragRef.current?.pointerId === event.pointerId
+    if (!isPanning && !isDraggingObjective && !isDraggingTerrain) return
     panRef.current = null
     objectiveDragRef.current = null
+    terrainDragRef.current = null
     event.currentTarget.releasePointerCapture(event.pointerId)
   }
 

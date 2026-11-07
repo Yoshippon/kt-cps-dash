@@ -2,8 +2,11 @@ import { useCallback, useEffect, useMemo, useState } from 'react'
 import BoardCanvas from './map-editor/BoardCanvas'
 import MapToolbar from './map-editor/MapToolbar'
 import ObjectiveProperties from './map-editor/ObjectiveProperties'
+import TerrainLibrary from './map-editor/TerrainLibrary'
+import TerrainProperties from './map-editor/TerrainProperties'
 import {
   createDefaultDeploymentZones,
+  duplicateTerrainInstance,
   findObjectivePlacement,
   fitBoardToViewport,
   getBoardDimensions,
@@ -12,11 +15,16 @@ import {
   MAX_ZOOM,
   MIN_ZOOM,
   normalizeObjectivePosition,
+  normalizeRotation,
+  normalizeTerrainPosition,
   OBJECTIVE_DIAMETER_MM,
   transformObjectivesForOrientation,
+  transformTerrainForOrientation,
+  reorderTerrainInstances,
   zoomViewportAtPoint,
 } from '../map/boardGeometry'
-import type { BoardOrientation, BoardPoint, MapDocument, ObjectiveMarker, Viewport } from '../map/mapTypes'
+import { getTerrainDefinition } from '../map/terrainDefinitions'
+import type { BoardOrientation, BoardPoint, MapDocument, ObjectiveMarker, TerrainDefinition, TerrainInstance, Viewport } from '../map/mapTypes'
 
 const INITIAL_VIEWPORT: Viewport = { scale: 1, offsetX: 0, offsetY: 0 }
 
@@ -29,6 +37,7 @@ function MapEditor({ isActive }: { isActive: boolean }) {
     objects: [],
     deploymentZones: createDefaultDeploymentZones({ ...getBoardDimensions('landscape'), orientation: 'landscape' }),
     objectives: [],
+    terrain: [],
   })
   const [gridVisible, setGridVisible] = useState(true)
   const [centerGuidesVisible, setCenterGuidesVisible] = useState(true)
@@ -37,6 +46,8 @@ function MapEditor({ isActive }: { isActive: boolean }) {
   const [snapEnabled, setSnapEnabled] = useState(true)
   const [snapIncrement, setSnapIncrement] = useState(.5)
   const [selectedObjectiveId, setSelectedObjectiveId] = useState<string | null>(null)
+  const [selectedTerrainId, setSelectedTerrainId] = useState<string | null>(null)
+  const [terrainLibraryCollapsed, setTerrainLibraryCollapsed] = useState(false)
   const [viewport, setViewport] = useState(INITIAL_VIEWPORT)
   const [canvasSize, setCanvasSize] = useState({ width: 0, height: 0 })
   const [pointerPosition, setPointerPosition] = useState<BoardPoint | null>(null)
@@ -50,9 +61,11 @@ function MapEditor({ isActive }: { isActive: boolean }) {
   }, [board, canvasSize])
 
   const handleCanvasResize = useCallback((width: number, height: number) => {
-    setCanvasSize({ width, height })
-    setViewport(fitBoardToViewport(document.board, width, height))
-  }, [document.board])
+    setCanvasSize((current) => current.width === width && current.height === height ? current : { width, height })
+    setViewport((current) => canvasSize.width === 0 || canvasSize.height === 0
+      ? fitBoardToViewport(document.board, width, height)
+      : current)
+  }, [canvasSize.height, canvasSize.width, document.board])
 
   const handleOrientationChange = (orientation: BoardOrientation) => {
     const nextBoard = { ...getBoardDimensions(orientation), orientation }
@@ -61,6 +74,7 @@ function MapEditor({ isActive }: { isActive: boolean }) {
       board: nextBoard,
       deploymentZones: createDefaultDeploymentZones(nextBoard),
       objectives: transformObjectivesForOrientation(current.objectives, current.board, nextBoard),
+      terrain: transformTerrainForOrientation(current.terrain, current.board, nextBoard),
     }))
     fitBoard(nextBoard)
   }
@@ -74,6 +88,8 @@ function MapEditor({ isActive }: { isActive: boolean }) {
 
   const dimensionLabel = useMemo(() => `${board.width}" × ${board.height}"`, [board.height, board.width])
   const selectedObjective = document.objectives.find((objective) => objective.id === selectedObjectiveId) ?? null
+  const selectedTerrain = document.terrain.find((terrain) => terrain.id === selectedTerrainId) ?? null
+  const selectedTerrainDefinition = selectedTerrain ? getTerrainDefinition(selectedTerrain.definitionId) : undefined
 
   const updateObjectivePosition = useCallback((objectiveId: string, position: BoardPoint) => {
     setDocument((current) => ({
@@ -136,19 +152,128 @@ function MapEditor({ isActive }: { isActive: boolean }) {
     setSelectedObjectiveId(null)
   }, [selectedObjectiveId])
 
+  const updateTerrainPosition = useCallback((terrainId: string, position: BoardPoint) => {
+    setDocument((current) => ({
+      ...current,
+      terrain: current.terrain.map((terrain) => {
+        if (terrain.id !== terrainId || terrain.locked) return terrain
+        const definition = getTerrainDefinition(terrain.definitionId)
+        return definition
+          ? { ...terrain, ...normalizeTerrainPosition(position, current.board, definition, terrain.rotation, snapEnabled ? snapIncrement : null) }
+          : terrain
+      }),
+    }))
+  }, [snapEnabled, snapIncrement])
+
+  const addTerrain = (definition: TerrainDefinition) => {
+    const position = normalizeTerrainPosition(
+      { x: board.width / 2, y: board.height / 2 },
+      board,
+      definition,
+      0,
+      snapEnabled ? snapIncrement : null,
+    )
+    const terrain: TerrainInstance = {
+      id: crypto.randomUUID(),
+      definitionId: definition.id,
+      x: position.x,
+      y: position.y,
+      rotation: 0,
+      locked: false,
+    }
+    setDocument((current) => ({ ...current, terrain: [...current.terrain, terrain] }))
+    setSelectedTerrainId(terrain.id)
+    setSelectedObjectiveId(null)
+  }
+
+  const updateSelectedTerrainPosition = (axis: 'x' | 'y', value: number) => {
+    if (!selectedTerrain || !Number.isFinite(value)) return
+    updateTerrainPosition(selectedTerrain.id, { ...selectedTerrain, [axis]: value })
+  }
+
+  const updateSelectedTerrainRotation = (rotation: number) => {
+    if (!selectedTerrain || selectedTerrain.locked || !Number.isFinite(rotation)) return
+    setDocument((current) => ({
+      ...current,
+      terrain: current.terrain.map((terrain) => {
+        if (terrain.id !== selectedTerrain.id) return terrain
+        const definition = getTerrainDefinition(terrain.definitionId)
+        const nextRotation = normalizeRotation(rotation)
+        return definition
+          ? { ...terrain, rotation: nextRotation, ...normalizeTerrainPosition(terrain, current.board, definition, nextRotation, null) }
+          : terrain
+      }),
+    }))
+  }
+
+  const rotateSelectedTerrain = useCallback((delta: number) => {
+    if (!selectedTerrainId) return
+    setDocument((current) => ({
+      ...current,
+      terrain: current.terrain.map((terrain) => {
+        if (terrain.id !== selectedTerrainId || terrain.locked) return terrain
+        const definition = getTerrainDefinition(terrain.definitionId)
+        const rotation = normalizeRotation(terrain.rotation + delta)
+        return definition
+          ? { ...terrain, rotation, ...normalizeTerrainPosition(terrain, current.board, definition, rotation, null) }
+          : terrain
+      }),
+    }))
+  }, [selectedTerrainId])
+
+  const deleteSelectedTerrain = useCallback(() => {
+    if (!selectedTerrainId || selectedTerrain?.locked) return
+    setDocument((current) => ({ ...current, terrain: current.terrain.filter((terrain) => terrain.id !== selectedTerrainId) }))
+    setSelectedTerrainId(null)
+  }, [selectedTerrain?.locked, selectedTerrainId])
+
+  const duplicateSelectedTerrain = () => {
+    if (!selectedTerrain || !selectedTerrainDefinition) return
+    const duplicate = duplicateTerrainInstance(
+      selectedTerrain,
+      crypto.randomUUID(),
+      board,
+      selectedTerrainDefinition,
+      snapEnabled ? snapIncrement : null,
+    )
+    setDocument((current) => ({ ...current, terrain: [...current.terrain, duplicate] }))
+    setSelectedTerrainId(duplicate.id)
+  }
+
+  const toggleSelectedTerrainLock = () => {
+    if (!selectedTerrainId) return
+    setDocument((current) => ({
+      ...current,
+      terrain: current.terrain.map((terrain) => terrain.id === selectedTerrainId ? { ...terrain, locked: !terrain.locked } : terrain),
+    }))
+  }
+
+  const moveSelectedTerrainLayer = (operation: 'forward' | 'backward' | 'front' | 'back') => {
+    if (!selectedTerrainId) return
+    setDocument((current) => {
+      return { ...current, terrain: reorderTerrainInstances(current.terrain, selectedTerrainId, operation) }
+    })
+  }
+
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
-      if (
-        (event.key !== 'Delete' && event.key !== 'Backspace')
-        || event.target instanceof HTMLInputElement
+      if (event.target instanceof HTMLInputElement
         || event.target instanceof HTMLSelectElement
         || event.target instanceof HTMLTextAreaElement
       ) return
-      deleteSelectedObjective()
+      if (event.key === 'Escape') {
+        setSelectedObjectiveId(null)
+        setSelectedTerrainId(null)
+      } else if (event.key.toLowerCase() === 'r' && selectedTerrain) {
+        rotateSelectedTerrain(event.shiftKey ? -90 : 90)
+      } else if (event.key === 'Delete' || event.key === 'Backspace') {
+        if (selectedTerrain) deleteSelectedTerrain()
+        else deleteSelectedObjective()
+      }
     }
     window.addEventListener('keydown', handleKeyDown)
     return () => window.removeEventListener('keydown', handleKeyDown)
-  }, [deleteSelectedObjective])
+  }, [deleteSelectedObjective, deleteSelectedTerrain, rotateSelectedTerrain, selectedTerrain])
 
   if (!isActive) return null
 
@@ -177,14 +302,22 @@ function MapEditor({ isActive }: { isActive: boolean }) {
         onFitToScreen={() => fitBoard()}
       />
       <div className="map-editor-workspace">
-        <BoardCanvas
+        <TerrainLibrary
+          collapsed={terrainLibraryCollapsed}
+          onCollapsedChange={setTerrainLibraryCollapsed}
+          onAddTerrain={addTerrain}
+        />
+        <div className="map-board-stage">
+          <BoardCanvas
           board={board}
           gridVisible={gridVisible}
           centerGuidesVisible={centerGuidesVisible}
           deploymentZones={document.deploymentZones}
           deploymentZonesVisible={deploymentZonesVisible}
           objectives={document.objectives}
+          terrain={document.terrain}
           selectedObjectiveId={selectedObjectiveId}
+          selectedTerrainId={selectedTerrainId}
           interactionRangesVisible={interactionRangesVisible}
           viewport={viewport}
           minScale={fittedViewport.scale * MIN_ZOOM}
@@ -192,11 +325,32 @@ function MapEditor({ isActive }: { isActive: boolean }) {
           onViewportChange={setViewport}
           onCanvasResize={handleCanvasResize}
           onPointerBoardPosition={setPointerPosition}
-          onObjectiveSelect={setSelectedObjectiveId}
+          onObjectiveSelect={(objectiveId) => {
+            setSelectedObjectiveId(objectiveId)
+            if (objectiveId) setSelectedTerrainId(null)
+          }}
           onObjectiveMove={updateObjectivePosition}
+          onTerrainSelect={(terrainId) => {
+            setSelectedTerrainId(terrainId)
+            if (terrainId) setSelectedObjectiveId(null)
+          }}
+          onTerrainMove={updateTerrainPosition}
         />
+        </div>
       </div>
-      {selectedObjective && (
+      {selectedTerrain && selectedTerrainDefinition ? (
+        <TerrainProperties
+          terrain={selectedTerrain}
+          definition={selectedTerrainDefinition}
+          onPositionChange={updateSelectedTerrainPosition}
+          onRotationChange={updateSelectedTerrainRotation}
+          onRotate={rotateSelectedTerrain}
+          onDuplicate={duplicateSelectedTerrain}
+          onDelete={deleteSelectedTerrain}
+          onLockToggle={toggleSelectedTerrainLock}
+          onMoveLayer={moveSelectedTerrainLayer}
+        />
+      ) : selectedObjective && (
         <ObjectiveProperties
           objective={selectedObjective}
           onPositionChange={updateSelectedObjectivePosition}

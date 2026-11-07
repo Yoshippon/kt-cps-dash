@@ -38,6 +38,32 @@ export interface ObjectiveMarker {
   interactionRangeIn: number
 }
 
+export interface TerrainFootprint {
+  type: 'rectangle' | 'polygon'
+  points?: BoardPoint[]
+}
+
+export interface TerrainDefinition {
+  id: string
+  name: string
+  environmentId: string
+  widthIn: number
+  heightIn: number
+  footprint: TerrainFootprint
+  category: string
+  color: string
+  imageUrl?: string
+}
+
+export interface TerrainInstance {
+  id: string
+  definitionId: string
+  x: number
+  y: number
+  rotation: number
+  locked: boolean
+}
+
 export interface MapDocument {
   id: string
   name: string
@@ -48,4 +74,5 @@ export interface MapDocument {
   objects: MapObject[]
   deploymentZones: DeploymentZone[]
   objectives: ObjectiveMarker[]
+  terrain: TerrainInstance[]
 }

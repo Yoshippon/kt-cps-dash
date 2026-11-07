@@ -1,27 +1,82 @@
 import { describe, expect, it } from 'vitest'
 import {
   clampObjectivePosition,
+  clampTerrainPosition,
+  duplicateTerrainInstance,
   boardToScreen,
+  canModifyTerrain,
   createDefaultDeploymentZones,
   getBoardDimensions,
   INTERACTION_DISTANCE_IN,
   OBJECTIVE_OUTER_RADIUS_IN,
   OBJECTIVE_RADIUS_IN,
   normalizeObjectivePosition,
+  normalizeRotation,
+  reorderTerrainInstances,
   rotatePointClockwise,
   screenToBoard,
   snapToIncrement,
   transformObjectivesForOrientation,
+  transformTerrainForOrientation,
 } from './boardGeometry'
-import type { ObjectiveMarker } from './mapTypes'
+import type { ObjectiveMarker, TerrainDefinition, TerrainInstance } from './mapTypes'
 
 const landscapeBoard = { ...getBoardDimensions('landscape'), orientation: 'landscape' as const }
 const portraitBoard = { ...getBoardDimensions('portrait'), orientation: 'portrait' as const }
+const terrainDefinition: TerrainDefinition = {
+  id: 'test-terrain',
+  name: 'Test Terrain',
+  environmentId: 'generic',
+  widthIn: 6,
+  heightIn: 2,
+  footprint: { type: 'rectangle' },
+  category: 'Test',
+  color: '#000000',
+}
+const terrainInstance: TerrainInstance = {
+  id: 'terrain-1',
+  definitionId: terrainDefinition.id,
+  x: 5,
+  y: 5,
+  rotation: 0,
+  locked: false,
+}
 
 describe('objective geometry', () => {
   it('converts the 40 mm objective diameter to inches and includes the edge interaction range', () => {
     expect(OBJECTIVE_RADIUS_IN).toBeCloseTo(40 / 2 / 25.4)
     expect(OBJECTIVE_OUTER_RADIUS_IN).toBeCloseTo(OBJECTIVE_RADIUS_IN + INTERACTION_DISTANCE_IN)
+  })
+
+  describe('terrain geometry', () => {
+    it('clamps rotated terrain using its rotated footprint', () => {
+      const position = clampTerrainPosition({ x: 1, y: 1 }, landscapeBoard, terrainDefinition, 90)
+      expect(position.x).toBeCloseTo(1)
+      expect(position.y).toBe(3)
+    })
+
+    it('normalizes rotations and restores terrain through orientation changes', () => {
+      expect(normalizeRotation(-90)).toBe(270)
+      const portraitTerrain = transformTerrainForOrientation([terrainInstance], landscapeBoard, portraitBoard)
+      expect(transformTerrainForOrientation(portraitTerrain, portraitBoard, landscapeBoard)).toEqual([terrainInstance])
+    })
+
+    it('duplicates unlocked terrain with an offset and keeps locked terrain immutable', () => {
+      expect(duplicateTerrainInstance(terrainInstance, 'terrain-2', landscapeBoard, terrainDefinition, .5)).toMatchObject({
+        id: 'terrain-2',
+        x: 6,
+        y: 6,
+        locked: false,
+      })
+      expect(canModifyTerrain({ ...terrainInstance, locked: true })).toBe(false)
+    })
+
+    it('reorders terrain by visible stacking order', () => {
+      const second = { ...terrainInstance, id: 'terrain-2' }
+      const third = { ...terrainInstance, id: 'terrain-3' }
+      expect(reorderTerrainInstances([terrainInstance, second, third], 'terrain-1', 'front').map((terrain) => terrain.id))
+        .toEqual(['terrain-2', 'terrain-3', 'terrain-1'])
+    })
   })
 
   it('clamps the central marker inside the board', () => {

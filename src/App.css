@@ -45,9 +45,33 @@ h1 { margin: 2px 0 0; font: 700 18px var(--display); letter-spacing: 0; color: v
 .map-editor-zoom-controls output { min-width: 52px; padding: 0 10px; color: var(--orange); font: 700 11px var(--mono); text-align: center; }
 .map-editor-action { min-height: 36px; border: 1px solid var(--orange); background: transparent; color: var(--orange); cursor: pointer; padding: 0 10px; font: 700 10px var(--mono); text-transform: uppercase; letter-spacing: .5px; }
 .map-editor-action:hover, .map-editor-action:focus-visible { background: var(--orange); color: white; outline: none; }
-.map-editor-workspace { height: max(540px, calc(100vh - 230px)); min-height: 420px; margin-top: 14px; overflow: hidden; border: 1px solid var(--line); background: #e7e5df; }
+.map-editor-workspace { display: flex; height: max(540px, calc(100vh - 230px)); min-height: 420px; margin-top: 14px; overflow: hidden; border: 1px solid var(--line); background: #e7e5df; }
+.map-board-stage { min-width: 0; flex: 1; }
 .map-board-canvas { display: block; width: 100%; height: 100%; touch-action: none; cursor: grab; }
 .map-board-canvas:active { cursor: grabbing; }
+.terrain-library { display: flex; flex: 0 0 254px; flex-direction: column; gap: 12px; overflow-y: auto; border-right: 1px solid var(--line); background: var(--paper); padding: 14px; }
+.terrain-library header { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.terrain-library header strong { color: var(--ink); font: 700 15px var(--display); }
+.terrain-library header button, .terrain-library-expand { border: 0; background: transparent; color: var(--orange); cursor: pointer; font: 700 10px var(--mono); text-transform: uppercase; letter-spacing: .5px; }
+.terrain-library > label { display: flex; flex-direction: column; gap: 6px; color: var(--muted); font: 9px var(--mono); text-transform: uppercase; letter-spacing: .5px; }
+.terrain-library select, .terrain-library input { width: 100%; border: 1px solid var(--line); border-radius: 0; background: var(--paper); color: var(--ink); padding: 8px; font: 12px var(--display); }
+.terrain-library-items { display: flex; flex-direction: column; gap: 7px; }
+.terrain-library-item { display: grid; grid-template-columns: 28px 1fr; gap: 2px 9px; border: 1px solid var(--line); background: transparent; color: var(--ink); cursor: pointer; padding: 8px; text-align: left; }
+.terrain-library-item:hover, .terrain-library-item:focus-visible { border-color: var(--orange); background: rgba(221, 93, 50, .045); outline: none; }
+.terrain-library-item > span { grid-row: 1 / span 2; align-self: stretch; min-height: 26px; border: 1px solid rgba(30, 36, 38, .25); }
+.terrain-library-item strong { font: 600 12px var(--display); }
+.terrain-library-item small { color: var(--muted); font: 9px var(--mono); text-transform: uppercase; letter-spacing: .3px; }
+.terrain-library-expand { width: 42px; border-right: 1px solid var(--line); background: var(--paper); writing-mode: vertical-rl; padding: 12px 0; }
+.terrain-properties { display: flex; align-items: end; gap: 12px; margin-top: 12px; padding: 12px; border-left: 2px solid var(--blue); background: rgba(77, 124, 139, .07); }
+.terrain-properties > div:first-child { display: flex; flex-direction: column; gap: 2px; min-width: 128px; }
+.terrain-properties strong { color: var(--ink); font: 700 15px var(--display); }
+.terrain-properties > div:first-child span { color: var(--muted); font: 9px var(--mono); text-transform: uppercase; letter-spacing: .3px; }
+.terrain-properties label { display: flex; flex-direction: column; gap: 6px; color: var(--muted); font: 9px var(--mono); text-transform: uppercase; letter-spacing: .5px; }
+.terrain-properties input { width: 82px; border: 1px solid var(--line); border-radius: 0; background: var(--paper); color: var(--ink); padding: 7px 8px; font: 13px var(--mono); }
+.terrain-property-actions { display: flex; flex-wrap: wrap; gap: 5px; max-width: 170px; }
+.terrain-property-actions button { min-height: 30px; border: 1px solid var(--line); background: var(--paper); color: var(--ink); cursor: pointer; padding: 0 7px; font: 700 9px var(--mono); text-transform: uppercase; letter-spacing: .3px; }
+.terrain-property-actions button:hover, .terrain-property-actions button:focus-visible { border-color: var(--orange); color: var(--orange); outline: none; }
+.terrain-property-actions button:disabled { cursor: not-allowed; opacity: .45; }
 .objective-properties { display: flex; align-items: end; gap: 12px; margin-top: 12px; padding: 12px; border-left: 2px solid var(--orange); background: rgba(221, 93, 50, .045); }
 .objective-properties strong { margin-right: 4px; color: var(--ink); font: 700 15px var(--display); }
 .objective-properties label { display: flex; flex-direction: column; gap: 6px; color: var(--muted); font: 9px var(--mono); text-transform: uppercase; letter-spacing: .5px; }
@@ -606,6 +630,7 @@ h1 { margin: 2px 0 0; font: 700 18px var(--display); letter-spacing: 0; color: v
 @media (max-width: 800px) { .applied-filters { grid-template-columns: repeat(2, max-content); } }
 @media (max-width: 680px) { .toolbar { flex-wrap: wrap; } .applied-filters { order: 3; width: 100%; justify-content: start; margin-left: 0; } .filter-panel, .community-filters { grid-template-columns: 1fr; gap: 12px; } .clear-filters { justify-self: start; } .admin-discord-results { align-items: stretch; flex-direction: column; } .admin-discord-results label { margin-left: 0; } .profile-teams-heading, .profile-team-card header { align-items: flex-start; flex-direction: column; } .profile-add-team { width: 100%; } .profile-add-team select { min-width: 0; flex: 1; } .preference-grid { grid-template-columns: repeat(2, 1fr); } .vote-map { grid-template-columns: 1fr auto; } .vote-map-voters { grid-column: 1 / -1; } }
 @media (max-width: 680px) { .map-editor-workspace { height: 58vh; min-height: 340px; } .map-editor-controls { width: 100%; } .map-editor-controls > label:first-child { width: 100%; } .map-editor-controls select { width: 100%; } .map-editor-status span:last-child { margin-left: 0; } }
+@media (max-width: 680px) { .terrain-library { flex-basis: 210px; padding: 10px; } .terrain-properties { align-items: stretch; flex-direction: column; } .terrain-property-actions { max-width: none; } }
 @media (max-width: 680px) { .matchup-planner { grid-template-columns: 1fr; } .suggestions { grid-column: auto; } }
 @media (max-width: 680px) { .tier-list-controls, .tier-list-setup { align-items: stretch; flex-direction: column; } .tier-list-controls select, .tier-list-setup input { min-width: 0; width: 100%; box-sizing: border-box; } .new-tier-list-button { margin-left: 0; } .tier-board { grid-template-columns: fit-content(132px) minmax(0, 1fr); } .tier-board-automatic { grid-template-columns: fit-content(156px) minmax(0, 1fr); } .tier-row-heading { min-width: 52px; } .tier-board-automatic .tier-row-heading { min-width: 132px; padding: 10px; } .tier-row-heading strong { font-size: 28px; } .tier-label-edit { opacity: .7; } .tier-row-teams { min-height: 124px; } }
 @media (max-width: 520px) { .topbar { align-items: flex-start; gap: 14px; } .account-menu { align-items: flex-start; flex-direction: column; } .account-signin-hint { max-width: 150px; } .add-match { font-size: 0; padding: 10px 13px; } .add-match span { font-size: 22px; margin: 0; } .players { font-size: 14px; flex-wrap: wrap; } .players span { width: 100%; order: 2; } .players .match-player-avatar, .teams .match-team-avatar { display: none; } .match-row-summary { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) auto auto; } .stats { grid-template-columns: repeat(2, minmax(104px, 1fr)); } .stats div:nth-child(4) { border-left: 1px solid var(--line); } .stats div:nth-child(odd) { border-left: 0; } .stats div:last-child { grid-column: 1 / -1; border-left: 0; border-top: 1px solid var(--line); } .stats strong { font-size: 23px; } .stats span { font-size: 9px; } .matrix-toolbar { align-items: flex-start; flex-direction: column; gap: 10px; } .matrix-toolbar label { justify-content: space-between; width: 100%; } .community-section-heading { align-items: flex-start; flex-direction: column; } .win-rate-chart-row { grid-template-columns: minmax(0, 1fr) 42px; gap: 7px 10px; } .win-rate-chart-bar { grid-column: 1 / -1; grid-row: 2; } .win-rate-chart-row small { grid-column: 1 / -1; grid-row: 3; } .preference-grid { grid-template-columns: 1fr; } }
